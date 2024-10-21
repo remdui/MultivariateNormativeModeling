@@ -1,0 +1,15 @@
+dataset:
+  raw_data: "freesurfer_output.rds"
+
+model_params:
+  input_dim: 100
+  hidden_dim: 64
+  latent_dim: 10
+  covariate_dim: 3
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 100
+
+experiment_params:
+  test_split: 0.2
+  random_seed: 42
