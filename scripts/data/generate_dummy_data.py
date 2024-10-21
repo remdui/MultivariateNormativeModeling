@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # Number of samples
-num_samples = 1000
+num_samples = 3000
 
 # Generate random continuous values for features f1 to f100
 data = np.random.rand(num_samples, 100)

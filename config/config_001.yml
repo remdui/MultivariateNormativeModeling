@@ -12,7 +12,6 @@ model:
   save_model: True
   save_model_path: "model.pth"
   save_model_interval: 10
-  input_dim: 100
   hidden_dim: [128, 64, 32]
   latent_dim: 10
   activation_function: "relu"  # Options: relu, leaky_relu, tanh, sigmoid

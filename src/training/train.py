@@ -13,19 +13,20 @@ def train_vae(properties):
     latent_dim = properties.get('model')['latent_dim']
     hidden_dim = properties.get('model')['hidden_dim']
     lr = properties.get('train')['learning_rate']
-    covariate_dim = properties.get('dataset')['num_covariates']
+    device = properties.get('system')['device']
 
     dataloader = FreeSurferDataloader.load_data(properties)
     input_dim = dataloader.dataset[0][0].shape[0]
-    model = VAE(input_dim, hidden_dim[0], latent_dim, 2)
+    covariate_dim = dataloader.dataset[0][1].shape[0]
+    model = VAE(input_dim, hidden_dim[0], latent_dim, covariate_dim).to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     for epoch in range(epochs):
         model.train()
         train_loss = 0
         for batch_idx, (data, covariates) in enumerate(dataloader):
-            data = data.float()  # Ensure data is of type float
-            covariates = covariates.float()  # Ensure covariates are of type float
+            data = data.float().to(device)  # Ensure data is of type float
+            covariates = covariates.float().to(device)  # Ensure covariates are of type float
             optimizer.zero_grad()
             recon_batch, mu, logvar = model(data, covariates)
             loss = loss_bce_kld(recon_batch, data, mu, logvar)

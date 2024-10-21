@@ -24,7 +24,7 @@ class FreeSurferDataset(Dataset):
         """
         Returns the brain measures and covariates for a given index.
         """
-        brain_measures = self.data.iloc[idx, 1:-self.covariates_count].values  # Features
+        brain_measures = self.data.iloc[idx, 0:-self.covariates_count].values  # Features
         covariates = self.data.iloc[idx, -self.covariates_count:].values  # Covariates
 
         if self.transform:
