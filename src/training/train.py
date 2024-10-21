@@ -1,3 +1,40 @@
+from torch import optim
+
+from model.models.vae_simple import VAE
+from model.loss_functions.bce_kl_loss import loss_bce_kld
+from preprocessing.dataloader import FreeSurferDataloader
+from util.log_utils import log_message
+from util.model_utils import save_model
+
+
+def train_vae(properties):
+    # call train_vae with the necessary parameters
+    epochs = properties.get('train')['epochs']
+    latent_dim = properties.get('model')['latent_dim']
+    hidden_dim = properties.get('model')['hidden_dim']
+    lr = properties.get('train')['learning_rate']
+    covariate_dim = properties.get('dataset')['num_covariates']
+
+    dataloader = FreeSurferDataloader.load_data(properties)
+    input_dim = dataloader.dataset[0][0].shape[0]
+    model = VAE(input_dim, hidden_dim[0], latent_dim, 2)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    for epoch in range(epochs):
+        model.train()
+        train_loss = 0
+        for batch_idx, (data, covariates) in enumerate(dataloader):
+            data = data.float()  # Ensure data is of type float
+            covariates = covariates.float()  # Ensure covariates are of type float
+            optimizer.zero_grad()
+            recon_batch, mu, logvar = model(data, covariates)
+            loss = loss_bce_kld(recon_batch, data, mu, logvar)
+            loss.backward()
+            train_loss += loss.item()
+            optimizer.step()
+
+        log_message(f"Epoch {epoch}, Loss: {train_loss / len(dataloader.dataset)}")
+        save_model(model, epoch)
 
 
 def main():

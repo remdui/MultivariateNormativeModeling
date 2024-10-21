@@ -1,15 +1,69 @@
 dataset:
   raw_data: "freesurfer_output.rds"
+  processed_data: "freesurfer_dummy_output.csv"
+  num_covariates: 2
+  normalization: "min_max"  # Options: min_max, standard, none
+  train_split: 0.7  # Training split ratio
+  val_split: 0.2  # Validation split ratio
+  test_split: 0.1  # Test split ratio
+  shuffle: True
 
-model_params:
+model:
+  save_model: True
+  save_model_path: "model.pth"
+  save_model_interval: 10
   input_dim: 100
-  hidden_dim: 64
+  hidden_dim: [128, 64, 32]
   latent_dim: 10
-  covariate_dim: 3
-  batch_size: 32
-  learning_rate: 0.001
-  epochs: 100
+  activation_function: "relu"  # Options: relu, leaky_relu, tanh, sigmoid
+  dropout_rate: 0.5  # Dropout rate for regularization
+  beta: 1.0  # Beta for Beta-VAE
+  kl_annealing: True  # Enable KL annealing
+  kl_annealing_steps: 1000  # Steps for KL annealing
+  reconstruction_loss_weight: 1.0  # Weight for reconstruction loss
+  normalization_layer: "batch_norm"  # Options: batch_norm, layer_norm, none
+  weight_initialization: "xavier"  # Options: xavier, he, normal
+  covariate_embedding: "input_embedding"  # Options: input_embedding, latent_embedding, decoder_embedding, disentalnglement_embedding
 
-experiment_params:
-  test_split: 0.2
-  random_seed: 42
+train:
+  learning_rate: 0.001
+  batch_size: 32
+  epochs: 100
+  log_interval: 10
+  optimizer: "adam"  # Options: adam, sgd, rmsprop
+  loss_function: "mse" # Options: mse, bce, cross_entropy
+  gradient_clipping: 5.0  # Gradient clipping value
+  weight_decay: 0.0001  # Weight decay for regularization
+  mixed_precision: False  # Enable mixed precision training
+  early_stopping: True  # Enable early stopping
+  early_stopping_patience: 10  # Patience for early stopping
+  early_stopping_metric: "loss"  # Metric for early stopping
+  lr_warmup_steps: 500  # Learning rate warm-up steps
+
+scheduler:
+  scheduler: "StepLR"  # Options: StepLR, ExponentialLR, ReduceLROnPlateau
+  step_size: 10  # Step size for StepLR
+  gamma: 0.1  # Gamma for learning rate scheduler
+
+system:
+  device: "cpu"  # Options: cuda, cpu
+  log_dir: "./logs"
+  output_dir: "./output"
+  model_dir: "./models"
+  data_dir: "./data"
+  checkpoint: ""
+  checkpoint_interval: 5  # Interval for saving checkpoints
+
+global:
+  seed: 42
+  num_workers: 4
+  log_level: "INFO"
+  verbose: False
+  debug: False
+
+meta:
+  experiment_name: "vae_design"
+  experiment_version: 1
+  experiment_description: "Variational Autoencoder design experiment setup"
+
+

@@ -28,10 +28,20 @@ poetry run python src/training/train.py
 ```
 
 ## Code Quality
-Run the linter using `poetry`:
+### Pylint
+
+Run PyLint using `poetry`:
+    
+```bash
+poetry run pylint ./src
+```
+
+### DSLinter
+
+Run DSLinter using `poetry`:
 
 ```bash
-poetry run pylint
+poetry run pylint --load-plugins=dslinter ./src
 ```
 
 ## Testing
