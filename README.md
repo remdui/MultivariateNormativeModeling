@@ -16,9 +16,32 @@ Start date: 14/10/24
 ## Installation
 You can install the package locally using `poetry`:
 
-```console
-$ poetry install
+```bash
+poetry install --no-root
 ```
+
+## How to use
+Train the model using `poetry`:
+
+```bash
+poetry run python src/training/train.py
+```
+
+## Code Quality
+Run the linter using `poetry`:
+
+```bash
+poetry run pylint
+```
+
+## Testing
+Run the unit tests using `poetry`:
+
+```bash
+poetry run pytest
+```
+
+
 
 ## Project Structure
 ```
