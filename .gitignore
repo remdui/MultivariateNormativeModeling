@@ -8,10 +8,15 @@ venv/
 .env/
 .idea
 
+# Dependency directories
+poetry.lock
+
 # Logs and models
-logs/
-models/
-data/
+logs/*.log
+logs/*.txt
+models/*.pt
+data/*.csv
+data/*.rds
 
 # Jupyter Notebooks checkpoints
 .ipynb_checkpoints/

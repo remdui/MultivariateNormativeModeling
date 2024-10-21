@@ -1,7 +1,0 @@
-torch
-pandas
-numpy
-scikit-learn
-pytest
-pyyaml
-pylint
