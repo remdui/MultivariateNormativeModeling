@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: master_thesis_app
+    command: poetry run python src/main.py
+    volumes:
+      - ..:/app
+    environment:
+      - PYTHONUNBUFFERED=1

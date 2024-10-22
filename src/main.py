@@ -1,23 +1,26 @@
 from training.train import train_vae
 from util.cmd_utils import parse_args
-from util.config_utils import ConfigManager
+from config.config_manager import ConfigManager
+from util.config_utils import create_default_config
 
 
 def train(train_properties):
-    print("Starting training with config")
+    print("Starting training")
     train_vae(train_properties)
 
 def validate(properties):
-    print("Starting validation with config")
+    print("Starting validation")
 
 def inference(properties):
-    print("Starting inference with config")
+    print("Starting inference")
 
 
 if __name__ == "__main__":
+    # Create a default configuration file
+    create_default_config()
+
     # Parse command-line arguments
     args = parse_args()
-
     # Create ConfigManager instance
     config_manager = ConfigManager(config_file=args.config, command_line_args=args)
 
@@ -28,7 +31,7 @@ if __name__ == "__main__":
     properties = config_manager.get_properties()
 
     # Display the merged configuration
-    properties.display()
+    print(properties)
 
     # Perform action based on the argument
     if args.action == 'train':

@@ -9,11 +9,11 @@ from util.model_utils import save_model
 
 def train_vae(properties):
     # call train_vae with the necessary parameters
-    epochs = properties.get('train')['epochs']
-    latent_dim = properties.get('model')['latent_dim']
-    hidden_dim = properties.get('model')['hidden_dim']
-    lr = properties.get('train')['learning_rate']
-    device = properties.get('system')['device']
+    epochs = properties.train.epochs
+    latent_dim = properties.model.latent_dim
+    hidden_dim = properties.model.hidden_dim
+    lr = properties.train.learning_rate
+    device = properties.system.device
 
     dataloader = FreeSurferDataloader.load_data(properties)
     input_dim = dataloader.dataset[0][0].shape[0]
@@ -34,6 +34,7 @@ def train_vae(properties):
             train_loss += loss.item()
             optimizer.step()
 
+        print(f"Epoch {epoch}, Loss: {train_loss / len(dataloader.dataset)}")
         log_message(f"Epoch {epoch}, Loss: {train_loss / len(dataloader.dataset)}")
         save_model(model, epoch)
 

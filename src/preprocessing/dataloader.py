@@ -1,18 +1,19 @@
 from torch.utils.data import DataLoader
 
+from entities.properties import Properties
 from preprocessing.dataset import FreeSurferDataset
 
 class FreeSurferDataloader:
     @staticmethod
-    def load_data(properties):
-        csv_file = properties.get('dataset')['processed_data']
-        data_dir = properties.get('system')['data_dir']
+    def load_data(properties: Properties):
+        csv_file = properties.dataset.processed_data_file
+        data_dir = properties.system.data_dir
         csv_path = f"{data_dir}/processed/{csv_file}"
 
-        batch_size = properties.get('train')['batch_size']
-        shuffle = properties.get('dataset')['shuffle']
-        num_workers = properties.get('global')['num_workers']
-        covariates_count = properties.get('dataset')['num_covariates']
+        batch_size = properties.train.batch_size
+        shuffle = properties.dataset.shuffle
+        num_workers = properties.system.num_workers
+        covariates_count = properties.dataset.num_covariates
 
         # Pass the covariates_count to the dataset
         dataset = FreeSurferDataset(csv_file=csv_path, covariates_count=covariates_count)

@@ -22,7 +22,7 @@ model:
   covariate_embedding: input_embedding
   dropout_rate: 0.5
   hidden_dim:
-  - 16
+  - 128
   - 64
   - 32
   kl_annealing: true
@@ -42,7 +42,7 @@ system:
   checkpoint: ''
   checkpoint_interval: 5
   data_dir: ./data
-  device: cuda
+  device: cpu
   log_dir: ./logs
   model_dir: ./models
   num_workers: 4
