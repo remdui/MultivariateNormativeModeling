@@ -20,6 +20,8 @@ class Properties():
         # Add system section as a top-level attribute
 
     def __init_section_attributes(self):
+        """Initialize all section attributes to None.
+        This is required to let the IDE know about the attributes."""
         self.system = None
         self.general = None
         self.meta = None

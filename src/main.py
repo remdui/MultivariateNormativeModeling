@@ -21,11 +21,9 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     args = parse_args()
+
     # Create ConfigManager instance
     config_manager = ConfigManager(config_file=args.config, command_line_args=args)
-
-    # Perform validity checks on parameters
-    config_manager.check_validity()
 
     # Retrieve the Properties object
     properties = config_manager.get_properties()

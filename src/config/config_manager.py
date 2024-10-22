@@ -1,7 +1,6 @@
 import os
 import yaml
 
-from config.config_schema import ConfigSchema
 from entities.properties import Properties
 
 
@@ -44,13 +43,6 @@ class ConfigManager:
                 break
         if not found:
             self.config[key] = value
-
-    def check_validity(self):
-        """Perform validity checks on parameters."""
-        if 'action' not in self.config or self.config['action'] not in ['train', 'validate', 'inference']:
-            raise ValueError("Invalid or missing 'action' parameter. Must be 'train', 'validate', or 'inference'.")
-        if self.config['action'] == 'inference' and not self.config.get('checkpoint'):
-            raise ValueError("Checkpoint must be provided for inference.")
 
     def get_properties(self):
         """Return a Properties object containing the merged config and args."""
