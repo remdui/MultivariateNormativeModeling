@@ -1,5 +1,6 @@
 from torch import optim
 
+from entities.properties import get_properties
 from model.models.vae_simple import VAE
 from model.loss_functions.bce_kl_loss import loss_bce_kld
 from preprocessing.dataloader import FreeSurferDataloader
@@ -7,7 +8,10 @@ from util.log_utils import log_message
 from util.model_utils import save_model
 
 
-def train_vae(properties):
+def train_vae():
+
+    properties = get_properties()
+
     # call train_vae with the necessary parameters
     epochs = properties.train.epochs
     latent_dim = properties.model.latent_dim
@@ -15,7 +19,7 @@ def train_vae(properties):
     lr = properties.train.learning_rate
     device = properties.system.device
 
-    dataloader = FreeSurferDataloader.load_data(properties)
+    dataloader = FreeSurferDataloader.init_dataloader()
     input_dim = dataloader.dataset[0][0].shape[0]
     covariate_dim = dataloader.dataset[0][1].shape[0]
     model = VAE(input_dim, hidden_dim[0], latent_dim, covariate_dim).to(device)

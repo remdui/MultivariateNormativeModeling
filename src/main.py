@@ -1,17 +1,18 @@
+from entities.properties import set_properties
 from training.train import train_vae
 from util.cmd_utils import parse_args
 from config.config_manager import ConfigManager
 from util.config_utils import create_default_config
 
 
-def train(train_properties):
+def run_training():
     print("Starting training")
-    train_vae(train_properties)
+    train_vae()
 
-def validate(properties):
+def run_validation():
     print("Starting validation")
 
-def inference(properties):
+def run_inference():
     print("Starting inference")
 
 
@@ -31,12 +32,16 @@ if __name__ == "__main__":
     # Display the merged configuration
     print(properties)
 
+    # Set properties globally
+    set_properties(properties)
+
+
     # Perform action based on the argument
     if args.action == 'train':
-        train(properties)
+        run_training()
     elif args.action == 'validate':
-        validate(properties)
+        run_validation()
     elif args.action == 'inference':
         if not args.checkpoint:
             raise ValueError("For inference, you must provide a model checkpoint with --checkpoint")
-        inference(properties)
+        run_inference()

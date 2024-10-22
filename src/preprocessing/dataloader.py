@@ -1,11 +1,13 @@
 from torch.utils.data import DataLoader
 
-from entities.properties import Properties
+from entities.properties import get_properties
 from preprocessing.dataset import FreeSurferDataset
 
 class FreeSurferDataloader:
     @staticmethod
-    def load_data(properties: Properties):
+    def init_dataloader():
+        properties = get_properties()
+
         csv_file = properties.dataset.processed_data_file
         data_dir = properties.system.data_dir
         csv_path = f"{data_dir}/processed/{csv_file}"
