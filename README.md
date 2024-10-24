@@ -28,13 +28,23 @@ poetry run python src/training/train.py
 ```
 
 ## Code Quality
-### Pylint
+### Static Code Analysis
 
-Run PyLint using `poetry`:
+- PyLint is used for static code analysis. Docs for PyLint can be found [here](https://pylint.pycqa.org/en/latest/). Run PyLint using `poetry`:
     
-```bash
-poetry run pylint ./src
-```
+    ```bash
+    poetry run pylint ./src
+    ```
+
+### Static Type Checking
+
+- MyPy is used for static type checking. Docs for MyPy can be found [here](https://mypy.readthedocs.io/en/stable/). Run MyPy using `poetry`:
+
+    ```bash
+    poetry run mypy ./src
+    ```
+
+
 
 ## Testing
 Run the unit tests using `poetry`:

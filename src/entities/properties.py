@@ -19,7 +19,7 @@ class Properties:
 
     def __init__(self, config: dict):
         """Initialize the Properties object with the provided property map."""
-        self.sections = {}
+        self.sections: dict[str, Properties.Section] = {}
 
         # Initialize sections and class attributes
         self.__init_section_attributes()
