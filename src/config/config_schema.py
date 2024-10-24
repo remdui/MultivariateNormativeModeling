@@ -2,7 +2,7 @@ class ConfigSchema:
     class Dataset:
         normalization = "min_max"
         num_covariates = 2
-        processed_data_file= "freesurfer_dummy_output.csv"
+        processed_data_file = "freesurfer_dummy_output.csv"
         raw_data_file = "freesurfer_output.rds"
         shuffle = True
         test_split = 0.1

@@ -1,6 +1,7 @@
 import pandas as pd
 from torch.utils.data import Dataset
 
+
 class FreeSurferDataset(Dataset):
     """This module contains the FreeSurferDataset class which is used to load the FreeSurfer dataset."""
 
@@ -16,8 +17,10 @@ class FreeSurferDataset(Dataset):
 
     def __getitem__(self, idx):
         """Returns the brain measures and covariates for a given index."""
-        brain_measures = self.data.iloc[idx, 0:-self.covariates_count].values  # Features
-        covariates = self.data.iloc[idx, -self.covariates_count:].values  # Covariates
+        brain_measures = self.data.iloc[
+            idx, 0 : -self.covariates_count
+        ].values  # Features
+        covariates = self.data.iloc[idx, -self.covariates_count :].values  # Covariates
 
         if self.transform:
             brain_measures = self.transform(brain_measures)

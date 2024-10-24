@@ -89,7 +89,7 @@ poetry run python src/main.py --config [CONFIG_PATH] --mode [MODE] [OPTIONS]
 
 The `main.py` file accepts the following required arguments:
 - `--config`: Path to the configuration file. Default: `config/config_001.yml`.
-- `--mode`: Mode to run the project in. Options: `train`, `inference`. Default: `train`.
+- `--mode`: Mode to run the project in. Options: `train`, `inference`, `validate`. Default: `train`.
 
 The `main.py` file accepts the following optional arguments:
 - `--checkpoint`: Path to a checkpoint to load.
@@ -119,11 +119,11 @@ Check the following files for more information:
 You can run the project in a Docker container after building the image (see the `Setup` section above):
 
 ```bash 
-docker run -v /path/to/data:/data
-           -v /path/to/output:/output
-           -v /path/to/logs:/logs
-           -v /path/to/models:/models
-           -v /path/to/config:/config
+docker run -v /path/to/data:/data \
+           -v /path/to/output:/output \
+           -v /path/to/logs:/logs \
+           -v /path/to/models:/models \
+           -v /path/to/config:/config \
            master-thesis --config [CONFIG_PATH] --mode [MODE] [OPTIONS]
 ```
 ---
@@ -144,6 +144,20 @@ docker run -v /path/to/data:/data
     ```bash
     poetry run mypy ./src
     ```
+  
+### Code Formatting
+- Black is used for code formatting. Docs for Black can be found [here](https://black.readthedocs.io/en/stable/). Run Black using `poetry`:
+
+    ```bash
+    poetry run black --check ./src
+    ```
+  
+  To apply the changes to the files, use without the `--check` flag:
+
+    ```bash
+    poetry run black ./src --write
+    ```
+
 
 ### Docstring Formatting
 
@@ -156,7 +170,7 @@ docker run -v /path/to/data:/data
   To apply the changes to the files, use the `--write` flag:
   
     ```bash
-    poetry run docformatter ./src --write
+    poetry run pydocstringformatter ./src --write
     ```
 ---
 ## Testing

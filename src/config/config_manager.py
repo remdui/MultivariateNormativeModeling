@@ -1,8 +1,10 @@
 import os
 import yaml
 
+
 class ConfigManager:
     """Manages loading and merging config and arguments, and returns a Properties object."""
+
     def __init__(self, config_file=None, command_line_args=None):
         self.config = {}
         self.args = command_line_args
@@ -13,10 +15,10 @@ class ConfigManager:
         """Load the configuration from a YAML file."""
 
         # config files are located in ./config
-        config_file = os.path.join('./config', config_file)
+        config_file = os.path.join("./config", config_file)
 
         if config_file and os.path.exists(config_file):
-            with open(config_file, 'r', encoding='utf-8') as file:
+            with open(config_file, "r", encoding="utf-8") as file:
                 self.config = yaml.safe_load(file)
         else:
             raise FileNotFoundError(f"Configuration file {config_file} not found.")

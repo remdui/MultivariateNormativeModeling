@@ -9,8 +9,10 @@ def run_training():
     print("Starting training")
     train_vae()
 
+
 def run_validation():
     print("Starting validation")
+
 
 def run_inference():
     print("Starting inference")
@@ -35,11 +37,13 @@ if __name__ == "__main__":
     print(Properties.get_instance())
 
     # Perform action based on the argument
-    if args.mode == 'train':
+    if args.mode == "train":
         run_training()
-    elif args.mode == 'validate':
+    elif args.mode == "validate":
         run_validation()
-    elif args.mode == 'inference':
+    elif args.mode == "inference":
         if not args.checkpoint:
-            raise ValueError("For inference, you must provide a model checkpoint with --checkpoint")
+            raise ValueError(
+                "For inference, you must provide a model checkpoint with --checkpoint"
+            )
         run_inference()

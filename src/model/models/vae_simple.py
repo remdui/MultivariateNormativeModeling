@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+
 class VAE(nn.Module):
     def __init__(self, input_dim, hidden_dim, latent_dim, covariate_dim):
         super().__init__()

@@ -23,6 +23,7 @@ pandas-stubs = "2.2.3.241009"
 pylint = "3.3.1"
 mypy = "1.13.0"
 pydocstringformatter = "0.7.3"
+black = "24.10.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "8.3.3"

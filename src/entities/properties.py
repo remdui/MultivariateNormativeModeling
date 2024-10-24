@@ -1,5 +1,6 @@
 from config.config_schema import ConfigSchema
 
+
 class Properties:
 
     _instance = None
@@ -44,16 +45,20 @@ class Properties:
     def __init_section_properties(self, property_map):
         # Dynamically create sections and assign them as immutable sections
         for section_name in dir(ConfigSchema):
-            if not section_name.startswith("__") and isinstance(getattr(ConfigSchema, section_name), type):
+            if not section_name.startswith("__") and isinstance(
+                getattr(ConfigSchema, section_name), type
+            ):
                 section_schema = getattr(ConfigSchema, section_name)
-                section_data = property_map.get(section_name.lower(), {}) # Assuming lowercase in property_map
+                section_data = property_map.get(
+                    section_name.lower(), {}
+                )  # Assuming lowercase in property_map
                 section = Properties.Section(section_data, section_schema, section_name)
                 setattr(self, section_name.lower(), section)  # Set section dynamically
                 self.sections[section_name.lower()] = section
 
     def __setattr__(self, key, value):
         """Prevent modifications to existing attributes after initialization."""
-        if hasattr(self, '_locked') and self._locked:
+        if hasattr(self, "_locked") and self._locked:
             raise AttributeError(f"Cannot modify immutable property section '{key}'")
         super().__setattr__(key, value)
 
@@ -61,9 +66,9 @@ class Properties:
         """String representation of all sections for debugging purposes."""
         return f"Properties: \n{''.join(f'{v}\n' for k, v in self.sections.items())}"
 
-
     class Section:
         """Define a section of the configuration."""
+
         def __init__(self, section_map, section_schema, section_name):
             self.section_map = section_map
             self.section_schema = section_schema
@@ -78,21 +83,27 @@ class Properties:
             Return the value from the section map if it exists, otherwise return the default value from the schema.
             """
             if key not in self.section_map:
-                raise AttributeError(f"'{self.section_name}' section does not contain property '{key}'")
+                raise AttributeError(
+                    f"'{self.section_name}' section does not contain property '{key}'"
+                )
 
             if hasattr(self.section_schema, key):
                 return self.section_map.get(key, getattr(self.section_schema, key))
-            raise AttributeError(f"'{self.section_name}' section contains unknown property '{key}'. Register the property in the ConfigSchema or check for typos.")
+            raise AttributeError(
+                f"'{self.section_name}' section contains unknown property '{key}'. Register the property in the ConfigSchema or check for typos."
+            )
 
         def __setattr__(self, key, value):
             """Custom attribute setter to prevent modification of section attributes."""
             # Allow setting the section_map, section_schema, and section_name before locking the section
-            if key in {'section_map', 'section_schema', 'section_name'}:
+            if key in {"section_map", "section_schema", "section_name"}:
                 super().__setattr__(key, value)
 
             # Prevent modification of attributes after initialization
-            elif hasattr(self, '_locked') and self._locked:
-                raise AttributeError(f"Cannot modify property '{key}' in immutable property section '{self.section_name}'")
+            elif hasattr(self, "_locked") and self._locked:
+                raise AttributeError(
+                    f"Cannot modify property '{key}' in immutable property section '{self.section_name}'"
+                )
 
             # If not locked, allow setting the attribute (also allows locked attributes to be set)
             else:
@@ -104,5 +115,9 @@ class Properties:
 
         def __repr__(self):
             """Provide a useful string representation of a config section."""
-            attrs = {key: self.__getattr__(key) for key in dir(self) if not key.startswith("__")}
+            attrs = {
+                key: self.__getattr__(key)
+                for key in dir(self)
+                if not key.startswith("__")
+            }
             return f"Section({self.section_name}: {attrs})"

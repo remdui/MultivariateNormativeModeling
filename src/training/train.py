@@ -30,7 +30,9 @@ def train_vae():
         train_loss = 0
         for _, (data, covariates) in enumerate(dataloader):
             data = data.float().to(device)  # Ensure data is of type float
-            covariates = covariates.float().to(device)  # Ensure covariates are of type float
+            covariates = covariates.float().to(
+                device
+            )  # Ensure covariates are of type float
             optimizer.zero_grad()
             recon_batch, mu, logvar = model(data, covariates)
             loss = loss_bce_kld(recon_batch, data, mu, logvar)
