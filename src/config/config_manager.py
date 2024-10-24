@@ -1,30 +1,27 @@
 import os
 import yaml
 
-from entities.properties import Properties
-
-
 class ConfigManager:
     """Manages loading and merging config and arguments, and returns a Properties object."""
     def __init__(self, config_file=None, command_line_args=None):
         self.config = {}
         self.args = command_line_args
-        self.load_config(config_file)
-        self.override_with_args()
+        self._load_config(config_file)
+        self._override_with_args()
 
-    def load_config(self, config_file):
+    def _load_config(self, config_file):
         """Load the configuration from a YAML file."""
 
         # config files are located in ./config
         config_file = os.path.join('./config', config_file)
 
         if config_file and os.path.exists(config_file):
-            with open(config_file, 'r') as file:
+            with open(config_file, 'r', encoding='utf-8') as file:
                 self.config = yaml.safe_load(file)
         else:
             raise FileNotFoundError(f"Configuration file {config_file} not found.")
 
-    def override_with_args(self):
+    def _override_with_args(self):
         """Override configuration values with command-line arguments."""
         if self.args:
             for arg in vars(self.args):
@@ -44,6 +41,6 @@ class ConfigManager:
         if not found:
             self.config[key] = value
 
-    def get_properties(self):
+    def get_config(self):
         """Return a Properties object containing the merged config and args."""
-        return Properties(self.config)
+        return self.config

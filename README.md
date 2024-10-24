@@ -36,14 +36,6 @@ Run PyLint using `poetry`:
 poetry run pylint ./src
 ```
 
-### DSLinter
-
-Run DSLinter using `poetry`:
-
-```bash
-poetry run pylint --load-plugins=dslinter ./src
-```
-
 ## Testing
 Run the unit tests using `poetry`:
 

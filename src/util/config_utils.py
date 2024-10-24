@@ -19,5 +19,5 @@ def create_default_config():
         'scheduler': {key: getattr(ConfigSchema.Scheduler, key) for key in dir(ConfigSchema.Scheduler) if
                       not key.startswith("__")}
     }
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w', encoding='utf-8') as file:
         yaml.dump(default_config, file)

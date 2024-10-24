@@ -1,7 +1,7 @@
-from entities.properties import set_properties
+from config.config_manager import ConfigManager
+from entities.properties import Properties
 from training.train import train_vae
 from util.cmd_utils import parse_args
-from config.config_manager import ConfigManager
 from util.config_utils import create_default_config
 
 
@@ -27,14 +27,12 @@ if __name__ == "__main__":
     config_manager = ConfigManager(config_file=args.config, command_line_args=args)
 
     # Retrieve the Properties object
-    properties = config_manager.get_properties()
+    config = config_manager.get_config()
+
+    Properties.initialize(config)
 
     # Display the merged configuration
-    print(properties)
-
-    # Set properties globally
-    set_properties(properties)
-
+    print(Properties.get_instance())
 
     # Perform action based on the argument
     if args.action == 'train':

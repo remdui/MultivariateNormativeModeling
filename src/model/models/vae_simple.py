@@ -1,10 +1,10 @@
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 
 class VAE(nn.Module):
     def __init__(self, input_dim, hidden_dim, latent_dim, covariate_dim):
-        super(VAE, self).__init__()
+        super().__init__()
         self.fc1 = nn.Linear(input_dim + covariate_dim, hidden_dim)
         self.fc21 = nn.Linear(hidden_dim, latent_dim)  # Mean
         self.fc22 = nn.Linear(hidden_dim, latent_dim)  # Log variance

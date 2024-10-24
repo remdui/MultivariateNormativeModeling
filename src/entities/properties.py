@@ -1,24 +1,29 @@
 from config.config_schema import ConfigSchema
 
-_properties_instance = None
-
-def set_properties(properties):
-    global _properties_instance
-    _properties_instance = properties
-
-def get_properties():
-    if _properties_instance is None:
-        raise ValueError("Properties have not been initialized.")
-    return _properties_instance
-
 class Properties:
-    """Holds the final configuration (merged from config file and command-line arguments)."""
-    def __init__(self, property_map: dict):
+
+    _instance = None
+
+    @classmethod
+    def initialize(cls, config):
+        """Initializes the Properties object only once."""
+        if cls._instance is None:
+            cls._instance = Properties(config)
+
+    @classmethod
+    def get_instance(cls):
+        """Returns the initialized Properties instance."""
+        if cls._instance is None:
+            raise ValueError("Properties have not been initialized.")
+        return cls._instance
+
+    def __init__(self, config: dict):
+        """Initialize the Properties object with the provided property map."""
         self.sections = {}
 
         # Initialize sections and class attributes
         self.__init_section_attributes()
-        self.__init_section_properties(property_map)
+        self.__init_section_properties(config)
 
         # Lock the object to prevent further modification
         self._locked = True
@@ -65,7 +70,6 @@ class Properties:
             # Lock the section after initialization
             self._locked = True
 
-
         def __getattr__(self, key):
             """Check whether the config property exists in the schema.
             Return the value from the section map if it exists, otherwise return the default value from the schema."""
@@ -74,15 +78,13 @@ class Properties:
 
             if hasattr(self.section_schema, key):
                 return self.section_map.get(key, getattr(self.section_schema, key))
-            else:
-                raise AttributeError(f"'{self.section_name}' section contains unknown property '{key}'. Register the property in the ConfigSchema or check for typos.")
+            raise AttributeError(f"'{self.section_name}' section contains unknown property '{key}'. Register the property in the ConfigSchema or check for typos.")
 
         def __setattr__(self, key, value):
             """Custom attribute setter to prevent modification of section attributes."""
             # Allow setting the section_map, section_schema, and section_name before locking the section
-            if key == 'section_map' or key == 'section_schema' or key == 'section_name':
+            if key in {'section_map', 'section_schema', 'section_name'}:
                 super().__setattr__(key, value)
-                return
 
             # Prevent modification of attributes after initialization
             elif hasattr(self, '_locked') and self._locked:
@@ -100,4 +102,3 @@ class Properties:
             """Provide a useful string representation of a config section."""
             attrs = {key: self.__getattr__(key) for key in dir(self) if not key.startswith("__")}
             return f"Section({self.section_name}: {attrs})"
-

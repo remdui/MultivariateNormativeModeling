@@ -1,6 +1,6 @@
+from datetime import datetime
 import os
 import torch
-from datetime import datetime
 
 def save_model(model, epoch):
     if not os.path.exists('models'):
