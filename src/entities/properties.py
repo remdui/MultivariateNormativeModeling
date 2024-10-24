@@ -30,7 +30,9 @@ class Properties:
 
     def __init_section_attributes(self):
         """Initialize all section attributes to None.
-        This is required to let the IDE know about the attributes."""
+
+        This is required to let the IDE know about the attributes.
+        """
         self.system = None
         self.general = None
         self.meta = None
@@ -72,7 +74,9 @@ class Properties:
 
         def __getattr__(self, key):
             """Check whether the config property exists in the schema.
-            Return the value from the section map if it exists, otherwise return the default value from the schema."""
+
+            Return the value from the section map if it exists, otherwise return the default value from the schema.
+            """
             if key not in self.section_map:
                 raise AttributeError(f"'{self.section_name}' section does not contain property '{key}'")
 
@@ -95,7 +99,7 @@ class Properties:
                 super().__setattr__(key, value)
 
         def __dir__(self):
-            """ Set the existing config keys as the attributes of the class"""
+            """Set the existing config keys as the attributes of the class."""
             return list(self.section_map.keys())
 
         def __repr__(self):

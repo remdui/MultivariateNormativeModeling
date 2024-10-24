@@ -20,11 +20,12 @@ types-PyYAML = "6.0.2"
 pandas-stubs = "2.2.3.241009"
 
 [tool.poetry.group.dev.dependencies]
-pylint = "^3.3.1"
-mypy = "^1.13.0"
+pylint = "3.3.1"
+mypy = "1.13.0"
+pydocstringformatter = "0.7.3"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^8.3.3"
+pytest = "8.3.3"
 
 [build-system]
 requires = ["poetry-core"]

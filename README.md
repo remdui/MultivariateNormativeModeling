@@ -44,7 +44,19 @@ poetry run python src/training/train.py
     poetry run mypy ./src
     ```
 
+### Docstring Formatting
 
+- Docstringsformatter is used to format docstrings. Docs for Docstringsformatter can be found [here](https://pydocstringformatter.readthedocs.io/en/latest/). Run Docstringsformatter using `poetry`:
+
+    ```bash
+    poetry run pydocstringformatter ./src
+    ```
+  
+  To apply the changes to the files, use the `--write` flag:
+  
+    ```bash
+    poetry run docformatter ./src --write
+    ```
 
 ## Testing
 Run the unit tests using `poetry`:
