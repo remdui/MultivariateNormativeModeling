@@ -1,8 +1,8 @@
 from torch import optim
 
 from entities.properties import Properties
-from model.models.vae_simple import VAE
 from model.loss_functions.bce_kl_loss import loss_bce_kld
+from model.models.vae_simple import VAE
 from preprocessing.dataloader import FreeSurferDataloader
 from util.log_utils import log_message
 from util.model_utils import save_model

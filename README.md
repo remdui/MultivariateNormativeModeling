@@ -144,18 +144,32 @@ docker run -v /path/to/data:/data \
     ```bash
     poetry run mypy ./src
     ```
+
+### Import Sorting
+- isort is used for import sorting. Docs for isort can be found [here](https://pycqa.github.io/isort/). Run isort using `poetry`:
+
+    ```bash
+    poetry run isort --diff ./src
+    ```
   
+  To apply the changes to the files, use without the `--diff` flag:
+
+    ```bash
+    poetry run isort ./src
+    ```
+
+
 ### Code Formatting
 - Black is used for code formatting. Docs for Black can be found [here](https://black.readthedocs.io/en/stable/). Run Black using `poetry`:
 
     ```bash
-    poetry run black --check ./src
+    poetry run black --check --diff ./src
     ```
   
-  To apply the changes to the files, use without the `--check` flag:
+  To apply the changes to the files, use without the `--check` and `--diff` flags:
 
     ```bash
-    poetry run black ./src --write
+    poetry run black ./src
     ```
 
 
