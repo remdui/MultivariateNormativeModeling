@@ -17,8 +17,8 @@ age = np.random.randint(7, 20, size=(num_samples, 1))
 combined_data = np.hstack((data, gender, age))
 
 # Create a DataFrame
-columns = [f'f{i}' for i in range(1, 101)] + ['gender', 'age']
+columns = [f"f{i}" for i in range(1, 101)] + ["gender", "age"]
 df = pd.DataFrame(combined_data, columns=columns)
 
 # Save to CSV
-df.to_csv('generated_data.csv', index=False)
+df.to_csv("generated_data.csv", index=False)

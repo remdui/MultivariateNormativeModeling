@@ -136,6 +136,11 @@ docker run -v /path/to/data:/data \
     ```bash
     poetry run pylint ./src
     ```
+- Ruff can be used for additional static code analysis. Docs for Ruff can be found [here](https://docs.astral.sh/ruff/). Run Ruff using `poetry`:
+
+    ```bash
+    poetry run ruff check ./src
+    ```
 
 ### Static Type Checking
 
@@ -160,7 +165,7 @@ docker run -v /path/to/data:/data \
 
 
 ### Code Formatting
-- Black is used for code formatting. Docs for Black can be found [here](https://black.readthedocs.io/en/stable/). Run Black using `poetry`:
+- Black (PEP8 compliant) is used for code formatting. Docs for Black can be found [here](https://black.readthedocs.io/en/stable/). Run Black using `poetry`:
 
     ```bash
     poetry run black --check --diff ./src
@@ -172,7 +177,31 @@ docker run -v /path/to/data:/data \
     poetry run black ./src
     ```
 
+- Ruff (more aggressive, use with caution\[!]) can be used for additional code formatting. Docs for Ruff can be found [here](https://docs.astral.sh/ruff/). Run Ruff using `poetry`:
 
+    ```bash
+    poetry run ruff format --check --diff ./src
+    ```
+
+    To apply the changes to the files, use without the `--check` and `--diff` flags:
+    
+    ```bash
+    poetry run ruff format ./src
+    ```  
+
+### Unused Code Cleaning
+- Autoflake can be used to remove unused imports and variables. Docs for Autoflake can be found [here](https://github.com/PyCQA/autoflake). Run Autoflake using `poetry`:
+
+    ```bash
+    poetry run autoflake --remove-all-unused-imports --remove-unused-variables --in-place --check -r .
+    ```
+  
+    To apply the changes to the files, use without the `--check` flag:
+    
+    ```bash
+    poetry run autoflake --remove-all-unused-imports --remove-unused-variables --in-place -r .
+    ```
+  
 ### Docstring Formatting
 
 - Docstringsformatter is used to format docstrings. Docs for Docstringsformatter can be found [here](https://pydocstringformatter.readthedocs.io/en/latest/). Run Docstringsformatter using `poetry`:
@@ -186,6 +215,7 @@ docker run -v /path/to/data:/data \
     ```bash
     poetry run pydocstringformatter ./src --write
     ```
+
 ---
 ## Testing
 Run the unit tests using `poetry`:

@@ -9,7 +9,6 @@ from util.model_utils import save_model
 
 
 def train_vae():
-
     properties = Properties.get_instance()
 
     # call train_vae with the necessary parameters

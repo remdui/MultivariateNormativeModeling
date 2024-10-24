@@ -4,7 +4,6 @@ from training.train import train_vae
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
 
-
 def run_training():
     print("Starting training")
     train_vae()
@@ -35,6 +34,8 @@ if __name__ == "__main__":
 
     # Display the merged configuration
     print(Properties.get_instance())
+
+    test = 1
 
     # Perform action based on the argument
     if args.mode == "train":

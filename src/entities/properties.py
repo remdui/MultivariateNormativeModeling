@@ -2,7 +2,6 @@ from config.config_schema import ConfigSchema
 
 
 class Properties:
-
     _instance = None
 
     @classmethod
