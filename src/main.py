@@ -35,11 +35,11 @@ if __name__ == "__main__":
     print(Properties.get_instance())
 
     # Perform action based on the argument
-    if args.action == 'train':
+    if args.mode == 'train':
         run_training()
-    elif args.action == 'validate':
+    elif args.mode == 'validate':
         run_validation()
-    elif args.action == 'inference':
+    elif args.mode == 'inference':
         if not args.checkpoint:
             raise ValueError("For inference, you must provide a model checkpoint with --checkpoint")
         run_inference()

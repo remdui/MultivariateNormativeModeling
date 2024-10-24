@@ -4,7 +4,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run VAE Pipeline")
 
     # Main parameters
-    parser.add_argument('--action', type=str, required=True, choices=['train', 'validate', 'inference'],
+    parser.add_argument('--mode', type=str, required=True, choices=['train', 'validate', 'inference'],
                         help="Action to perform: train, validate, inference")
     parser.add_argument('--config', type=str, required=True, help="Path to the configuration file")
 
