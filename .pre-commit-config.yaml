@@ -9,7 +9,10 @@ repos:
     rev: "24.10.0"
     hooks:
     -   id: black
+        name: "Code Formatter (black)"
 -   repo: https://github.com/asottile/pyupgrade
     rev: v3.19.0
     hooks:
     -   id: pyupgrade
+        name: "Upgrade Python Syntax"
+        args: [--py312-plus]

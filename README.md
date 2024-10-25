@@ -216,6 +216,13 @@ docker run -v /path/to/data:/data \
     poetry run pydocstringformatter ./src --write
     ```
 
+### Upgrade Python Syntax (>=3.12 compatible)
+
+- PyUpgrade can be used to upgrade Python syntax. Docs for PyUpgrade can be found [here](https://github.com/asottile/pyupgrade). Run PyUpgrade using `poetry`:
+
+    ```bash
+    poetry run pyupgrade --py312-plus
+    ```
 ---
 ## Testing
 Run the unit tests using `poetry`:
