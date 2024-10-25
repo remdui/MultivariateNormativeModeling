@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  codequality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.3'
+
+      - name: Install Poetry
+        run: curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install dependencies
+        run: |
+          poetry install
+
+      - name: Run autoflake
+        run: poetry run autoflake --remove-all-unused-imports --remove-unused-variables --in-place --check -r .
+
+      - name: Sort imports with isort
+        run: poetry run isort --diff --check ./src
+
+      - name: Format docstrings
+        run: poetry run pydocstringformatter ./src
+
+      - name: Format code with Black
+        run: poetry run black --check --diff ./src
+
+      - name: Format code with Ruff
+        run: poetry run ruff format --check ./src
+
+      - name: Lint with pylint
+        run: poetry run pylint ./src
+
+      - name: Static code analysis with Ruff
+        run: poetry run ruff check ./src
+
+      - name: Type check with mypy
+        run: poetry run mypy ./src
+
+      - name: Run Bandit for security
+        run: poetry run bandit --ini .bandit -r .
+
+      - name: Check code complexity with Xenon
+        run: poetry run xenon --max-absolute A --max-modules A --max-average A ./src
+
+      - name: Run pre-commit YAML and whitespace hooks
+        run: |
+          poetry run pre-commit run check-yaml --all-files
+          poetry run pre-commit run end-of-file-fixer --all-files
+          poetry run pre-commit run trailing-whitespace --all-files
