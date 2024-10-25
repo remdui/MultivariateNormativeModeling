@@ -128,6 +128,101 @@ docker run -v /path/to/data:/data \
 ```
 ---
 
+## Contributing
+
+### Dependency Management
+
+`Poetry` is used for dependency management. Docs for Poetry can be found [here](https://python-poetry.org/docs/).
+
+
+- Add a new dependency using `poetry`:
+
+    ```bash
+    poetry add [DEPENDENCY] --
+    ```
+
+- To update a dependency, use the `poetry` command:
+
+    ```bash
+    poetry update [DEPENDENCY]
+    ```
+
+- To remove a dependency, use the `poetry` command:
+
+    ```bash
+    poetry remove [DEPENDENCY]
+    ```
+
+Make sure to update the `.pre-commit-config.yaml` file with the updated dependencies. Here, the `rev` key should be updated to the same version as the updated dependency in the `.pyproject.toml` file.
+
+If the `.pyproject.toml` is manually updated, make sure to run the following command to update the lock file and to install the new dependencies:
+
+```bash
+poetry lock && poetry install
+```
+
+
+### Pre-Commit Hooks
+
+Pre-commit hooks are used to ensure consistent and validated code style and quality. Docs for Pre-Commit can be found [here](https://pre-commit.com/).
+
+- Install the pre-commit hooks using `poetry`:
+
+    ```bash
+    poetry run pre-commit install
+    ```
+
+- Run the pre-commit hooks manually using `poetry`:
+
+    ```bash
+    poetry run pre-commit run --all-files
+    ```
+
+**Note:** Code quality can also be manually checked before committing changes using the code quality tools described below in the `Code Quality` section.
+
+
+### Git Workflow
+
+- Create a new branch for a new feature or bug fix:
+
+    ```bash
+    git checkout -b feature/feature_name
+    ```
+
+- Commit changes to the branch:
+
+    ```bash
+    git add .
+    git commit -m "Commit message"
+    ```
+
+- Push the branch to the remote repository:
+
+    ```bash
+    git push origin feature/feature_name
+    ```
+
+- Create a pull request on GitHub and assign reviewers.
+
+
+### Code Style
+
+`PEP8` standards are used as code style guide. Docs for PEP8 can be found [here](https://pep8.org/).
+Code style is enforced using the pre-commit hooks and CI/CD pipelines. Manual checks are available using the code quality tools described below in the `Code Quality` section.
+
+
+### Code Quality
+
+Code quality is enforced using the bundled code quality tools and unit tests.
+
+Different levels of code quality checks are available:
+- Manual checks are available using the code quality tools described below in the `Code Quality` section and the testing tools in the `Testing` section.
+- `Pre-commit hooks` are used to validate local changes before committing.
+- Remote CI/CD pipelines are used to ensure code quality and to run tests. The CI/CD pipeline is set up using GitHub Actions. The pipeline can be found in the `.github/workflows` directory.
+- Model validation is performed using the `validate` mode in the `main.py` file. This mode can be used to validate the model using a validation dataset.
+
+---
+
 ## Code Quality
 ### Static Code Analysis
 

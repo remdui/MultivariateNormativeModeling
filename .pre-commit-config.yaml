@@ -1,18 +1,21 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v3.19.0
     hooks:
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
+    -   id: pyupgrade
+        name: "Upgrade Python Syntax (pyupgrade)"
+        args: [--py312-plus]
 -   repo: https://github.com/psf/black
     rev: "24.10.0"
     hooks:
     -   id: black
         name: "Code Formatter (black)"
--   repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.0
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
     hooks:
-    -   id: pyupgrade
-        name: "Upgrade Python Syntax"
-        args: [--py312-plus]
+    -   id: check-yaml
+        name: "Check YAML files"
+    -   id: end-of-file-fixer
+        name: "Ensure Files End with Newline"
+    -   id: trailing-whitespace
+        name: "Trim Trailing Whitespace"
