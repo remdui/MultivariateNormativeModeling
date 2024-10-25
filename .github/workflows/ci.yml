@@ -11,7 +11,7 @@ jobs:
     name: Code Quality
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -22,42 +22,42 @@ jobs:
       - name: Install Poetry
         run: curl -sSL https://install.python-poetry.org | python3 -
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           poetry install
 
-      - name: Run autoflake
+      - name: Remove Unused Imports and Variables (autoflake)
         run: poetry run autoflake --remove-all-unused-imports --remove-unused-variables --in-place --check -r .
 
-      - name: Sort imports with isort
+      - name: Import Sorting (isort)
         run: poetry run isort --diff --check ./src
 
-      - name: Format docstrings
-        run: poetry run pydocstringformatter ./src
+      - name: Docstring Formatter (pydocstringformatter)
+        run: poetry run pydocstringformatter --exit-code ./src
 
-      - name: Format code with Black
+      - name: Code Formatter (black)
         run: poetry run black --check --diff ./src
 
-      - name: Format code with Ruff
-        run: poetry run ruff format --check ./src
-
-      - name: Lint with pylint
+      - name: Static Code Analysis 1/2 (pylint)
         run: poetry run pylint ./src
 
-      - name: Static code analysis with Ruff
+      - name: Static Code Analysis 2/2 (ruff)
         run: poetry run ruff check ./src
 
-      - name: Type check with mypy
+      - name: Static Type Checker (mypy)
         run: poetry run mypy ./src
 
-      - name: Run Bandit for security
+      - name: Security Linter (bandit)
         run: poetry run bandit --ini .bandit -r .
 
-      - name: Check code complexity with Xenon
+      - name: Code Complexity Checker (xenon)
         run: poetry run xenon --max-absolute A --max-modules A --max-average A ./src
 
-      - name: Run pre-commit YAML and whitespace hooks
-        run: |
-          poetry run pre-commit run check-yaml --all-files
-          poetry run pre-commit run end-of-file-fixer --all-files
-          poetry run pre-commit run trailing-whitespace --all-files
+      - name: YAML file Checker
+        run: poetry run pre-commit run check-yaml --all-files
+
+      - name: End-of-File Fixer
+        run: poetry run pre-commit run end-of-file-fixer --all-files
+
+      - name: Trailing Whitespace Checker
+        run: poetry run pre-commit run trailing-whitespace --all-files

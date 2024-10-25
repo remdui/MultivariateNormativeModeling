@@ -100,6 +100,6 @@ repos:
       - id: check-yaml
         name: "YAML file Checker"
       - id: end-of-file-fixer
-        name: "Newline at End of File Checker"
+        name: "End-of-File Fixer"
       - id: trailing-whitespace
         name: "Trailing Whitespace Checker"
