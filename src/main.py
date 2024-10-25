@@ -4,6 +4,7 @@ from training.train import train_vae
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
 
+
 def run_training():
     print("Starting training")
     train_vae()

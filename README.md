@@ -19,8 +19,8 @@ Robustness to Site-Variance using Gen R Data`
 
 Literature and research documents can be found in the `docs/literature` directory.
 
-- The thesis document can be found at [`docs/literature/thesis.pdf`](docs/literature/thesis.pdf) 
-- The thesis proposal can be found at [`docs/literature/thesis_proposal.pdf`](docs/literature/thesis_proposal.pdf) 
+- The thesis document can be found at [`docs/literature/thesis.pdf`](docs/literature/thesis.pdf)
+- The thesis proposal can be found at [`docs/literature/thesis_proposal.pdf`](docs/literature/thesis_proposal.pdf)
 - Papers that are relevant to this project can be found at [`docs/literature/papers.md`](docs/literature/papers.md)
 - Other documents can be found at [`docs/other`](docs/other)
 
@@ -118,7 +118,7 @@ Check the following files for more information:
 
 You can run the project in a Docker container after building the image (see the `Setup` section above):
 
-```bash 
+```bash
 docker run -v /path/to/data:/data \
            -v /path/to/output:/output \
            -v /path/to/logs:/logs \
@@ -132,7 +132,7 @@ docker run -v /path/to/data:/data \
 ### Static Code Analysis
 
 - PyLint is used for static code analysis. Docs for PyLint can be found [here](https://pylint.pycqa.org/en/latest/). Run PyLint using `poetry`:
-    
+
     ```bash
     poetry run pylint ./src
     ```
@@ -156,7 +156,7 @@ docker run -v /path/to/data:/data \
     ```bash
     poetry run isort --diff ./src
     ```
-  
+
   To apply the changes to the files, use without the `--diff` flag:
 
     ```bash
@@ -170,7 +170,7 @@ docker run -v /path/to/data:/data \
     ```bash
     poetry run black --check --diff ./src
     ```
-  
+
   To apply the changes to the files, use without the `--check` and `--diff` flags:
 
     ```bash
@@ -184,10 +184,10 @@ docker run -v /path/to/data:/data \
     ```
 
     To apply the changes to the files, use without the `--check` and `--diff` flags:
-    
+
     ```bash
     poetry run ruff format ./src
-    ```  
+    ```
 
 ### Unused Code Cleaning
 - Autoflake can be used to remove unused imports and variables. Docs for Autoflake can be found [here](https://github.com/PyCQA/autoflake). Run Autoflake using `poetry`:
@@ -195,13 +195,13 @@ docker run -v /path/to/data:/data \
     ```bash
     poetry run autoflake --remove-all-unused-imports --remove-unused-variables --in-place --check -r .
     ```
-  
+
     To apply the changes to the files, use without the `--check` flag:
-    
+
     ```bash
     poetry run autoflake --remove-all-unused-imports --remove-unused-variables --in-place -r .
     ```
-  
+
 ### Docstring Formatting
 
 - Docstringsformatter is used to format docstrings. Docs for Docstringsformatter can be found [here](https://pydocstringformatter.readthedocs.io/en/latest/). Run Docstringsformatter using `poetry`:
@@ -209,9 +209,9 @@ docker run -v /path/to/data:/data \
     ```bash
     poetry run pydocstringformatter ./src
     ```
-  
+
   To apply the changes to the files, use the `--write` flag:
-  
+
     ```bash
     poetry run pydocstringformatter ./src --write
     ```
@@ -236,4 +236,3 @@ For questions please contact me at
 - GitHub: [remdui](https://github.com/remdui)
 
 ---
-

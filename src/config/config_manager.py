@@ -19,7 +19,7 @@ class ConfigManager:
         config_file = os.path.join("./config", config_file)
 
         if config_file and os.path.exists(config_file):
-            with open(config_file, "r", encoding="utf-8") as file:
+            with open(config_file, encoding="utf-8") as file:
                 self.config = yaml.safe_load(file)
         else:
             raise FileNotFoundError(f"Configuration file {config_file} not found.")
