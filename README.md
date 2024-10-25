@@ -327,6 +327,36 @@ Different levels of code quality checks are available:
     poetry run bandit -r .
     ```
 
+### Code Metrics
+
+`Radon` is used for code metrics. Docs for Radon can be found [here](https://radon.readthedocs.io/en/latest/).
+
+Various metrics can be calculated using Radon. The following metrics are available:
+
+- **Cyclomatic Complexity**: Measures the complexity of the code. Run Radon using `poetry`:
+
+    ```bash
+    poetry run radon cc ./src
+    ```
+
+- **Maintainability Index**: Measures the maintainability of the code. Run Radon using `poetry`:
+
+    ```bash
+    poetry run radon mi ./src
+    ```
+
+- **Halstead Metrics**: Measures the complexity of the code. Run Radon using `poetry`:
+
+    ```bash
+    poetry run radon hal ./src
+    ```
+
+- **Raw Metrics**: Measures the raw metrics of the code. Run Radon using `poetry`:
+
+    ```bash
+    poetry run radon raw ./src
+    ```
+
 ---
 
 ## Testing

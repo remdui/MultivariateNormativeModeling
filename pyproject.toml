@@ -18,6 +18,7 @@ scikit-learn = "1.5.2" # machine learning library
 PyYAML = "6.0.2" # YAML parser
 types-PyYAML = "6.0.2" # type hints for PyYAML
 pandas-stubs = "2.2.3.241009" # type hints for pandas
+tqdm = "4.66.5" # progress bar
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.3.1" # linting
@@ -30,6 +31,7 @@ autoflake = "2.3.1" # remove unused imports
 pyupgrade = "3.19.0" # upgrade syntax to newer versions
 pre-commit = "4.0.1" # pre-commit hooks
 bandit = "1.7.10" # security linter
+radon = "6.0.1" # code metrics
 
 [tool.poetry.group.test.dependencies]
 pytest = "8.3.3" # unit testing
