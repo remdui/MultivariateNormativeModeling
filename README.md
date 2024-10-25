@@ -153,8 +153,6 @@ docker run -v /path/to/data:/data \
     poetry remove [DEPENDENCY]
     ```
 
-Make sure to update the `.pre-commit-config.yaml` file with the updated dependencies. Here, the `rev` key should be updated to the same version as the updated dependency in the `.pyproject.toml` file.
-
 If the `.pyproject.toml` is manually updated, make sure to run the following command to update the lock file and to install the new dependencies:
 
 ```bash
