@@ -23,3 +23,6 @@ data/*.rds
 
 # Misc
 .DS_Store
+
+# Data files
+.coverage

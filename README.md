@@ -88,12 +88,12 @@ poetry run python src/main.py --config [CONFIG_PATH] --mode [MODE] [OPTIONS]
 ### Arguments
 
 The `main.py` file accepts the following required arguments:
-- `--config`: Path to the configuration file. Default: `config/config_001.yml`.
+- `--config`: Path to the configuration file. Default: `config/config_default.yml`.
 - `--mode`: Mode to run the project in. Options: `train`, `inference`, `validate`. Default: `train`.
 
 The `main.py` file accepts the following optional arguments:
 - `--checkpoint`: Path to a checkpoint to load.
-- `--checkpoint-interval`: Interval to save checkpoints. Default: `1`.
+- `--checkpoint-interval`: Interval to save checkpoints.
 - `--data_dir`: Directory to save data.
 - `--debug`: Debug mode flag.
 - `--device`: Device to run the project on. Options: `cpu`, `cuda`.
@@ -164,7 +164,7 @@ poetry lock && poetry install
 
 ### Pre-Commit Hooks
 
-Pre-commit hooks are used to ensure consistent and validated code style and quality. Docs for Pre-Commit can be found [here](https://pre-commit.com/).
+Pre-commit hooks are used to ensure consistent and validated code style and quality. Docs for Pre-Commit can be found [here](https://pre-commit.com/). Pre-commit hooks are defined in the `.pre-commit-config.yaml` file.
 
 - Install the pre-commit hooks using `poetry`:
 
@@ -226,12 +226,12 @@ Different levels of code quality checks are available:
 ## Code Quality
 ### Static Code Analysis
 
-- PyLint is used for static code analysis. Docs for PyLint can be found [here](https://pylint.pycqa.org/en/latest/). Run PyLint using `poetry`:
+- PyLint is used for static code analysis. Docs for PyLint can be found [here](https://pylint.pycqa.org/en/latest/). Settings for PyLint can be found in the `.pylintrc` file. Run PyLint using `poetry`:
 
     ```bash
     poetry run pylint ./src
     ```
-- Ruff can be used for additional static code analysis. Docs for Ruff can be found [here](https://docs.astral.sh/ruff/). Run Ruff using `poetry`:
+- Ruff can be used for additional static code analysis. Docs for Ruff can be found [here](https://docs.astral.sh/ruff/). Settings for Ruff can be found in the `.ruff` file. Run Ruff using `poetry`:
 
     ```bash
     poetry run ruff check ./src
@@ -272,7 +272,7 @@ Different levels of code quality checks are available:
     poetry run black ./src
     ```
 
-- Ruff (more aggressive, use with caution\[!]) can be used for additional code formatting. Docs for Ruff can be found [here](https://docs.astral.sh/ruff/). Run Ruff using `poetry`:
+- Ruff (more aggressive, use with caution\[!]) can be used for additional code formatting. Docs for Ruff can be found [here](https://docs.astral.sh/ruff/). Settings for Ruff can be found in the `.ruff` file. Run Ruff using `poetry`:
 
     ```bash
     poetry run ruff format --check --diff ./src
@@ -318,13 +318,38 @@ Different levels of code quality checks are available:
     ```bash
     poetry run pyupgrade --py312-plus
     ```
----
-## Testing
-Run the unit tests using `poetry`:
 
-```bash
-poetry run pytest
-```
+### Code Security
+
+- Bandit is used for code vulnerability and security checks. Docs for Bandit can be found [here](https://bandit.readthedocs.io/en/latest/). Settings for Bandit can be found in the `.bandit` file. Run Bandit using `poetry`:
+
+    ```bash
+    poetry run bandit -r .
+    ```
+
+---
+
+## Testing
+
+This code base uses different levels of testing to ensure code quality and functionality.
+
+- **Unit testing**: Unit tests are used to test individual components of the code base. Unit tests are written using `pytest`. Docs for pytest can be found [here](https://docs.pytest.org/en/stable/).
+
+Run the unit tests using `poetry`:
+  ```bash
+  poetry run pytest
+  ```
+- **Code coverage reports**: Code coverage reports are generated using `pytest-cov` (wrapper for Coverage). Docs for pytest-cov can be found [here](https://pytest-cov.readthedocs.io/en/latest/).
+
+Run the code coverage reports using `poetry`:
+  ```bash
+  poetry run pytest --cov=src --cov-report=term-missing
+  ```
+
+- **Property-based testing**: Property-based testing is used to test the code base against a wide range of scenarios. Property-based tests are written using `hypothesis`. Docs for Hypothesis can be found [here](https://hypothesis.readthedocs.io/en/latest/). These tests are automatically executed together with pytest unit tests.
+
+
+
 ---
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

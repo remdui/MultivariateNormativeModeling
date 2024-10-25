@@ -9,29 +9,32 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "3.12.3"
-torch = "2.5.0"
-pandas = "2.2.3"
-numpy = "2.1.2"
-scipy = "1.14.1"
-scikit-learn = "1.5.2"
-PyYAML = "6.0.2"
-types-PyYAML = "6.0.2"
-pandas-stubs = "2.2.3.241009"
+python = "3.12.3" # Python version
+torch = "2.5.0" # deep learning library
+pandas = "2.2.3" # data manipulation library
+numpy = "2.1.2" # numerical computing library
+scipy = "1.14.1" # scientific computing library
+scikit-learn = "1.5.2" # machine learning library
+PyYAML = "6.0.2" # YAML parser
+types-PyYAML = "6.0.2" # type hints for PyYAML
+pandas-stubs = "2.2.3.241009" # type hints for pandas
 
 [tool.poetry.group.dev.dependencies]
-pylint = "3.3.1"
-mypy = "1.13.0"
-pydocstringformatter = "0.7.3"
-black = "24.10.0"
-isort = "5.13.2"
-ruff = "0.7.1"
-autoflake = "2.3.1"
-pyupgrade = "3.19.0"
-pre-commit = "4.0.1"
+pylint = "3.3.1" # linting
+mypy = "1.13.0" # static type checking
+pydocstringformatter = "0.7.3" # format docstrings
+black = "24.10.0" # code formatting
+isort = "5.13.2" # import sorting
+ruff = "0.7.1" # linting
+autoflake = "2.3.1" # remove unused imports
+pyupgrade = "3.19.0" # upgrade syntax to newer versions
+pre-commit = "4.0.1" # pre-commit hooks
+bandit = "1.7.10" # security linter
 
 [tool.poetry.group.test.dependencies]
-pytest = "8.3.3"
+pytest = "8.3.3" # unit testing
+pytest-cov = "5.0.0" # wrapper for coverage
+hypothesis = "6.115.5" # property based testing
 
 [tool.isort]
 profile = "black"
