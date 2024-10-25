@@ -329,33 +329,42 @@ Different levels of code quality checks are available:
 
 ### Code Metrics
 
-`Radon` is used for code metrics. Docs for Radon can be found [here](https://radon.readthedocs.io/en/latest/).
+- `Radon` is used for code metrics. Docs for Radon can be found [here](https://radon.readthedocs.io/en/latest/). Various metrics can be calculated using Radon.
 
-Various metrics can be calculated using Radon. The following metrics are available:
+  - **Cyclomatic Complexity**: Measures the complexity of the code. Run Radon using `poetry`:
 
-- **Cyclomatic Complexity**: Measures the complexity of the code. Run Radon using `poetry`:
+      ```bash
+      poetry run radon cc ./src
+      ```
+
+  - **Maintainability Index**: Measures the maintainability of the code. Run Radon using `poetry`:
+
+      ```bash
+      poetry run radon mi ./src
+      ```
+
+  - **Halstead Metrics**: Measures the complexity of the code. Run Radon using `poetry`:
+
+      ```bash
+      poetry run radon hal ./src
+      ```
+
+  - **Raw Metrics**: Measures the raw metrics of the code. Run Radon using `poetry`:
+
+      ```bash
+      poetry run radon raw ./src
+      ```
+
+- `Xenon` is used for automated code complexity checks. Xenon uses Radon under the hood. Docs for Xenon can be found [here](https://xenon.readthedocs.io/en/latest/). Run Xenon using `poetry`:
 
     ```bash
-    poetry run radon cc ./src
+    poetry run xenon --max-absolute A --max-modules A --max-average A ./src
     ```
 
-- **Maintainability Index**: Measures the maintainability of the code. Run Radon using `poetry`:
-
-    ```bash
-    poetry run radon mi ./src
-    ```
-
-- **Halstead Metrics**: Measures the complexity of the code. Run Radon using `poetry`:
-
-    ```bash
-    poetry run radon hal ./src
-    ```
-
-- **Raw Metrics**: Measures the raw metrics of the code. Run Radon using `poetry`:
-
-    ```bash
-    poetry run radon raw ./src
-    ```
+  Meaning of the flags:
+    - **Max Absolute**: Maximum absolute complexity.
+    - **Max Modules**: Maximum complexity per module.
+    - **Max Average**: Maximum average complexity.
 
 ---
 

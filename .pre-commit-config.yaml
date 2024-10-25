@@ -1,21 +1,105 @@
 repos:
--   repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.0
+  - repo: local
     hooks:
-    -   id: pyupgrade
+      - id: pyupgrade
         name: "Upgrade Python Syntax (pyupgrade)"
-        args: [--py312-plus]
--   repo: https://github.com/psf/black
-    rev: "24.10.0"
+        entry: pyupgrade
+        language: system
+        types: [ python ]
+        require_serial: true
+        args: [ --py312-plus ]
+  - repo: local
     hooks:
-    -   id: black
-        name: "Code Formatter (black)"
--   repo: https://github.com/pre-commit/pre-commit-hooks
+      - id: autoflake
+        name: "Remove Unused Imports and Variables (autoflake)"
+        entry: autoflake
+        language: system
+        types: [ python ]
+        require_serial: true
+        args: [ --remove-all-unused-imports, --remove-unused-variables, --in-place]
+  - repo: local
+    hooks:
+      - id: isort
+        name: "Import Sorting (isort)"
+        entry: isort
+        language: system
+        types: [ python ]
+        require_serial: true
+  - repo: local
+    hooks:
+      - id: pydocstringformatter
+        name: "Docstring Formatter (pydocstringformatter)"
+        entry: pydocstringformatter
+        language: system
+        types: [ python ]
+        require_serial: true
+        args: [ --write ]
+  - repo: local
+    hooks:
+      - id: black
+        name: "Code Formatter 1/2 (black)"
+        entry: black
+        language: system
+        types: [ python ]
+        require_serial: true
+  - repo: local
+    hooks:
+      - id: ruff
+        name: "Code Formatter 2/2 (ruff)"
+        entry: ruff
+        language: system
+        types: [ python ]
+        require_serial: true
+        args: [ format ]
+  - repo: local
+    hooks:
+      - id: pylint
+        name: "Static Code Analysis 1/2 (pylint)"
+        entry: pylint
+        language: system
+        types: [ python ]
+        require_serial: true
+  - repo: local
+    hooks:
+      - id: ruff
+        name: "Static Code Analysis 2/2 (ruff)"
+        entry: ruff
+        language: system
+        types: [ python ]
+        require_serial: true
+        args: [ check ]
+  - repo: local
+    hooks:
+      - id: mypy
+        name: "Static Type Checker (mypy)"
+        entry: mypy
+        language: system
+        types: [ python ]
+        require_serial: true
+  - repo: local
+    hooks:
+      - id: bandit
+        name: "Security Linter (bandit)"
+        entry: bandit
+        language: system
+        types: [ python ]
+        require_serial: true
+        args: ["--ini", ".bandit"]
+  - repo: local
+    hooks:
+      - id: xenon
+        name: "Code Complexity Checker (xenon)"
+        entry: xenon
+        language: system
+        types: [ python ]
+        require_serial: true
+        args: [ --max-absolute A, --max-modules A, --max-average A ]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-    -   id: check-yaml
-        name: "Check YAML files"
-    -   id: end-of-file-fixer
-        name: "Ensure Files End with Newline"
-    -   id: trailing-whitespace
-        name: "Trim Trailing Whitespace"
+      - id: check-yaml
+        name: "YAML file Checker"
+      - id: end-of-file-fixer
+        name: "Newline at End of File Checker"
+      - id: trailing-whitespace
+        name: "Trailing Whitespace Checker"

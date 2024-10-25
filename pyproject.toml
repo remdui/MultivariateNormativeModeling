@@ -31,7 +31,8 @@ autoflake = "2.3.1" # remove unused imports
 pyupgrade = "3.19.0" # upgrade syntax to newer versions
 pre-commit = "4.0.1" # pre-commit hooks
 bandit = "1.7.10" # security linter
-radon = "6.0.1" # code metrics
+radon = "6.0.1" # code metrics (human)
+xenon = "0.9.3" # code metrics (machine)
 
 [tool.poetry.group.test.dependencies]
 pytest = "8.3.3" # unit testing
