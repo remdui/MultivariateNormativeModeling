@@ -49,7 +49,7 @@ jobs:
         run: poetry run mypy ./src
 
       - name: Security Linter (bandit)
-        run: poetry run bandit --ini .bandit -r .
+        run: poetry run bandit --ini .bandit -r ./src
 
       - name: Code Complexity Checker (xenon)
         run: poetry run xenon --max-absolute A --max-modules A --max-average A ./src
