@@ -23,5 +23,6 @@ def create_default_config():
         "model": extract_config(ConfigSchema.Model),
         "scheduler": extract_config(ConfigSchema.Scheduler),
     }
+
     with open(file_path, "w", encoding="utf-8") as file:
         yaml.dump(default_config, file)
