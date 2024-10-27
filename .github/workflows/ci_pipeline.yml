@@ -128,13 +128,13 @@ jobs:
       - name: Upload Logs
         uses: actions/upload-artifact@v4
         with:
-          name: logs
+          name: validation_logs
           path: ./logs/**
 
       - name: Upload Output
         uses: actions/upload-artifact@v4
         with:
-          name: output
+          name: validation_output
           path: ./output/**
 
   deploy_docker:
@@ -162,11 +162,11 @@ jobs:
       - name: Upload Logs
         uses: actions/upload-artifact@v4
         with:
-          name: logs
+          name: deploy_docker_logs
           path: ./logs/**
 
       - name: Upload Output
         uses: actions/upload-artifact@v4
         with:
-          name: output
+          name: deploy_docker_output
           path: ./output/**
