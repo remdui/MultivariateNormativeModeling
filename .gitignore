@@ -9,6 +9,9 @@ venv/
 .env/
 .idea
 
+# Tests
+tests/.hypothesis
+
 # Logs and models
 logs/*.log
 logs/*.txt
