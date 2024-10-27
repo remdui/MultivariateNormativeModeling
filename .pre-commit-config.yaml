@@ -103,3 +103,20 @@ repos:
         name: "End-of-File Fixer"
       - id: trailing-whitespace
         name: "Trailing Whitespace Checker"
+  - repo: local
+    hooks:
+      - id: pytest
+        name: "Unit Tests Fail/Pass (pytest)"
+        entry: pytest tests
+        language: system
+        types: [ python ]
+        require_serial: true
+  - repo: local
+    hooks:
+      - id: pytest-cov
+        name: "Unit Tests Coverage (pytest-cov)"
+        entry: pytest tests
+        language: system
+        types: [ python ]
+        require_serial: true
+        args: [ --cov=src, --cov-report=xml, --cov-report=term, --cov-report=html, --cov-fail-under=10]

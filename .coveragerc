@@ -1,0 +1,9 @@
+[run]
+# Appears to be incompatible with mocking
+branch = False
+
+[html]
+directory = build/coverage.html
+
+[xml]
+output = build/coverage.xml

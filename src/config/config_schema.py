@@ -16,9 +16,9 @@ class ConfigSchema:
         verbose = False
 
     class Meta:
-        experiment_description = "Variational Autoencoder design experiment setup"
-        experiment_name = "vae_design"
-        experiment_version = 1
+        description = "Variational Autoencoder design experiment setup"
+        name = "vae_basic"
+        version = 1
 
     class Model:
         activation_function = "relu"

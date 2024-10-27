@@ -380,11 +380,15 @@ Run the unit tests using `poetry`:
 
 Run the code coverage reports using `poetry`:
   ```bash
-  poetry run pytest --cov=src --cov-report=term-missing
+  poetry run pytest --cov=src --cov-report=term --cov-report=html --cov-report=xml --cov-fail-under=80
   ```
 
 - **Property-based testing**: Property-based testing is used to test the code base against a wide range of scenarios. Property-based tests are written using `hypothesis`. Docs for Hypothesis can be found [here](https://hypothesis.readthedocs.io/en/latest/). These tests are automatically executed together with pytest unit tests.
 
+Hypothesis test statistics can be shown using the following command:
+  ```bash
+  poetry run pytest --hypothesis-show-statistics
+  ```
 
 
 ---

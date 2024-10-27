@@ -18,6 +18,10 @@ def train_vae():
     lr = properties.train.learning_rate
     device = properties.system.device
 
+    # Get model save information
+    model_save_dir = properties.system.model_dir
+    model_name = properties.meta.name + "_v" + properties.meta.version
+
     dataloader = FreeSurferDataloader.init_dataloader()
     input_dim = dataloader.dataset[0][0].shape[0]
     covariate_dim = dataloader.dataset[0][1].shape[0]
@@ -41,7 +45,7 @@ def train_vae():
 
         print(f"Epoch {epoch}, Loss: {train_loss / len(dataloader.dataset)}")
         log_message(f"Epoch {epoch}, Loss: {train_loss / len(dataloader.dataset)}")
-        save_model(model, epoch)
+        save_model(model, epoch, model_save_dir, model_name, use_date=False)
 
 
 def main():
