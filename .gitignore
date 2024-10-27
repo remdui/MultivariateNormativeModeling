@@ -9,9 +9,6 @@ venv/
 .env/
 .idea
 
-# Dependency directories
-poetry.lock
-
 # Logs and models
 logs/*.log
 logs/*.txt
