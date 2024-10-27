@@ -13,9 +13,10 @@ general:
   seed: 42
   verbose: false
 meta:
+  config_version: 2
   description: Variational Autoencoder design experiment setup
+  model_version: 1
   name: vae_design
-  version: 1
 model:
   activation_function: relu
   beta: 1.0

@@ -19,11 +19,12 @@ def run_validation():
     # Get the log and output directories
     log_dir = properties.system.log_dir
     output_dir = properties.system.output_dir
+    model_name = properties.meta.name + "_v" + str(properties.meta.model_version)
 
     # Temporarily log a message and write an output file for demonstration purposes
     log_message("Validation started", log_dir)
     write_output(
-        "Validation results", output_dir, "vae_model", "metrics", use_date=False
+        "Accuracy: " + "1.00", output_dir, model_name, "metrics", use_date=False
     )
 
 
@@ -41,15 +42,17 @@ if __name__ == "__main__":
     # Create ConfigManager instance
     config_manager = ConfigManager(config_file=args.config, command_line_args=args)
 
+    # Check if the configuration file is compatible with the current software version
+    config_manager.is_version_compatible()
+
     # Retrieve the Properties object
     config = config_manager.get_config()
 
+    # Initialize the Properties object with the merged configuration
     Properties.initialize(config)
 
     # Display the merged configuration
-    print(Properties.get_instance())
-
-    test = 1
+    log_message(str(Properties.get_instance()))
 
     # Perform action based on the argument
     if args.mode == "train":

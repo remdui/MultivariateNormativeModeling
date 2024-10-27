@@ -18,6 +18,7 @@ logs/*.txt
 models/*.pt
 data/*.csv
 data/*.rds
+output/*.txt
 
 # Jupyter Notebooks checkpoints
 .ipynb_checkpoints/

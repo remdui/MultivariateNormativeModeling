@@ -20,7 +20,7 @@ def train_vae():
 
     # Get model save information
     model_save_dir = properties.system.model_dir
-    model_name = properties.meta.name + "_v" + str(properties.meta.version)
+    model_name = properties.meta.name + "_v" + str(properties.meta.model_version)
 
     dataloader = FreeSurferDataloader.init_dataloader()
     input_dim = dataloader.dataset[0][0].shape[0]

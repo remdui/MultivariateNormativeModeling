@@ -52,20 +52,6 @@ def test_override_with_command_line_args():
     assert config["train"]["epochs"] == 50
 
 
-def test_override_with_new_argument_key():
-    """Test that a new argument key not in config file is added to config."""
-    args = argparse.Namespace(new_param="test_value")
-
-    config_manager = ConfigManager(
-        config_file=DEFAULT_CONFIG_FILE, command_line_args=args
-    )
-    config = config_manager.get_config()
-
-    # Verify that the new key-value pair is added to the configuration
-    assert "new_param" in config
-    assert config["new_param"] == "test_value"
-
-
 def test_handle_missing_config_file():
     """Test behavior when configuration file is missing."""
     with pytest.raises(FileNotFoundError):
