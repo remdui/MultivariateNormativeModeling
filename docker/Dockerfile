@@ -1,34 +1,25 @@
-# Use the official Python image from the Docker Hub
-FROM python:3.12.3-slim AS builder
+# Use the official lightweight Python image
+FROM python:3.12.3-slim
 
-# Install any needed packages specified in pyproject.toml
-RUN pip install poetry==1.8.4
+# Install poetry
+RUN python -m pip install poetry==1.8.4
 
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
-
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /
 
+# Copy only the dependency files first (for caching purposes)
+COPY poetry.lock ./
 COPY pyproject.toml ./
 
-RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --without dev --no-root
+# Install project dependencies
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --without dev --without test
 
+# Copy the application code
+COPY ./src ./src
 
-FROM python:3.12.3-slim AS runtime
+# Ensure directories exist (they will be mounted)
+RUN mkdir -p output data logs models config
 
-ENV VIRTUAL_ENV=/.venv \
-    PATH="/app/.venv/bin:$PATH"
-
-COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
-
-# Copy the current directory contents into the container at /app
-COPY /config ./
-COPY /src ./
-COPY /data ./
-COPY /tests ./
-
-# Run main.py when the container launches
-CMD ["poetry", "run", "python", "src/main.py"]
+# Set the entrypoint command
+ENTRYPOINT ["poetry", "run", "python", "src/main.py"]

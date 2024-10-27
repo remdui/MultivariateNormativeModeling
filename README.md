@@ -70,7 +70,7 @@ poetry install --no-root
 You can build the Docker image using the provided Dockerfile:
 
 ```bash
-docker build -t master-thesis .
+docker build -t masterthesis:latest -f ./docker/Dockerfile .
 ```
 
 ---
@@ -119,13 +119,18 @@ Check the following files for more information:
 You can run the project in a Docker container after building the image (see the `Setup` section above):
 
 ```bash
-docker run -v /path/to/data:/data \
-           -v /path/to/output:/output \
-           -v /path/to/logs:/logs \
-           -v /path/to/models:/models \
-           -v /path/to/config:/config \
-           master-thesis --config [CONFIG_PATH] --mode [MODE] [OPTIONS]
+docker run --rm \
+           -v ./data:/data \
+           -v ./output:/output \
+           -v ./logs:/logs \
+           -v ./models:/models \
+           -v ./config:/config \
+           masterthesis:latest \
+           --config [CONFIG_PATH] \
+           --mode [MODE] \
+           [OPTIONS]
 ```
+
 ---
 
 ## Contributing
