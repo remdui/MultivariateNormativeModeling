@@ -1,3 +1,5 @@
+"""FreeSurferDataloader class."""
+
 from torch.utils.data import DataLoader
 
 from entities.properties import Properties
@@ -5,8 +7,11 @@ from preprocessing.dataset import FreeSurferDataset
 
 
 class FreeSurferDataloader:
+    """This class is used to initialize the dataloader for the FreeSurfer dataset."""
+
     @staticmethod
     def init_dataloader():
+        """Initialize the dataloader for the FreeSurfer dataset."""
         properties = Properties.get_instance()
 
         csv_file = properties.dataset.processed_data_file

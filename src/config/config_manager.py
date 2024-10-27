@@ -1,3 +1,5 @@
+"""Manages loading and merging config and arguments."""
+
 import os
 
 import yaml
@@ -11,6 +13,7 @@ class ConfigManager:
     """Manages loading and merging config and arguments, and returns a Properties object."""
 
     def __init__(self, config_file=None, command_line_args=None):
+        """Initialize the ConfigManager with the provided configuration file and command-line arguments."""
         self.config_file = config_file
         self.config = {}
         self.args = command_line_args
@@ -50,6 +53,10 @@ class ConfigManager:
         return self.config
 
     def is_version_compatible(self):
+        """Check if the configuration file is compatible with the current software version.
+
+        Migrate the configuration if necessary.
+        """
         meta = self.config.get("meta", {})
         version = meta.get("config_version")
         if not version:
@@ -88,6 +95,7 @@ class ConfigManager:
         )
 
     def _migrate_from_1_to_2(self):
+        """Migrate the configuration from version 1 to version 2."""
         log_message("Migrating configuration from version 1 to 2")
 
         # Add missing sections or keys

@@ -1,3 +1,5 @@
+"""Entry point for the software."""
+
 from config.config_manager import ConfigManager
 from entities.properties import Properties
 from training.train import train_vae
@@ -7,11 +9,13 @@ from util.log_utils import log_message, write_output
 
 
 def run_training():
+    """Run the training process."""
     print("Starting training")
     train_vae()
 
 
 def run_validation():
+    """Run the validation process."""
     print("Starting validation")
     # Retrieve the Properties object
     properties = Properties.get_instance()
@@ -29,6 +33,7 @@ def run_validation():
 
 
 def run_inference():
+    """Run the inference process."""
     print("Starting inference")
 
 

@@ -1,3 +1,5 @@
+"""This module contains the training logic for the VAE model."""
+
 from torch import optim
 
 from entities.properties import Properties
@@ -9,6 +11,7 @@ from util.model_utils import save_model
 
 
 def train_vae():
+    """Train the VAE model."""
     properties = Properties.get_instance()
 
     # call train_vae with the necessary parameters
@@ -46,11 +49,3 @@ def train_vae():
         print(f"Epoch {epoch}, Loss: {train_loss / len(dataloader.dataset)}")
         log_message(f"Epoch {epoch}, Loss: {train_loss / len(dataloader.dataset)}")
         save_model(model, epoch, model_save_dir, model_name, use_date=False)
-
-
-def main():
-    print("Training model")
-
-
-if __name__ == "__main__":
-    main()

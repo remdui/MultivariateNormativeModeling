@@ -1,3 +1,5 @@
+"""This module contains the FreeSurferDataset class which is used to load the FreeSurfer dataset."""
+
 import pandas as pd
 from torch.utils.data import Dataset
 

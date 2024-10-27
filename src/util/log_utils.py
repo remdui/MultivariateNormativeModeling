@@ -1,8 +1,11 @@
+"""Utility functions for logging."""
+
 import os
 from datetime import datetime
 
 
 def log_message(message, save_dir="logs"):
+    """Log a message to the specified directory."""
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     with open(
@@ -19,6 +22,7 @@ def write_output(
     date_format="%Y%m%d",
     use_date=True,
 ):
+    """Write the output to the specified directory."""
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if use_date:

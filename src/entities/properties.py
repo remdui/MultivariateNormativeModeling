@@ -1,7 +1,11 @@
+"""The properties module defines the Properties singleton to manage the configuration properties."""
+
 from config.config_schema import ConfigSchema
 
 
 class Properties:
+    """Singleton class to manage the configuration properties."""
+
     _instance = None
 
     @classmethod
@@ -42,7 +46,7 @@ class Properties:
         self.scheduler = None
 
     def __init_section_properties(self, property_map):
-        # Dynamically create sections and assign them as immutable sections
+        """Initialize the section properties with the provided property map."""
         for section_name in dir(ConfigSchema):
             if not section_name.startswith("__") and isinstance(
                 getattr(ConfigSchema, section_name), type
@@ -69,6 +73,7 @@ class Properties:
         """Define a section of the configuration."""
 
         def __init__(self, section_map, section_schema, section_name):
+            """Initialize the section with the provided map, schema, and name."""
             self.section_map = section_map
             self.section_schema = section_schema
             self.section_name = section_name

@@ -1,3 +1,5 @@
+"""Model utilities."""
+
 import os
 from datetime import datetime
 
@@ -12,6 +14,7 @@ def save_model(
     date_format="%Y%m%d",
     use_date=True,
 ):
+    """Save the model to the specified directory."""
     if model is None:
         raise ValueError("Model is invalid.")
     if epoch < 0:

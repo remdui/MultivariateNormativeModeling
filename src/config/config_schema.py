@@ -1,5 +1,12 @@
+"""Configuration schema is defined in this module."""
+
+
 class ConfigSchema:
+    """Configuration schema."""
+
     class Dataset:
+        """Dataset configuration."""
+
         normalization = "min_max"
         num_covariates = 2
         processed_data_file = "freesurfer_dummy_output.csv"
@@ -10,18 +17,24 @@ class ConfigSchema:
         val_split = 0.2
 
     class General:
+        """General configuration."""
+
         debug = False
         log_level = "INFO"
         seed = 42
         verbose = False
 
     class Meta:
+        """Metadata configuration."""
+
         config_version = 2
         description = "Variational Autoencoder design experiment setup"
         name = "vae_basic"
         model_version = 1
 
     class Model:
+        """Model configuration."""
+
         activation_function = "relu"
         beta = 1.0
         covariate_embedding = "input_embedding"
@@ -38,11 +51,15 @@ class ConfigSchema:
         weight_initialization = "xavier"
 
     class Scheduler:
+        """Scheduler configuration."""
+
         gamma = 0.1
         scheduler = "StepLR"
         step_size = 10
 
     class System:
+        """System configuration."""
+
         checkpoint = ""
         checkpoint_interval = 5
         data_dir = "./data"
@@ -53,6 +70,8 @@ class ConfigSchema:
         output_dir = "./output"
 
     class Train:
+        """Training configuration."""
+
         batch_size = 32
         early_stopping = True
         early_stopping_metric = "loss"

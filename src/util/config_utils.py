@@ -1,3 +1,5 @@
+"""Utility functions for configuration management."""
+
 import yaml
 
 from config.config_schema import ConfigSchema

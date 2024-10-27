@@ -1,7 +1,10 @@
+"""Command line utility functions."""
+
 import argparse
 
 
 def parse_args():
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Run VAE Pipeline")
 
     # Main parameters
