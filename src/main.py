@@ -3,6 +3,7 @@ from entities.properties import Properties
 from training.train import train_vae
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
+from util.log_utils import log_message, write_output
 
 
 def run_training():
@@ -12,6 +13,18 @@ def run_training():
 
 def run_validation():
     print("Starting validation")
+    # Retrieve the Properties object
+    properties = Properties.get_instance()
+
+    # Get the log and output directories
+    log_dir = properties.system.log_dir
+    output_dir = properties.system.output_dir
+
+    # Temporarily log a message and write an output file for demonstration purposes
+    log_message("Validation started", log_dir)
+    write_output(
+        "Validation results", output_dir, "vae_model", "metrics", use_date=False
+    )
 
 
 def run_inference():
