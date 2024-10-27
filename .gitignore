@@ -28,3 +28,6 @@ output/*.txt
 
 # Data files
 .coverage
+
+# Python dependencies
+requirements.txt

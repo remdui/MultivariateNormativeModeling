@@ -75,6 +75,33 @@ docker build -t masterthesis:latest -f ./docker/Dockerfile .
 
 ---
 
+## Legacy Setup
+
+In environments where `poetry` is not available and where Docker is not an option, the project can be run using `pip` and `virtualenv`. The following steps can be used to set up the project:
+
+- Create a requirements.txt file using `poetry` from the `pyproject.toml` file:
+
+    ```bash
+    poetry export --with=dev --with=test --without-hashes --without-urls | awk '{ print $1 }' FS=';' > requirements.txt
+    ```
+
+- Create a virtual environment using `virtualenv`:
+
+    ```bash
+    virtualenv venv && source venv/bin/activate
+    ```
+
+- Install the dependencies using `pip`:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+- Replace all `poetry run python` commands with `python` in all subsequent commands.
+
+
+---
+
 ## Usage
 
 ### Entry Point
@@ -143,7 +170,7 @@ docker run --rm \
 - Add a new dependency using `poetry`:
 
     ```bash
-    poetry add [DEPENDENCY] --
+    poetry add [DEPENDENCY]
     ```
 
 - To update a dependency, use the `poetry` command:
