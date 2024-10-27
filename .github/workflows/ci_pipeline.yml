@@ -14,14 +14,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Install poetry
+        run: pipx install poetry
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12.3'
           cache: 'poetry'
-
-      - name: Install Poetry
-        run: curl -sSL https://install.python-poetry.org | python3 -
 
       - name: Install Dependencies
         run: |
@@ -70,14 +70,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Install poetry
+        run: pipx install poetry
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12.3'
           cache: 'poetry'
-
-      - name: Install Poetry
-        run: curl -sSL https://install.python-poetry.org | python3 -
 
       - name: Install Dependencies
         run: |
