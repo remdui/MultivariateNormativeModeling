@@ -1,0 +1,18 @@
+"""Abstract base class for encoders."""
+
+from torch import nn
+
+
+class BaseEncoder(nn.Module):
+    """Base class for encoders."""
+
+    def __init__(self):
+        """Initialize the encoder."""
+        super().__init__()
+
+    def forward(self, x):
+        """Forward pass of the encoder.
+
+        This method should be implemented in the child class.
+        """
+        raise NotImplementedError("Forward method not implemented in BaseEncoder.")

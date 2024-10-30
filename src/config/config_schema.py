@@ -35,6 +35,8 @@ class ConfigSchema:
     class Model:
         """Model configuration."""
 
+        encoder = "mlp"
+        decoder = "mlp"
         activation_function = "relu"
         beta = 1.0
         covariate_embedding = "input_embedding"
@@ -54,7 +56,7 @@ class ConfigSchema:
         """Scheduler configuration."""
 
         gamma = 0.1
-        scheduler = "StepLR"
+        scheduler = "steplr"
         step_size = 10
 
     class System:
@@ -80,7 +82,7 @@ class ConfigSchema:
         gradient_clipping = 5.0
         learning_rate = 0.001
         log_interval = 10
-        loss_function = "mse"
+        loss_function = "bce_kld"
         lr_warmup_steps = 500
         mixed_precision = False
         optimizer = "adam"

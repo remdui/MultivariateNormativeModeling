@@ -1,51 +1,143 @@
-"""This module contains the training logic for the VAE model."""
+"""Train the model using the configuration."""
 
-from torch import optim
+import torch
 
 from entities.properties import Properties
-from model.loss.bce_kl_loss import loss_bce_kld
-from model.models.vae_simple import VAE
+from model.components.factory import get_decoder, get_encoder
+from model.loss.factory import get_loss_function
+from model.models.vae_modular import VAE
+from model.optimizers.factory import get_optimizer
+from model.schedulers.factory import get_scheduler
 from preprocessing.dataloader import FreeSurferDataloader
 from util.log_utils import log_message
 from util.model_utils import save_model
 
 
-def train_vae():
-    """Train the VAE model."""
-    properties = Properties.get_instance()
+class Trainer:
+    """Trainer class to train the model."""
 
-    # call train_vae with the necessary parameters
-    epochs = properties.train.epochs
-    latent_dim = properties.model.latent_dim
-    hidden_dim = properties.model.hidden_dim
-    lr = properties.train.learning_rate
-    device = properties.system.device
+    def __init__(self):
+        """Initialize the Trainer class."""
+        self.properties = Properties.get_instance()
+        self.device = self.properties.system.device
+        self._setup()
 
-    # Get model save information
-    model_save_dir = properties.system.model_dir
-    model_name = properties.meta.name + "_v" + str(properties.meta.model_version)
+    def _setup(self):
+        """Setup the Trainer class."""
 
-    dataloader = FreeSurferDataloader.init_dataloader()
-    input_dim = dataloader.dataset[0][0].shape[0]
-    covariate_dim = dataloader.dataset[0][1].shape[0]
-    model = VAE(input_dim, hidden_dim[0], latent_dim, covariate_dim).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+        # Model save info
+        self.model_save_dir = self.properties.system.model_dir
+        self.model_name = (
+            f"{self.properties.meta.name}_v{self.properties.meta.model_version}"
+        )
 
-    for epoch in range(epochs):
-        model.train()
-        train_loss = 0
-        for _, (data, covariates) in enumerate(dataloader):
-            data = data.float().to(device)  # Ensure data is of type float
-            covariates = covariates.float().to(
-                device
-            )  # Ensure covariates are of type float
-            optimizer.zero_grad()
-            recon_batch, mu, logvar = model(data, covariates)
-            loss = loss_bce_kld(recon_batch, data, mu, logvar)
-            loss.backward()
-            train_loss += loss.item()
-            optimizer.step()
+        # Initialize data loader
+        self.dataloader = FreeSurferDataloader.init_dataloader()
+        self.input_dim = self.dataloader.dataset[0][0].shape[0]
+        self.output_dim = self.input_dim  # Assuming reconstruction
 
-        print(f"Epoch {epoch}, Loss: {train_loss / len(dataloader.dataset)}")
-        log_message(f"Epoch {epoch}, Loss: {train_loss / len(dataloader.dataset)}")
-        save_model(model, epoch, model_save_dir, model_name, use_date=False)
+        # Build model
+        self._build_model()
+
+        # Seting up optimizer, scheduler, loss function, and regularization
+        self._setup_optimizer()
+        self._setup_scheduler()
+        self._setup_loss_function()
+        self._setup_regularization()
+
+    def _build_model(self):
+        """Build the model based on the configuration."""
+        encoder = get_encoder(
+            self.properties.model.encoder,
+            self.input_dim,
+            self.properties.model.hidden_dim,
+            self.properties.model.latent_dim,
+        ).to(self.device)
+
+        decoder = get_decoder(
+            self.properties.model.decoder,
+            self.properties.model.latent_dim,
+            self.properties.model.hidden_dim[::-1],
+            self.output_dim,
+        ).to(self.device)
+
+        self.model = VAE(encoder, decoder).to(self.device)
+
+    def _setup_optimizer(self):
+        """Get the optimizer based on the configuration."""
+        optimizer_params = {}
+        self.optimizer = get_optimizer(
+            self.properties.train.optimizer,
+            self.model.parameters(),
+            self.properties.train.learning_rate,
+            **optimizer_params,
+        )
+
+    def _setup_scheduler(self):
+        """Get the scheduler based on the configuration."""
+        scheduler_params = {
+            "step_size": self.properties.scheduler.step_size,
+            "gamma": self.properties.scheduler.gamma,
+        }
+        self.scheduler = get_scheduler(
+            self.properties.scheduler.scheduler.lower(),
+            self.optimizer,
+            **scheduler_params,
+        )
+        # Determine if scheduler steps per batch
+        self.scheduler_step_per_batch = self.properties.scheduler.scheduler.lower() in {
+            "cycliclr",
+            "onecyclelr",
+            "cosineannealingwarmrestarts",
+        }
+
+    def _setup_loss_function(self):
+        """Get the loss function based on the configuration."""
+        self.loss_function = get_loss_function(self.properties.train.loss_function)
+
+    def _setup_regularization(self):
+        """TODO: Implement regularization setup."""
+
+    def train(self):
+        """Train the model."""
+        epochs = self.properties.train.epochs
+
+        for epoch in range(epochs):
+            self.model.train()
+            train_loss = 0.0
+            for _, (data, _) in enumerate(self.dataloader):
+                data = data.float().to(self.device)
+                self.optimizer.zero_grad()
+                recon_batch, mu, logvar = self.model(data)
+                loss = self.loss_function(recon_batch, data, mu, logvar)
+                loss.backward()
+
+                if self.properties.train.gradient_clipping:
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.parameters(), self.properties.train.gradient_clipping
+                    )
+
+                self.optimizer.step()
+                train_loss += loss.item()
+
+                if self.scheduler_step_per_batch:
+                    self.scheduler.step()
+
+            if not self.scheduler_step_per_batch:
+                self.scheduler.step()
+
+            avg_loss = train_loss / len(self.dataloader.dataset)
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.6f}")
+            log_message(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.6f}")
+
+            if (
+                self.properties.model.save_model
+                and (epoch + 1) % self.properties.model.save_model_interval == 0
+            ):
+                save_model(
+                    self.model,
+                    epoch + 1,
+                    self.model_save_dir,
+                    self.model_name,
+                    use_date=False,
+                )

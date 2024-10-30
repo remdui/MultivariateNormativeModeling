@@ -2,7 +2,7 @@
 
 from config.config_manager import ConfigManager
 from entities.properties import Properties
-from training.train import train_vae
+from training.train import Trainer
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
 from util.log_utils import log_message, write_output
@@ -11,7 +11,8 @@ from util.log_utils import log_message, write_output
 def run_training():
     """Run the training process."""
     print("Starting training")
-    train_vae()
+    trainer = Trainer()
+    trainer.train()
 
 
 def run_validation():
