@@ -131,7 +131,7 @@ class Properties:
             else:
                 super().__setattr__(key, value)
 
-        def __dir__(self) -> list[str]:
+        def __dir__(self) -> list[Any]:
             """Set the existing config keys as the attributes of the class."""
             return list(self.section_map.keys())
 

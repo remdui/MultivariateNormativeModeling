@@ -131,7 +131,7 @@ class Trainer:
             log_message(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.6f}")
 
             if (
-                self.properties.model.save_modfel
+                self.properties.model.save_model
                 and (epoch + 1) % self.properties.model.save_model_interval == 0
             ):
                 save_model(
