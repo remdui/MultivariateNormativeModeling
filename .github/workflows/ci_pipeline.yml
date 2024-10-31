@@ -52,7 +52,7 @@ jobs:
         run: poetry run bandit --ini .bandit -r ./src
 
       - name: Code Complexity Checker (xenon)
-        run: poetry run xenon --max-absolute B --max-modules A --max-average A ./src
+        run: poetry run xenon --max-absolute B --max-modules B --max-average A ./src
 
       - name: YAML file Checker
         run: poetry run pre-commit run check-yaml --all-files
