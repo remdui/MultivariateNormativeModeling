@@ -72,10 +72,11 @@ repos:
     hooks:
       - id: mypy
         name: "Static Type Checker (mypy)"
-        entry: mypy
+        entry: mypy ./src
         language: system
         types: [ python ]
         require_serial: true
+        pass_filenames: false
   - repo: local
     hooks:
       - id: bandit

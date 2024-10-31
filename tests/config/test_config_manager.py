@@ -1,3 +1,5 @@
+"""Tests for the ConfigManager class."""
+
 import argparse
 
 import pytest
@@ -18,7 +20,9 @@ def setup_default_config():
 def test_load_default_config_sections():
     """Test that all sections are loaded correctly from the default configuration file."""
 
-    config_manager = ConfigManager(config_file=DEFAULT_CONFIG_FILE)
+    config_manager = ConfigManager(
+        config_file=DEFAULT_CONFIG_FILE, command_line_args=argparse.Namespace()
+    )
 
     config = config_manager.get_config()
 
@@ -55,12 +59,16 @@ def test_override_with_command_line_args():
 def test_handle_missing_config_file():
     """Test behavior when configuration file is missing."""
     with pytest.raises(FileNotFoundError):
-        ConfigManager(config_file="nonexistent_config.yml")
+        ConfigManager(
+            config_file="nonexistent_config.yml", command_line_args=argparse.Namespace()
+        )
 
 
 def test_no_command_line_args():
     """Test that configuration remains unchanged when no command-line arguments are provided."""
-    config_manager = ConfigManager(config_file=DEFAULT_CONFIG_FILE)
+    config_manager = ConfigManager(
+        config_file=DEFAULT_CONFIG_FILE, command_line_args=argparse.Namespace()
+    )
 
     config = config_manager.get_config()
 

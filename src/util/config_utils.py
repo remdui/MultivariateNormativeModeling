@@ -5,14 +5,14 @@ import yaml
 from config.config_schema import ConfigSchema
 
 
-def extract_config(section):
+def extract_config(section: type) -> dict:
     """Extract configuration for a given section."""
     return {
         key: getattr(section, key) for key in dir(section) if not key.startswith("__")
     }
 
 
-def create_default_config():
+def create_default_config() -> None:
     """Create a default configuration file based on the schema."""
     file_path = "./config/config_default.yml"
 

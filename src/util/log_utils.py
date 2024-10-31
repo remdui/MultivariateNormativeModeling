@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 
-def log_message(message, save_dir="logs"):
+def log_message(message: str, save_dir: str = "logs") -> None:
     """Log a message to the specified directory."""
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -15,13 +15,13 @@ def log_message(message, save_dir="logs"):
 
 
 def write_output(
-    output,
-    save_dir="output",
-    model_name="vae_model",
-    output_identifier="metrics",
-    date_format="%Y%m%d",
-    use_date=True,
-):
+    output: str,
+    save_dir: str = "output",
+    model_name: str = "vae_model",
+    output_identifier: str = "metrics",
+    date_format: str = "%Y%m%d",
+    use_date: bool = True,
+) -> None:
     """Write the output to the specified directory."""
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)

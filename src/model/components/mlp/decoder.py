@@ -1,6 +1,6 @@
 """MLP Decoder Module."""
 
-from torch import nn
+from torch import Tensor, nn
 
 from model.components.decoder import BaseDecoder
 
@@ -8,9 +8,11 @@ from model.components.decoder import BaseDecoder
 class MLPDecoder(BaseDecoder):
     """Multi-Layer Perceptron Decoder."""
 
-    def __init__(self, latent_dim, hidden_dims, output_dim):
+    def __init__(
+        self, latent_dim: int, hidden_dims: list[int], output_dim: int
+    ) -> None:
         super().__init__()
-        layers = []
+        layers: list[nn.Module] = []
         prev_dim = latent_dim
         for _, h_dim in enumerate(hidden_dims):
             layers.append(nn.Linear(prev_dim, h_dim))
@@ -20,7 +22,7 @@ class MLPDecoder(BaseDecoder):
         self.final_layer = nn.Linear(prev_dim, output_dim)
         self.output_activation = nn.Sigmoid()  # Change if needed
 
-    def forward(self, z):
+    def forward(self, z: Tensor) -> Tensor:
         h = self.model(z)
         x_recon = self.output_activation(self.final_layer(h))
         return x_recon

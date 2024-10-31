@@ -16,13 +16,13 @@ from util.model_utils import save_model
 class Trainer:
     """Trainer class to train the model."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Trainer class."""
         self.properties = Properties.get_instance()
         self.device = self.properties.system.device
         self._setup()
 
-    def _setup(self):
+    def _setup(self) -> None:
         """Setup the Trainer class."""
 
         # Model save info
@@ -45,7 +45,7 @@ class Trainer:
         self._setup_loss_function()
         self._setup_regularization()
 
-    def _build_model(self):
+    def _build_model(self) -> None:
         """Build the model based on the configuration."""
         encoder = get_encoder(
             self.properties.model.encoder,
@@ -63,17 +63,17 @@ class Trainer:
 
         self.model = VAE(encoder, decoder).to(self.device)
 
-    def _setup_optimizer(self):
+    def _setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
-        optimizer_params = {}
+        optimizer_params: dict = {}
         self.optimizer = get_optimizer(
             self.properties.train.optimizer,
             self.model.parameters(),
-            self.properties.train.learning_rate,
+            float(self.properties.train.learning_rate),
             **optimizer_params,
         )
 
-    def _setup_scheduler(self):
+    def _setup_scheduler(self) -> None:
         """Get the scheduler based on the configuration."""
         scheduler_params = {
             "step_size": self.properties.scheduler.step_size,
@@ -91,14 +91,14 @@ class Trainer:
             "cosineannealingwarmrestarts",
         }
 
-    def _setup_loss_function(self):
+    def _setup_loss_function(self) -> None:
         """Get the loss function based on the configuration."""
         self.loss_function = get_loss_function(self.properties.train.loss_function)
 
-    def _setup_regularization(self):
+    def _setup_regularization(self) -> None:
         """TODO: Implement regularization setup."""
 
-    def train(self):
+    def train(self) -> None:
         """Train the model."""
         epochs = self.properties.train.epochs
 
@@ -126,12 +126,12 @@ class Trainer:
             if not self.scheduler_step_per_batch:
                 self.scheduler.step()
 
-            avg_loss = train_loss / len(self.dataloader.dataset)
+            avg_loss = train_loss / float(len(self.dataloader.dataset))
             print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.6f}")
             log_message(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.6f}")
 
             if (
-                self.properties.model.save_model
+                self.properties.model.save_modfel
                 and (epoch + 1) % self.properties.model.save_model_interval == 0
             ):
                 save_model(

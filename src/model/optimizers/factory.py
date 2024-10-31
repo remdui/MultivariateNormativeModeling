@@ -1,9 +1,14 @@
 """Factory method to get the optimizer based on config."""
 
+from collections.abc import Iterator
+from typing import Any
+
 from torch import optim
 
 
-def get_optimizer(optimizer_type, parameters, lr, **kwargs):
+def get_optimizer(
+    optimizer_type: str, parameters: Iterator, lr: float, **kwargs: Any
+) -> optim.Optimizer:
     """Factory method to get the optimizer based on config."""
     if optimizer_type == "adam":
         return optim.Adam(parameters, lr=lr, **kwargs)

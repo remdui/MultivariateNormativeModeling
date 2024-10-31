@@ -4,16 +4,17 @@ import os
 from datetime import datetime
 
 import torch
+from torch import nn
 
 
 def save_model(
-    model,
-    epoch,
-    save_dir="models",
-    model_name="vae_model",
-    date_format="%Y%m%d",
-    use_date=True,
-):
+    model: nn.Module,
+    epoch: int,
+    save_dir: str = "models",
+    model_name: str = "vae_model",
+    date_format: str = "%Y%m%d",
+    use_date: bool = True,
+) -> None:
     """Save the model to the specified directory."""
     if model is None:
         raise ValueError("Model is invalid.")

@@ -8,14 +8,14 @@ from util.config_utils import create_default_config
 from util.log_utils import log_message, write_output
 
 
-def run_training():
+def run_training() -> None:
     """Run the training process."""
     print("Starting training")
     trainer = Trainer()
     trainer.train()
 
 
-def run_validation():
+def run_validation() -> None:
     """Run the validation process."""
     print("Starting validation")
     # Retrieve the Properties object
@@ -33,7 +33,7 @@ def run_validation():
     )
 
 
-def run_inference():
+def run_inference() -> None:
     """Run the inference process."""
     print("Starting inference")
 

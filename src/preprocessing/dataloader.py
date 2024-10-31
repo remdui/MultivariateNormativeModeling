@@ -1,5 +1,7 @@
 """FreeSurferDataloader class."""
 
+from typing import Any
+
 from torch.utils.data import DataLoader
 
 from entities.properties import Properties
@@ -10,7 +12,7 @@ class FreeSurferDataloader:
     """This class is used to initialize the dataloader for the FreeSurfer dataset."""
 
     @staticmethod
-    def init_dataloader():
+    def init_dataloader() -> Any:
         """Initialize the dataloader for the FreeSurfer dataset."""
         properties = Properties.get_instance()
 

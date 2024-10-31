@@ -237,8 +237,9 @@ Pre-commit hooks are used to ensure consistent and validated code style and qual
 
 ### Code Style
 
-`PEP8` standards are used as code style guide. Docs for PEP8 can be found [here](https://pep8.org/).
-Code style is enforced using the pre-commit hooks and CI/CD pipelines. Manual checks are available using the code quality tools described below in the `Code Quality` section.
+- `PEP8` standard for python code is used as code style guide. Docs for PEP8 can be found [here](https://pep8.org/).
+- Code style is enforced using the pre-commit hooks and CI/CD pipelines. Manual checks are available using the code quality tools described below in the `Code Quality` section.
+- Type annotations are used to enforce type checking. Docs for type annotations can be found [here](https://docs.python.org/3/library/typing.html).
 
 
 ### Code Quality
