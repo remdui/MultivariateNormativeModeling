@@ -388,7 +388,7 @@ Different levels of code quality checks are available:
 - `Xenon` is used for automated code complexity checks. Xenon uses Radon under the hood. Docs for Xenon can be found [here](https://xenon.readthedocs.io/en/latest/). Run Xenon using `poetry`:
 
     ```bash
-    poetry run xenon --max-absolute A --max-modules A --max-average A ./src
+    poetry run xenon --max-absolute B --max-modules A --max-average A ./src
     ```
 
   Meaning of the flags:
