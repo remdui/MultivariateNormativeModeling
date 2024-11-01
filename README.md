@@ -1,5 +1,7 @@
 # Master Thesis - Remy Duijsens
 
+[![CI-Pipeline](https://github.com/remdui/MasterThesis/actions/workflows/ci_pipeline.yml/badge.svg)](https://github.com/remdui/MasterThesis/actions/workflows/ci_pipeline.yml)
+
 ---
 ## General Information
 
