@@ -1,14 +1,36 @@
+# entities/properties.py
+
 """The properties module defines the Properties singleton to manage the configuration properties."""
 
 from typing import Any
 
-from config.config_schema import ConfigSchema
+from pydantic import BaseModel
+
+from config.config_schema import (
+    ConfigSchema,
+    DatasetConfig,
+    GeneralConfig,
+    MetaConfig,
+    ModelConfig,
+    SchedulerConfig,
+    SystemConfig,
+    TrainConfig,
+)
 
 
 class Properties:
     """Singleton class to manage the configuration properties."""
 
     _instance = None
+
+    # Define the properties for each section. This is necessary for the IDE to provide autocompletion.
+    dataset: DatasetConfig
+    general: GeneralConfig
+    meta: MetaConfig
+    model: ModelConfig
+    scheduler: SchedulerConfig
+    system: SystemConfig
+    train: TrainConfig
 
     @classmethod
     def initialize(cls, config: dict) -> None:
@@ -24,122 +46,35 @@ class Properties:
         return cls._instance
 
     def __init__(self, config: dict) -> None:
-        """Initialize the Properties object with the provided property map."""
-        self.sections: dict[str, Properties.Section] = {}
+        """Initialize the Properties object with the validated ConfigSchema."""
+        self._sections: dict[str, BaseModel] = {}
 
         # Initialize sections and class attributes
-        self.__init_section_attributes()
         self.__init_section_properties(config)
 
         # Lock the object to prevent further modification
         self._locked = True
 
-    def __init_section_attributes(self) -> None:
-        """Initialize all section attributes to None.
-
-        This is required to let the IDE know about the attributes.
-        """
-        self.system: Properties.Section = Properties.Section(
-            {}, ConfigSchema.System, "System"
-        )
-        self.general: Properties.Section = Properties.Section(
-            {}, ConfigSchema.General, "General"
-        )
-        self.meta: Properties.Section = Properties.Section(
-            {}, ConfigSchema.Meta, "Meta"
-        )
-        self.dataset: Properties.Section = Properties.Section(
-            {}, ConfigSchema.Dataset, "Dataset"
-        )
-        self.model: Properties.Section = Properties.Section(
-            {}, ConfigSchema.Model, "Model"
-        )
-        self.train: Properties.Section = Properties.Section(
-            {}, ConfigSchema.Train, "Train"
-        )
-        self.scheduler: Properties.Section = Properties.Section(
-            {}, ConfigSchema.Scheduler, "Scheduler"
-        )
-
-    def __init_section_properties(self, property_map: dict) -> None:
-        """Initialize the section properties with the provided property map."""
-        for section_name in dir(ConfigSchema):
-            if not section_name.startswith("__") and isinstance(
-                getattr(ConfigSchema, section_name), type
-            ):
-                section_schema = getattr(ConfigSchema, section_name)
-                section_data = property_map.get(
-                    section_name.lower(), {}
-                )  # Assuming lowercase in property_map
-                section = Properties.Section(section_data, section_schema, section_name)
-                setattr(self, section_name.lower(), section)  # Set section dynamically
-                self.sections[section_name.lower()] = section
+    def __init_section_properties(self, config: dict) -> None:
+        """Initialize the section properties with the provided ConfigSchema instance."""
+        for section_name, section_class in ConfigSchema.__annotations__.items():
+            section_config = config.get(section_name, {})
+            section_instance = section_class(**section_config)
+            self._sections[section_name] = section_instance
+            setattr(self, section_name, section_instance)
 
     def __setattr__(self, key: str, value: Any) -> None:
         """Prevent modifications to existing attributes after initialization."""
-        if hasattr(self, "_locked") and self._locked:
-            raise AttributeError(f"Cannot modify immutable property section '{key}'")
+        if hasattr(self, "_locked") and self._locked and hasattr(self, key):
+            raise AttributeError(f"Cannot modify immutable property '{key}'")
         super().__setattr__(key, value)
 
     def __repr__(self) -> str:
         """String representation of all sections for debugging purposes."""
-        return f"Properties: \n{''.join(f'{v}\n' for k, v in self.sections.items())}"
+        sections_repr = "\n".join(f"{k}: {v}" for k, v in self._sections.items())
+        return f"Properties:\n{sections_repr}"
 
-    class Section:
-        """Define a section of the configuration."""
-
-        def __init__(
-            self, section_map: dict, section_schema: type, section_name: str
-        ) -> None:
-            """Initialize the section with the provided map, schema, and name."""
-            self.section_map = section_map
-            self.section_schema = section_schema
-            self.section_name = section_name
-
-            # Lock the section after initialization
-            self._locked = True
-
-        def __getattr__(self, key: str) -> Any:
-            """Check whether the config property exists in the schema.
-
-            Return the value from the section map if it exists, otherwise return the default value from the schema.
-            """
-            if key not in self.section_map:
-                raise AttributeError(
-                    f"'{self.section_name}' section does not contain property '{key}'"
-                )
-
-            if hasattr(self.section_schema, key):
-                return self.section_map.get(key, getattr(self.section_schema, key))
-            raise AttributeError(
-                f"'{self.section_name}' section contains unknown property '{key}'. Register the property in the ConfigSchema or check for typos."
-            )
-
-        def __setattr__(self, key: str, value: Any) -> None:
-            """Custom attribute setter to prevent modification of section attributes."""
-            # Allow setting the section_map, section_schema, and section_name before locking the section
-            if key in {"section_map", "section_schema", "section_name"}:
-                super().__setattr__(key, value)
-
-            # Prevent modification of attributes after initialization
-            elif hasattr(self, "_locked") and self._locked:
-                raise AttributeError(
-                    f"Cannot modify property '{key}' in immutable property section '{self.section_name}'"
-                )
-
-            # If not locked, allow setting the attribute (also allows locked attributes to be set)
-            else:
-                super().__setattr__(key, value)
-
-        def __dir__(self) -> list[Any]:
-            """Set the existing config keys as the attributes of the class."""
-            return list(self.section_map.keys())
-
-        def __repr__(self) -> str:
-            """Provide a useful string representation of a config section."""
-            attrs = {
-                key: self.__getattr__(key)
-                for key in dir(self)
-                if not key.startswith("__")
-            }
-            return f"Section({self.section_name}: {attrs})"
+    @property
+    def model_name(self) -> str:
+        """Construct the model name from meta information."""
+        return f"{self.meta.name}_v{self.meta.version}"

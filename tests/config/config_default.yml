@@ -44,7 +44,7 @@ system:
   data_dir: ./data
   device: cpu
   log_dir: ./logs
-  model_dir: ./models
+  models_dir: ./models
   num_workers: 4
   output_dir: ./output
 train:

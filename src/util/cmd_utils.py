@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output_dir", type=str, help="Directory to store inference results"
     )
-    parser.add_argument("--model_dir", type=str, help="Directory to save models")
+    parser.add_argument("--models_dir", type=str, help="Directory to save models")
     parser.add_argument("--data_dir", type=str, help="Directory to store data")
     parser.add_argument("--seed", type=int, help="Random seed")
     parser.add_argument(

@@ -19,6 +19,7 @@ PyYAML = "6.0.2" # YAML parser
 types-PyYAML = "6.0.12.20240917" # type hints for PyYAML
 pandas-stubs = "2.2.3.241009" # type hints for pandas
 tqdm = "4.66.5" # progress bar
+pydantic = "2.9.2" # data validation
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.3.1" # linting

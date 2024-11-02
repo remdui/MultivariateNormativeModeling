@@ -40,7 +40,12 @@ def test_override_with_command_line_args():
     """Test that command-line arguments override default configuration values."""
     # Simulated command-line arguments
     mock_args = argparse.Namespace(
-        debug=True, log_level="DEBUG", train_split=0.6, test_split=0.25, epochs=50
+        debug=True,
+        log_level="DEBUG",
+        train_split=0.6,
+        test_split=0.25,
+        val_split=0.15,
+        epochs=50,
     )
 
     config_manager = ConfigManager(
@@ -53,6 +58,7 @@ def test_override_with_command_line_args():
     assert config["general"]["log_level"] == "DEBUG"
     assert config["dataset"]["train_split"] == 0.6
     assert config["dataset"]["test_split"] == 0.25
+    assert config["dataset"]["val_split"] == 0.15
     assert config["train"]["epochs"] == 50
 
 

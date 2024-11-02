@@ -128,7 +128,7 @@ The `main.py` file accepts the following optional arguments:
 - `--device`: Device to run the project on. Options: `cpu`, `cuda`.
 - `--log_dir`: Directory to save logs.
 - `--log_level`: Log level. Options: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
-- `--model_dir`: Directory to save models.
+- `--models_dir`: Directory to save models.
 - `--num_workers`: Number of workers for data loading.
 - `--output_dir`: Directory to save output.
 - `--seed`: Seed for reproducibility.

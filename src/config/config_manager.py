@@ -1,17 +1,20 @@
+# config/config_manager.py
+
 """Manages loading and merging config and arguments."""
 
 import argparse
 import os
 
 import yaml
+from pydantic import ValidationError
 
-from config.config_schema import ConfigSchema
+from config.config_schema import ConfigSchema, MetaConfig
 from util.errors import ConfigurationError
 from util.log_utils import log_message
 
 
 class ConfigManager:
-    """Manages loading and merging config and arguments, and returns a Properties object."""
+    """Manages loading and merging config and arguments."""
 
     def __init__(self, config_file: str, command_line_args: argparse.Namespace):
         """Initialize the ConfigManager with the provided configuration file and command-line arguments."""
@@ -20,14 +23,13 @@ class ConfigManager:
         self.args = command_line_args
         self._load_config()
         self._override_with_args()
+        self.validate_config()
 
     def _load_config(self) -> None:
         """Load the configuration from a YAML file."""
-
-        # config files are located in ./config
         config_file = os.path.join("./config", self.config_file)
 
-        if config_file and os.path.exists(config_file):
+        if os.path.exists(config_file):
             with open(config_file, encoding="utf-8") as file:
                 self.config = yaml.safe_load(file)
         else:
@@ -48,10 +50,23 @@ class ConfigManager:
             if key in self.config[section]:
                 self.config[section][key] = value
                 break
+        else:
+            # Key not found in any section
+            if key not in {"config", "mode"}:
+                log_message(
+                    f"Warning: Command-line argument '{key}' does not match any configuration key."
+                )
 
     def get_config(self) -> dict:
-        """Return a Properties object containing the merged config and args."""
+        """Return the validated configuration as a ConfigSchema instance."""
         return self.config
+
+    def validate_config(self) -> None:
+        """Validate the configuration dictionary and store the ConfigSchema instance."""
+        try:
+            ConfigSchema(**self.config)
+        except ValidationError as e:
+            raise ConfigurationError(f"Configuration validation error: {e}") from e
 
     def is_version_compatible(self) -> None:
         """Check if the configuration file is compatible with the current software version.
@@ -62,13 +77,13 @@ class ConfigManager:
         version = meta.get("config_version")
         if not version:
             raise ConfigurationError("Version not specified in the configuration file.")
-        if version > ConfigSchema.Meta.config_version:
+        if version > MetaConfig.config_version:
             raise ConfigurationError(
-                f"Configuration file version ({version}) is newer than supported ({ConfigSchema.Meta.config_version}). Please update your software."
+                f"Configuration file version ({version}) is newer than supported ({MetaConfig.config_version}). Please update your software."
             )
-        if version < ConfigSchema.Meta.config_version:
+        if version < MetaConfig.config_version:
             log_message(
-                f"Configuration file version ({version}) is older than schema ({ConfigSchema.Meta.config_version}). Attempting to migrate settings."
+                f"Configuration file version ({version}) is older than schema ({MetaConfig.config_version}). Attempting to migrate settings."
             )
             self._migrate_config(version)
             self._save_config()
@@ -81,12 +96,11 @@ class ConfigManager:
         }
         current_version = old_version
 
-        while current_version != ConfigSchema.Meta.config_version:
+        while current_version != MetaConfig.config_version:
             migration_function = migration_steps.get(current_version)
-            print(current_version)
             if not migration_function:
                 raise ConfigurationError(
-                    f"No migration path from version {current_version} to {ConfigSchema.Meta.config_version}."
+                    f"No migration path from version {current_version} to {MetaConfig.config_version}."
                 )
             migration_function()
             current_version = self.config["meta"]["config_version"]
@@ -100,6 +114,7 @@ class ConfigManager:
         log_message("Migrating configuration from version 1 to 2")
 
         # Add missing sections or keys
+        self.config.setdefault("general", {})
         self.config["general"]["seed"] = 42
 
         # Update the configuration version
@@ -109,4 +124,4 @@ class ConfigManager:
         """Save the updated configuration to the file."""
         config_file = os.path.join("./config", self.config_file)
         with open(config_file, "w", encoding="utf-8") as file:
-            yaml.dump(self.config, file)
+            yaml.dump(self.config, file, sort_keys=False)

@@ -24,12 +24,15 @@ def run_validation() -> None:
     # Get the log and output directories
     log_dir = properties.system.log_dir
     output_dir = properties.system.output_dir
-    model_name = properties.meta.name + "_v" + str(properties.meta.model_version)
 
     # Temporarily log a message and write an output file for demonstration purposes
     log_message("Validation started", log_dir)
     write_output(
-        "Accuracy: " + "1.00", output_dir, model_name, "metrics", use_date=False
+        "Accuracy: " + "1.00",
+        output_dir,
+        properties.model_name,
+        "metrics",
+        use_date=False,
     )
 
 
@@ -50,6 +53,9 @@ if __name__ == "__main__":
 
     # Check if the configuration file is compatible with the current software version
     config_manager.is_version_compatible()
+
+    # Validate the configuration
+    config_manager.validate_config()
 
     # Retrieve the Properties object
     config = config_manager.get_config()

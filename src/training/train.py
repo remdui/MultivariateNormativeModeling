@@ -26,10 +26,8 @@ class Trainer:
         """Setup the Trainer class."""
 
         # Model save info
-        self.model_save_dir = self.properties.system.model_dir
-        self.model_name = (
-            f"{self.properties.meta.name}_v{self.properties.meta.model_version}"
-        )
+        self.model_save_dir = self.properties.system.models_dir
+        self.model_name = f"{self.properties.meta.name}_v{self.properties.meta.version}"
 
         # Initialize data loader
         self.dataloader = FreeSurferDataloader.init_dataloader()
