@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 
-from data.impl.freesurfer_data.freesurfer_dataloader import FreeSurferDataloader
+from data.impl.factory import get_dataloader
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from model.components.factory import get_decoder, get_encoder
@@ -51,7 +51,7 @@ class Trainer:
     def _initialize_dataloader(self) -> None:
         """Initialize the data loader."""
         # Initialize data loader
-        dataloader = FreeSurferDataloader()
+        dataloader = get_dataloader(self.properties.dataset.data_type)
 
         self.train_dataloader = dataloader.train_dataloader()
         self.val_dataloader = dataloader.val_dataloader()

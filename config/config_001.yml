@@ -5,6 +5,7 @@ dataset:
   test_split: 0.1
   train_split: 0.7
   val_split: 0.2
+  data_type: tabular
   input_data: input_data.csv
   data_converter: RdsToCsvConverter
   enable_preprocessing: true
