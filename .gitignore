@@ -16,6 +16,8 @@ tests/.hypothesis
 logs/*.log
 logs/*.txt
 models/*.pt
+models/checkpoints/*.pt
+models/baseline/*.pt
 data/*.csv
 data/*.rds
 output/*.txt
