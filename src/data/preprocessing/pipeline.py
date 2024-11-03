@@ -58,26 +58,35 @@ class PreprocessingPipeline:
         """Run the data conversion and preprocessing pipeline."""
         # Paths from properties
         input_data = self.properties.dataset.input_data
+        data_dir = self.properties.system.data_dir
 
         # Check if the input data is a file, then proceed with the pipeline for tabular data
         if is_data_file(input_data):
             # Get the file name and extension
             input_file_name, input_file_extension = input_data.split(".")
 
+            # Get the processed data file path
+            processed_data_file = get_processed_file_path(data_dir, input_data)
+
             # Step 1: Data Conversion
+            if input_file_extension == "csv":
+                self.logger.info(
+                    f"Data is already in CSV format, no conversion needed. Saving to {processed_data_file}"
+                )
+                data = pd.read_csv(f"{data_dir}/{input_data}")
+                data.to_csv(processed_data_file, index=False)
+
             if input_file_extension == "rds":
+                self.logger.info(
+                    f"Data is in RDS format. Saving to{processed_data_file}"
+                )
                 data_converter = RDSToCSVDataConverter()
                 csv_file_name = input_file_name + ".csv"
                 data_converter.convert(input_data, csv_file_name)
-                self.logger.info(f"Converted {input_data} to {csv_file_name}")
-
-            processed_data_file = get_processed_file_path(
-                self.properties.system.data_dir, input_data
-            )
 
             # Step 2: Preprocessing Steps
             if self.properties.dataset.enable_preprocessing:
-                self.logger.info("Loading converted data for further processing")
+                self.logger.info("Loading data for further processing")
                 data = pd.read_csv(processed_data_file)
 
                 for preprocessor in self.preprocessors:
