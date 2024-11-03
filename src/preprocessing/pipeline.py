@@ -1,5 +1,3 @@
-# preprocessing/preprocessing_pipeline.py
-
 """Defines the PreprocessingPipeline class."""
 
 import pandas as pd
@@ -8,7 +6,7 @@ from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.abstract_preprocessor import AbstractPreprocessor
 from preprocessing.converter.abstract_dataconverter import AbstractDataConverter
-from preprocessing.converter.r_to_csv_converter import RDSToCSVDataConverter
+from preprocessing.converter.impl.r_to_csv_converter import RDSToCSVDataConverter
 from preprocessing.impl.data_cleaning import DataCleaningPreprocessor
 from preprocessing.impl.normalization import NormalizationPreprocessor
 from util.file_utils import get_processed_file_path, is_data_file, is_image_folder
