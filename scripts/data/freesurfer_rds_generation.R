@@ -31,8 +31,8 @@ feature_names <- c(
 # Generate random continuous values for features
 data <- matrix(rnorm(num_samples * length(feature_names), mean = 2.5, sd = 0.5), nrow = num_samples, ncol = length(feature_names))
 
-# Generate binary values for gender (0 for female, 1 for male)
-gender <- sample(0:1, num_samples, replace = TRUE, prob = c(0.5, 0.5))
+# Generate binary values for sex (0 for female, 1 for male)
+sex <- sample(0:1, num_samples, replace = TRUE, prob = c(0.5, 0.5))
 
 # Generate age values (mean age 13, sd 3, bounded between 7 and 19)
 age <- pmax(pmin(round(rnorm(num_samples, mean = 13, sd = 3)), 19), 7)
@@ -40,10 +40,10 @@ age <- pmax(pmin(round(rnorm(num_samples, mean = 13, sd = 3)), 19), 7)
 # Combine all features into a single data frame
 df <- as.data.frame(data)
 df$age <- age
-df$gender <- gender
+df$sex <- sex
 
 # Rename columns
-colnames(df) <- c(feature_names, "age", "gender")
+colnames(df) <- c(feature_names, "age", "sex")
 
 # Save to RDS file
-saveRDS(df, "generated_data.rds")
+saveRDS(df, "./generated_data.rds")

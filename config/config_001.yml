@@ -1,5 +1,7 @@
 dataset:
-  num_covariates: 2
+  covariates:
+  - age
+  - sex
   raw_data: generated_data.rds
   shuffle: true
   test_split: 0.1

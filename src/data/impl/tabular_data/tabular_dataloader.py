@@ -26,7 +26,7 @@ class TabularDataloader(AbstractDataloader):
 
         self.batch_size = self.properties.train.batch_size
         self.num_workers = self.properties.system.num_workers
-        self.covariates_count = self.properties.dataset.num_covariates
+        self.covariates = self.properties.dataset.covariates
         self.shuffle = self.properties.dataset.shuffle
         self.train_split = self.properties.dataset.train_split
         self.val_split = self.properties.dataset.val_split
@@ -41,7 +41,7 @@ class TabularDataloader(AbstractDataloader):
         self.logger.info("Initializing TabularDataloader...")
         try:
             self.dataset = TabularDataset(
-                csv_file=str(self.csv_path), covariates_count=self.covariates_count
+                csv_file=str(self.csv_path), covariates=self.covariates
             )
             self.logger.info(f"Dataset loaded from {self.csv_path}")
         except Exception as e:

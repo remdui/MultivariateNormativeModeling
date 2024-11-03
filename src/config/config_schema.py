@@ -16,7 +16,7 @@ class PreprocessorConfig(BaseModel):
 class DatasetConfig(BaseModel):
     """Dataset configuration."""
 
-    num_covariates: int = 2
+    covariates: list[str] = ["age", "sex"]
     raw_data: str = "generated_data.rds"
     input_data: str = "input_data.csv"
     data_type: str = "tabular"

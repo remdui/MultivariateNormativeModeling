@@ -9,17 +9,26 @@ from data.abstract_dataset import AbstractDataset
 class TabularDataset(AbstractDataset):
     """Dataset class to load the Tabular dataset."""
 
-    def __init__(self, csv_file: str, covariates_count: int) -> None:
+    def __init__(self, csv_file: str, covariates: list[str]) -> None:
         """Constructor for the TabularDataset class.
 
         Args:
             csv_file (str): Path to the CSV file containing the dataset.
-            covariates_count (int): Number of covariate columns at the end of each row.
-            transform (Optional[Any], optional): Transformations to apply to the data. Defaults to None.
+            covariatess (list[str]): List of covariates.
         """
         super().__init__()
         self.data = pd.read_csv(csv_file)
-        self.covariates_count = covariates_count
+        self.covariates = covariates
+
+        # Ensure covariate names exist in the dataset
+        missing_covariates = set(self.covariates) - set(self.data.columns)
+        if missing_covariates:
+            raise ValueError(
+                f"Covariate columns not found in dataset: {missing_covariates}"
+            )
+
+        # Identify feature columns (excluding covariates)
+        self.features = [col for col in self.data.columns if col not in covariates]
 
     def __len__(self) -> int:
         """Returns the length of the dataset.
@@ -38,18 +47,18 @@ class TabularDataset(AbstractDataset):
         Returns:
             tuple: A tuple containing:
                 - features (torch.Tensor): The input features tensor of shape [num_features].
-                - covariates (torch.Tensor): The covariates tensor of shape [covariates_count].
+                - covariates (torch.Tensor): The covariates tensor of shape [num_covariates].
         """
-        # Extract brain measures and covariates from the DataFrame
-        features_df = self.data.iloc[idx, 0 : -self.covariates_count].values  # Features
+        # Get the row as a Pandas Series using .iloc
+        row = self.data.iloc[idx]
 
-        covariates_df = self.data.iloc[
-            idx, -self.covariates_count :
-        ].values  # Covariates
+        # Extract features and covariates based on column names
+        features_series: pd.Series = row[self.features]
+        covariates_series: pd.Series = row[self.covariates]
 
         # Convert to torch.float32 tensors
-        features = torch.tensor(features_df, dtype=torch.float32)
-        covariates = torch.tensor(covariates_df, dtype=torch.float32)
+        features = torch.tensor(features_series.to_numpy(), dtype=torch.float32)
+        covariates = torch.tensor(covariates_series.to_numpy(), dtype=torch.float32)
 
         return features, covariates
 
@@ -59,7 +68,7 @@ class TabularDataset(AbstractDataset):
         Returns:
             int: Number of features (excluding covariates).
         """
-        return self.data.shape[1] - self.covariates_count
+        return len(self.features)
 
     def get_num_covariates(self) -> int:
         """Returns the number of covariates in the dataset.
@@ -67,4 +76,4 @@ class TabularDataset(AbstractDataset):
         Returns:
             int: Number of covariates.
         """
-        return self.covariates_count
+        return len(self.covariates)

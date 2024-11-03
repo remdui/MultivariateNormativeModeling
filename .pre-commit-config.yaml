@@ -112,6 +112,8 @@ repos:
         language: system
         types: [ python ]
         require_serial: true
+        always_run: true
+        pass_filenames: false
   - repo: local
     hooks:
       - id: pytest-cov
@@ -120,4 +122,6 @@ repos:
         language: system
         types: [ python ]
         require_serial: true
+        always_run: true
+        pass_filenames: false
         args: [ --cov=src, --cov-report=xml, --cov-report=term, --cov-report=html, --cov-fail-under=10]
