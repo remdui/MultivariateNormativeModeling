@@ -35,13 +35,13 @@ class PreprocessingPipeline:
         """
         self.logger = LogManager.get_logger(__name__)
         self.properties = Properties.get_instance()
+        self.preprocessors: list[AbstractPreprocessor] = []
 
         # instantiate the preprocessors
         self.__init_preprocessors()
 
     def __init_preprocessors(self) -> None:
         """Initialize the preprocessors."""
-        self.preprocessors = []
         for preprocessor_config in self.properties.dataset.preprocessors:
             preprocessor_name = preprocessor_config.name
             preprocessor_params = preprocessor_config.params or {}
