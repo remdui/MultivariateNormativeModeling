@@ -67,18 +67,11 @@ class ModelConfig(BaseModel):
     encoder: str = "mlp"
     decoder: str = "mlp"
     activation_function: str = "relu"
-    beta: float = 1.0
     covariate_embedding: str = "input_embedding"
     dropout_rate: float = 0.5
     hidden_dim: list[int] = [128, 64, 32]
-    kl_annealing: bool = True
-    kl_annealing_steps: int = 1000
     latent_dim: int = 10
     normalization_layer: str = "batch_norm"
-    reconstruction_loss_weight: float = 1.0
-    save_model: bool = True
-    save_model_interval: int = 10
-    save_model_path: str = "model.pth"
     weight_initialization: str = "xavier"
 
 
@@ -93,8 +86,6 @@ class SchedulerConfig(BaseModel):
 class SystemConfig(BaseModel):
     """System configuration."""
 
-    checkpoint: str = ""
-    checkpoint_interval: int = 5
     data_dir: str = "./data"
     device: str = "cpu"
     log_dir: str = "./logs"
@@ -117,8 +108,15 @@ class TrainConfig(BaseModel):
     log_interval: int = 10
     loss_function: str = "bce_kld"
     lr_warmup_steps: int = 500
+    kl_annealing: bool = True
+    kl_annealing_steps: int = 1000
     mixed_precision: bool = False
     optimizer: str = "adam"
+    save_model: bool = True
+    save_checkpoint: bool = True
+    checkpoint_interval: int = 5
+    use_checkpoint: bool = False
+    checkpoint: str = ""
     weight_decay: float = 0.0001
 
 

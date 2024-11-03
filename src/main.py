@@ -3,9 +3,9 @@
 import logging
 
 from config.config_manager import ConfigManager
-from data.preprocessing.pipeline import PreprocessingPipeline
 from entities.log_manager import LogManager
 from entities.properties import Properties
+from preprocessing.pipeline import PreprocessingPipeline
 from training.train import Trainer
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config

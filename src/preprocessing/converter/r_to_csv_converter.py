@@ -2,9 +2,9 @@
 
 import pyreadr  # type: ignore
 
-from data.convertion.abstract_dataconverter import AbstractDataConverter
 from entities.log_manager import LogManager
 from entities.properties import Properties
+from preprocessing.converter.abstract_dataconverter import AbstractDataConverter
 
 
 class RDSToCSVDataConverter(AbstractDataConverter):

@@ -2,8 +2,8 @@
 
 import pandas as pd
 
-from data.preprocessing.abstract_preprocessor import AbstractPreprocessor
 from entities.log_manager import LogManager
+from preprocessing.abstract_preprocessor import AbstractPreprocessor
 
 
 class NormalizationPreprocessor(AbstractPreprocessor):

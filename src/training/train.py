@@ -205,13 +205,15 @@ class Trainer:
                     break
 
             if (
-                self.properties.model.save_model
-                and (epoch + 1) % self.properties.model.save_model_interval == 0
+                self.properties.train.save_checkpoint
+                and (epoch + 1) % self.properties.train.checkpoint_interval == 0
             ):
                 self._save_checkpoint(epoch)
 
         # Save the final model
-        self._save_model(epochs - 1)
+        if self.properties.train.save_model:
+            self._save_model(epochs - 1)
+
         self.logger.info("Training completed.")
 
     def validate(self) -> float:

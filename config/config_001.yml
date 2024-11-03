@@ -28,32 +28,23 @@ meta:
   version: 1
   name: vae_design
 model:
-  activation_function: relu
-  beta: 1.0
-  covariate_embedding: input_embedding
-  decoder: mlp
-  dropout_rate: 0.5
   encoder: mlp
+  decoder: mlp
+  activation_function: relu
+  covariate_embedding: input_embedding
+  dropout_rate: 0.5
   hidden_dim:
-  - 100
-  - 50
-  - 25
-  kl_annealing: true
-  kl_annealing_steps: 1000
-  latent_dim: 15
+  - 96
+  - 64
+  - 32
+  latent_dim: 10
   normalization_layer: batch_norm
-  reconstruction_loss_weight: 1.0
-  save_model: true
-  save_model_interval: 10
-  save_model_path: model.pth
   weight_initialization: xavier
 scheduler:
   gamma: 0.1
   scheduler: steplr
   step_size: 10
 system:
-  checkpoint: ''
-  checkpoint_interval: 5
   data_dir: ./data
   device: cuda
   log_dir: ./logs
@@ -72,6 +63,13 @@ train:
   log_interval: 10
   loss_function: bce_kld
   lr_warmup_steps: 500
+  kl_annealing: true
+  kl_annealing_steps: 1000
   mixed_precision: false
   optimizer: adam
+  save_model: true
+  save_checkpoint: true
+  checkpoint_interval: 5
+  use_checkpoint: false
+  checkpoint: ''
   weight_decay: 0.0001

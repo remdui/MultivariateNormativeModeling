@@ -4,13 +4,13 @@
 
 import pandas as pd
 
-from data.convertion.abstract_dataconverter import AbstractDataConverter
-from data.convertion.r_to_csv_converter import RDSToCSVDataConverter
-from data.preprocessing.abstract_preprocessor import AbstractPreprocessor
-from data.preprocessing.impl.data_cleaning import DataCleaningPreprocessor
-from data.preprocessing.impl.normalization import NormalizationPreprocessor
 from entities.log_manager import LogManager
 from entities.properties import Properties
+from preprocessing.abstract_preprocessor import AbstractPreprocessor
+from preprocessing.converter.abstract_dataconverter import AbstractDataConverter
+from preprocessing.converter.r_to_csv_converter import RDSToCSVDataConverter
+from preprocessing.impl.data_cleaning import DataCleaningPreprocessor
+from preprocessing.impl.normalization import NormalizationPreprocessor
 from util.file_utils import get_processed_file_path, is_data_file, is_image_folder
 
 DATA_CONVERTER_MAPPING: dict[str, type[AbstractDataConverter]] = {
@@ -96,7 +96,8 @@ class PreprocessingPipeline:
                     data = preprocessor.process(data)
                     self.logger.info(f"Saving processed data to {processed_data_file}")
                     data.to_csv(processed_data_file, index=False)
-                    self.logger.info("Preprocessing pipeline completed successfully")
 
         elif is_image_folder(input_data):
             pass
+
+        self.logger.info("Preprocessing pipeline completed")
