@@ -1,21 +1,39 @@
 """Configuration schema is defined in this module."""
 
 from math import isclose
+from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
+
+
+class PreprocessorConfig(BaseModel):
+    """Preprocessor configuration type."""
+
+    name: str
+    params: dict[str, Any]
 
 
 class DatasetConfig(BaseModel):
     """Dataset configuration."""
 
-    normalization: str = "min_max"
     num_covariates: int = 2
-    processed_data_file: str = "freesurfer_dummy_output.csv"
-    raw_data_file: str = "freesurfer_output.rds"
-    shuffle: bool = True
+    raw_data: str = "raw_data.rds"
+    input_data: str = "input_data.csv"
+    shuffle: bool = True  # Shuffle the dataset
     test_split: float = 0.1
     train_split: float = 0.7
     val_split: float = 0.2
+    data_converter: str = "RdsToCsvConverter"
+    enable_preprocessing: bool = False
+    preprocessors: list[PreprocessorConfig] = [
+        PreprocessorConfig(
+            name="DataCleaningPreprocessor",
+            params={"drop_na": True, "remove_duplicates": True},
+        ),
+        PreprocessorConfig(
+            name="NormalizationPreprocessor", params={"method": "min-max"}
+        ),
+    ]
 
     @model_validator(mode="after")
     def validate_config_dataset_splits(self) -> "DatasetConfig":

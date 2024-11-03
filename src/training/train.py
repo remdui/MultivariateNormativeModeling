@@ -4,6 +4,7 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 
+from data.impl.freesurfer_data.freesurfer_dataloader import FreeSurferDataloader
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from model.components.factory import get_decoder, get_encoder
@@ -11,7 +12,6 @@ from model.loss.factory import get_loss_function
 from model.models.vae_modular import VAE
 from model.optimizers.factory import get_optimizer
 from model.schedulers.factory import get_scheduler
-from preprocessing.freesurfer_data.freesurfer_dataloader import FreeSurferDataloader
 from util.model_utils import save_model
 
 

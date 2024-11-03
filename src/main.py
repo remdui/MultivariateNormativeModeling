@@ -3,6 +3,7 @@
 import logging
 
 from config.config_manager import ConfigManager
+from data.preprocessing.pipeline import PreprocessingPipeline
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from training.train import Trainer
@@ -76,6 +77,10 @@ if __name__ == "__main__":
     # Display the merged configuration
     logger.info("Application loaded successfully.")
     logger.debug(str(Properties.get_instance()))
+
+    # Initialize and run the data preprocessing pipeline needed for all modes
+    pipeline = PreprocessingPipeline()
+    pipeline.run()
 
     # Perform action based on the argument
     if args.mode == "train":

@@ -1,12 +1,21 @@
 dataset:
-  normalization: min_max
   num_covariates: 2
-  processed_data_file: freesurfer_dummy_output.csv
-  raw_data_file: freesurfer_output.rds
+  raw_data: generated_data.rds
   shuffle: true
   test_split: 0.1
   train_split: 0.7
   val_split: 0.2
+  input_data: input_data.csv
+  data_converter: RdsToCsvConverter
+  enable_preprocessing: true
+  preprocessors:
+  - name: DataCleaningPreprocessor
+    params:
+      drop_na: true
+      remove_duplicates: true
+  - name: NormalizationPreprocessor
+    params:
+      method: min-max
 general:
   debug: false
   log_level: INFO

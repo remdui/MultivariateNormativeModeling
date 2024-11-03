@@ -19,7 +19,6 @@ models/*.pt
 models/checkpoints/*.pt
 models/baseline/*.pt
 data/*.csv
-data/*.rds
 output/*.txt
 
 # Jupyter Notebooks checkpoints
