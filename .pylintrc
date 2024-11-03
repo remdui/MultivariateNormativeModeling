@@ -96,7 +96,6 @@ enable=
 # --disable=W"
 
 disable=
-    attribute-defined-outside-init,
     invalid-name,
     protected-access,
     too-few-public-methods,
@@ -107,6 +106,7 @@ disable=
     cyclic-import,
     consider-using-assignment-expr,
     import-error,
+    no-member,
 
 
 [REPORTS]

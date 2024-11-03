@@ -77,13 +77,13 @@ class ConfigManager:
         version = meta.get("config_version")
         if not version:
             raise ConfigurationError("Version not specified in the configuration file.")
-        if version > MetaConfig.config_version:
+        if version > ConfigSchema().meta.config_version:
             raise ConfigurationError(
-                f"Configuration file version ({version}) is newer than supported ({MetaConfig.config_version}). Please update your software."
+                f"Configuration file version ({version}) is newer than supported ({ConfigSchema().meta.config_version}). Please update your software."
             )
-        if version < MetaConfig.config_version:
+        if version < ConfigSchema().meta.config_version:
             log_message(
-                f"Configuration file version ({version}) is older than schema ({MetaConfig.config_version}). Attempting to migrate settings."
+                f"Configuration file version ({version}) is older than schema ({ConfigSchema().meta.config_version}). Attempting to migrate settings."
             )
             self._migrate_config(version)
             self._save_config()
