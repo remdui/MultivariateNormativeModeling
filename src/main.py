@@ -75,14 +75,22 @@ if __name__ == "__main__":
     # Get the root logger
     logger = LogManager.get_logger(__name__)
 
+    # Get properties instance
+    properties = Properties.get_instance()
+
     # Display the merged configuration
-    logger.info("Application initialized successfully.")
+    logger.info(f"Application (v{properties.meta.version}) initialized successfully")
+
+    # Log the configuration file and version
+    logger.info(
+        f"Loaded configuration file: {args.config} (v{properties.meta.config_version})"
+    )
 
     # Log system information
     log_system_info()
 
     # Print the properties
-    logger.debug(str(Properties.get_instance()))
+    logger.debug(str(properties))
 
     # Initialize and run the data preprocessing pipeline needed for all modes
     pipeline = PreprocessingPipeline()
