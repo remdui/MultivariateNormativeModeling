@@ -22,6 +22,7 @@ tqdm = "4.66.5" # progress bar
 types-tqdm = "4.66.0.20240417" # type hints for tqdm
 pydantic = "2.9.2" # data validation
 pyreadr = "0.5.2" # read R data files
+types-psutil = "6.1.0.20241102" # type hints for psutil
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.3.1" # linting

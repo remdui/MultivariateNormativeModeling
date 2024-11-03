@@ -10,6 +10,7 @@ from training.train import Trainer
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
 from util.file_utils import create_storage_directories, write_output
+from util.system_utils import log_system_info
 
 # Set up a basic temporary logging configuration
 logging.basicConfig(
@@ -75,7 +76,12 @@ if __name__ == "__main__":
     logger = LogManager.get_logger(__name__)
 
     # Display the merged configuration
-    logger.info("Application loaded successfully.")
+    logger.info("Application initialized successfully.")
+
+    # Log system information
+    log_system_info()
+
+    # Print the properties
     logger.debug(str(Properties.get_instance()))
 
     # Initialize and run the data preprocessing pipeline needed for all modes
