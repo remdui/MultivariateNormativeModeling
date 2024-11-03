@@ -5,7 +5,7 @@ docker
 **/*.pyc
 node_modules
 .venv
-logs
+logs2
 output
 data
 models

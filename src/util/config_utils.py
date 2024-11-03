@@ -1,5 +1,7 @@
 """Utility functions for configuration management."""
 
+import os
+
 import yaml
 
 from config.config_schema import (
@@ -11,6 +13,7 @@ from config.config_schema import (
     SystemConfig,
     TrainConfig,
 )
+from entities.log_manager import LogManager
 
 
 def extract_config(section_class: type) -> dict:
@@ -21,8 +24,18 @@ def extract_config(section_class: type) -> dict:
 
 def create_default_config() -> None:
     """Create a default configuration file based on the schema."""
+
+    logger = LogManager.get_logger(__name__)
+
+    # If config directory does not exist, create it
+    if not os.path.exists("./config"):
+        os.makedirs("./config")
+        logger.info("Created config directory")
+
+    # Define the default configuration file path
     file_path = "./config/config_default.yml"
 
+    # Extract configuration for each section from the schema
     default_config = {
         "system": extract_config(SystemConfig),
         "general": extract_config(GeneralConfig),
@@ -35,3 +48,4 @@ def create_default_config() -> None:
 
     with open(file_path, "w", encoding="utf-8") as file:
         yaml.dump(default_config, file, sort_keys=False)
+        logger.info(f"Generated default configuration file from schema: {file_path}")

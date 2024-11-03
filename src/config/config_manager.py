@@ -20,11 +20,14 @@ class ConfigManager:
         """Initialize the ConfigManager with the provided configuration file and command-line arguments."""
         self.logger = LogManager.get_logger(__name__)
         self.config_file = config_file
-        self.config: dict = {}
         self.args = command_line_args
+
+        # Initialize an empty configuration dictionary
+        self.config: dict = {}
+
+        # Process the configuration file and command-line arguments
         self._load_config()
         self._override_with_args()
-        self.validate_config()
 
     def _load_config(self) -> None:
         """Load the configuration from a YAML file."""
@@ -33,6 +36,7 @@ class ConfigManager:
         if os.path.exists(config_file):
             with open(config_file, encoding="utf-8") as file:
                 self.config = yaml.safe_load(file)
+                self.logger.info(f"Configuration loaded from file: {config_file}")
         else:
             raise FileNotFoundError(f"Configuration file {config_file} not found.")
 
@@ -50,6 +54,9 @@ class ConfigManager:
         for section in self.config:
             if key in self.config[section]:
                 self.config[section][key] = value
+                self.logger.info(
+                    f"Overriding configuration with command-line argument: {key}={value}"
+                )
                 break
         else:
             # Key not found in any section
@@ -66,6 +73,7 @@ class ConfigManager:
         """Validate the configuration dictionary and store the ConfigSchema instance."""
         try:
             ConfigSchema(**self.config)
+            self.logger.info("Configuration validated successfully with the schema.")
         except ValidationError as e:
             raise ConfigurationError(f"Configuration validation error: {e}") from e
 
@@ -76,8 +84,12 @@ class ConfigManager:
         """
         meta = self.config.get("meta", {})
         version = meta.get("config_version")
+
         if not version:
             raise ConfigurationError("Version not specified in the configuration file.")
+
+        self.logger.info(f"Configuration file loaded with version: {version}")
+
         if version > ConfigSchema().meta.config_version:
             raise ConfigurationError(
                 f"Configuration file version ({version}) is newer than supported ({ConfigSchema().meta.config_version}). Please update your software."

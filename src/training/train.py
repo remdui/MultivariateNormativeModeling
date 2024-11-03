@@ -11,7 +11,7 @@ from model.loss.factory import get_loss_function
 from model.models.vae_modular import VAE
 from model.optimizers.factory import get_optimizer
 from model.schedulers.factory import get_scheduler
-from preprocessing.dataloader import FreeSurferDataloader
+from preprocessing.freesurfer_data.freesurfer_dataloader import FreeSurferDataloader
 from util.model_utils import save_model
 
 
@@ -35,6 +35,10 @@ class Trainer:
         # Initialize data loader
         self._initialize_dataloader()
 
+        # Get input and output dimensions
+        self.input_dim = self.train_dataloader.dataset[0][0].shape[0]
+        self.output_dim = self.input_dim
+
         # Build model
         self._build_model()
 
@@ -47,9 +51,13 @@ class Trainer:
     def _initialize_dataloader(self) -> None:
         """Initialize the data loader."""
         # Initialize data loader
-        self.dataloader = FreeSurferDataloader.init_dataloader()
-        self.input_dim = self.dataloader.dataset[0][0].shape[0]
-        self.output_dim = self.input_dim  # Assuming reconstruction
+        dataloader = FreeSurferDataloader()
+
+        self.train_dataloader = dataloader.train_dataloader()
+        self.val_dataloader = dataloader.val_dataloader()
+        self.test_dataloader = dataloader.test_dataloader()
+
+        self.logger.info(f"Initialized Dataloader: {dataloader}")
 
     def _build_model(self) -> None:
         """Build the model based on the configuration."""
@@ -68,6 +76,12 @@ class Trainer:
         ).to(self.device)
 
         self.model = VAE(encoder, decoder).to(self.device)
+        # print model architecture and parameters
+
+        self.logger.info(f"Initialized model: {self.model}")
+        self.logger.info(
+            f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}"
+        )
 
     def _setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
@@ -78,6 +92,7 @@ class Trainer:
             float(self.properties.train.learning_rate),
             **optimizer_params,
         )
+        self.logger.info(f"Initialized optimizer: {self.optimizer}")
 
     def _setup_scheduler(self) -> None:
         """Get the scheduler based on the configuration."""
@@ -96,13 +111,16 @@ class Trainer:
             "onecyclelr",
             "cosineannealingwarmrestarts",
         }
+        self.logger.info(f"Initialized scheduler: {self.scheduler}")
 
     def _setup_loss_function(self) -> None:
         """Get the loss function based on the configuration."""
         self.loss_function = get_loss_function(self.properties.train.loss_function)
+        self.logger.info(f"Initialized loss function: {self.loss_function}")
 
     def _setup_regularization(self) -> None:
         """TODO: Implement regularization setup."""
+        self.logger.info("Initialized regularization: None")
 
     def _save_checkpoint(self, epoch: int) -> None:
         """Save a checkpoint of the model."""
@@ -126,54 +144,119 @@ class Trainer:
 
     def _train_step(self, data: Tensor) -> float:
         """Perform a single training step."""
-        data = data.float().to(self.device)
         self.optimizer.zero_grad()
         recon_batch, mu, logvar = self.model(data)
         loss = self.loss_function(recon_batch, data, mu, logvar)
         loss.backward()
-
-        if self.properties.train.gradient_clipping:
-            torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(), self.properties.train.gradient_clipping
-            )
-
+        # TODO: Maybe clip gradients
         self.optimizer.step()
-        train_loss = loss.item()
-
-        if self.scheduler_step_per_batch:
-            self.scheduler.step()
-
-        return train_loss
+        return loss.detach()
 
     def train(self) -> None:
         """Train the model."""
         epochs = self.properties.train.epochs
 
+        self.logger.info(
+            f"Training model: {self.model_name} for {epochs} epochs with batch size {self.properties.train.batch_size} using device {self.device}"
+        )
+
         for epoch in range(epochs):
             self.model.train()
-            train_loss = 0.0
+            total_loss = 0.0
+            total_samples = 0
+
             tqdm_loader = tqdm(
-                enumerate(self.dataloader),
-                total=len(self.dataloader),
+                self.train_dataloader,
+                total=len(self.train_dataloader),
                 desc=f"Epoch {epoch+1}/{epochs}",
             )
 
-            for _, (data, _) in tqdm_loader:
-                train_loss_batch = self._train_step(data)
-                train_loss += train_loss_batch
+            for batch in tqdm_loader:
+                data, _ = batch
+                data = data.to(self.device)
+
+                batch_loss = self._train_step(data)
+                batch_size = data.size(0)
+                total_loss += batch_loss * batch_size
+                total_samples += batch_size
+
+                avg_loss = total_loss / total_samples
+                tqdm_loader.set_postfix(loss=f"{avg_loss:.4f}")
+
+                if self.scheduler_step_per_batch:
+                    self.scheduler.step()
 
             if not self.scheduler_step_per_batch:
                 self.scheduler.step()
 
-            avg_loss = train_loss / float(len(self.dataloader.dataset))
-            self.logger.info(f"Finished epoch {epoch+1}: loss: {avg_loss:.2f}")
+            avg_loss = total_loss / total_samples
+            self.logger.info(
+                f"Finished epoch {epoch + 1}: average training loss: {avg_loss:.4f}"
+            )
+
+            # Validation loop
+            val_loss = self.validate()
+            self.logger.info(f"Validation loss after epoch {epoch + 1}: {val_loss:.4f}")
+
+            # Early stopping check
+            if self.properties.train.early_stopping:
+                if self._early_stopping_check(val_loss):
+                    self.logger.info("Early stopping triggered.")
+                    break
 
             if (
                 self.properties.model.save_model
                 and (epoch + 1) % self.properties.model.save_model_interval == 0
             ):
-                self._save_checkpoint(epoch + 1)
+                self._save_checkpoint(epoch)
 
         # Save the final model
-        self._save_model(epochs + 1)
+        self._save_model(epochs - 1)
         self.logger.info("Training completed.")
+
+    def validate(self) -> float:
+        """Validate the model on the validation set."""
+        self.model.eval()
+        total_val_loss = 0.0
+        total_val_samples = 0
+
+        with torch.no_grad():
+            for batch in self.val_dataloader:
+                data, _ = batch
+                data = data.to(self.device)
+
+                recon_batch, mu, logvar = self.model(data)
+                loss = self.loss_function(recon_batch, data, mu, logvar)
+                batch_size = data.size(0)
+                total_val_loss += loss.item() * batch_size
+                total_val_samples += batch_size
+
+        avg_val_loss = total_val_loss / total_val_samples
+        return avg_val_loss
+
+    def _early_stopping_check(self, val_loss: float) -> bool:
+        """Check if early stopping criteria are met.
+
+        Args:
+            val_loss (float): Current validation loss.
+
+        Returns:
+            bool: True if training should stop, False otherwise.
+        """
+        if not hasattr(self, "best_val_loss"):
+            self.best_val_loss = val_loss
+            self.no_improvement_epochs = 0
+            return False
+
+        if (
+            val_loss
+            < self.best_val_loss - self.properties.train.early_stopping_min_delta
+        ):
+            self.best_val_loss = val_loss
+            self.no_improvement_epochs = 0
+        else:
+            self.no_improvement_epochs += 1
+
+        if self.no_improvement_epochs >= self.properties.train.early_stopping_patience:
+            return True
+        return False

@@ -8,7 +8,7 @@ from entities.properties import Properties
 from training.train import Trainer
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
-from util.file_utils import write_output
+from util.file_utils import create_storage_directories, write_output
 
 # Set up a basic temporary logging configuration
 logging.basicConfig(
@@ -26,37 +26,23 @@ def run_training() -> None:
 
 def run_validation() -> None:
     """Run the validation process."""
-    # Retrieve the Properties object
-    properties = Properties.get_instance()
-
-    output_dir = properties.system.output_dir
-
     write_output(
         "Accuracy: " + "1.00",
-        output_dir,
-        properties.model_name,
         "metrics",
-        use_date=False,
     )
 
 
 def run_inference() -> None:
     """Run the inference process."""
-    # Retrieve the Properties object
-    properties = Properties.get_instance()
-
-    output_dir = properties.system.output_dir
-
     write_output(
         "Accuracy: " + "1.00",
-        output_dir,
-        properties.model_name,
         "metrics",
-        use_date=False,
     )
 
 
 if __name__ == "__main__":
+    logging.info("Loading application...")
+
     # Create a default configuration file
     create_default_config()
 
@@ -78,6 +64,9 @@ if __name__ == "__main__":
     # Initialize the Properties object with the merged configuration
     Properties.initialize(config)
 
+    # Create storage directories if they do not exist
+    create_storage_directories()
+
     # Reconfigure logging with the actual properties
     LogManager.reconfigure_logging()
 
@@ -85,17 +74,20 @@ if __name__ == "__main__":
     logger = LogManager.get_logger(__name__)
 
     # Display the merged configuration
-    logger.info("Configuration loaded successfully.")
+    logger.info("Application loaded successfully.")
     logger.debug(str(Properties.get_instance()))
 
     # Perform action based on the argument
     if args.mode == "train":
+        logger.info("Starting training process...")
         run_training()
     elif args.mode == "validate":
+        logger.info("Starting validation process...")
         run_validation()
     elif args.mode == "inference":
         if not args.checkpoint:
             raise ValueError(
                 "For inference, you must provide a model checkpoint with --checkpoint"
             )
+        logger.info("Starting inference process...")
         run_inference()

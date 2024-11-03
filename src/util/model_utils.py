@@ -6,6 +6,8 @@ from datetime import datetime
 import torch
 from torch import nn
 
+from entities.log_manager import LogManager
+
 
 def save_model(
     model: nn.Module,
@@ -16,6 +18,8 @@ def save_model(
     use_date: bool = True,
 ) -> None:
     """Save the model to the specified directory."""
+    logger = LogManager.get_logger(__name__)
+
     if model is None:
         raise ValueError("Model is invalid.")
     if epoch < 0:
@@ -29,3 +33,4 @@ def save_model(
         filename = f"{save_dir}/{model_name}_{epoch}.pt"
 
     torch.save(model, filename)
+    logger.info(f"Saved model to: {filename}")

@@ -2,12 +2,18 @@
 
 import argparse
 
+from entities.log_manager import LogManager
+
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
+
+    logger = LogManager.get_logger(__name__)
+
+    # Define the argument parser
     parser = argparse.ArgumentParser(description="Run VAE Pipeline")
 
-    # Main parameters
+    # Required parameters
     parser.add_argument(
         "--mode",
         type=str,
@@ -55,4 +61,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 
-    return parser.parse_args()
+    # Parse arguments using argparse
+    args = parser.parse_args()
+
+    logger.info("Command line arguments parsed successfully.")
+
+    return args

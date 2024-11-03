@@ -30,6 +30,7 @@ train:
   batch_size: 32
   early_stopping: true
   early_stopping_metric: loss
+  early_stopping_min_delta: 0.0
   early_stopping_patience: 10
   epochs: 100
   gradient_clipping: 5.0

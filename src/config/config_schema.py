@@ -92,6 +92,7 @@ class TrainConfig(BaseModel):
     batch_size: int = 32
     early_stopping: bool = True
     early_stopping_metric: str = "loss"
+    early_stopping_min_delta: float = 0.0
     early_stopping_patience: int = 10
     epochs: int = 100
     gradient_clipping: float = 5.0

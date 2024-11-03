@@ -4,6 +4,7 @@
 
 import logging
 import os
+from logging import Handler
 from logging.handlers import RotatingFileHandler
 
 from entities.properties import Properties
@@ -28,8 +29,7 @@ class LogManager:
             verbose = properties.general.verbose
             log_level_str = properties.general.log_level.upper()
 
-            # Ensure the log directory exists
-            os.makedirs(log_dir, exist_ok=True)
+            # Define the log file
             log_file = os.path.join(log_dir, "application.log")
 
             # Determine the log level
@@ -45,46 +45,67 @@ class LogManager:
             )
 
             # Create handlers
-            file_handler = RotatingFileHandler(
-                log_file, maxBytes=10 * 1024 * 1024, backupCount=5
+            file_handler = LogManager.__create_file_handler(
+                formatter, log_file, log_level, verbose
             )
-            file_handler.setLevel(logging.NOTSET if verbose else log_level)
-            file_handler.setFormatter(formatter)
+            console_handler = LogManager.__create_console_handler(
+                debug, formatter, log_level, verbose
+            )
 
-            # Console handler
-            console_handler = logging.StreamHandler()
-            if verbose:
-                console_handler.setLevel(logging.NOTSET)
-            elif debug:
-                console_handler.setLevel(log_level)
-            else:
-                console_handler.setLevel(
-                    logging.CRITICAL + 1
-                )  # Effectively disables console output
-
-            console_handler.setFormatter(formatter)
-
-            # Get the root logger
+            # Configure the root logger with the handlers
             root_logger = logging.getLogger()
-            # Remove any existing handlers
             root_logger.handlers = []
-            # Add the new handlers
             root_logger.addHandler(file_handler)
             root_logger.addHandler(console_handler)
-            # Set the root logger level
             root_logger.setLevel(logging.NOTSET)
 
+            # Mark the logging as initialized
             LogManager._logger_initialized = True
+
+            logger = LogManager.get_logger(__name__)
+
+            logger.info(
+                f"Logging initialized with settings: verbose={verbose}, debug={debug}, log_level={log_level}"
+            )
 
         except ConfigurationError:
             # If Properties is not initialized yet or any other exception occurs,
             # keep using the temporary logger
             logging.getLogger(__name__).warning(
-                "LoggerManager setup failed; using temporary logger."
+                "Properties have not been initialized yet. Temporarily using basic logging configuration."
             )
             LogManager._logger_initialized = (
                 True  # Prevent further attempts until reconfiguration
             )
+
+    @staticmethod
+    def __create_file_handler(
+        formatter: logging.Formatter, log_file: str, log_level: int, verbose: bool
+    ) -> Handler:
+        """Create a file handler."""
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=10 * 1024 * 1024, backupCount=5
+        )
+        file_handler.setLevel(logging.NOTSET if verbose else log_level)
+        file_handler.setFormatter(formatter)
+        return file_handler
+
+    @staticmethod
+    def __create_console_handler(
+        debug: bool, formatter: logging.Formatter, log_level: int, verbose: bool
+    ) -> Handler:
+        """Create a console handler."""
+        console_handler = logging.StreamHandler()
+        if verbose:
+            console_handler.setLevel(logging.NOTSET)
+        elif debug:
+            console_handler.setLevel(log_level)
+        else:
+            console_handler.setLevel(
+                logging.CRITICAL + 1
+            )  # Effectively disables console output
+        console_handler.setFormatter(formatter)
+        return console_handler
 
     @staticmethod
     def reconfigure_logging() -> None:

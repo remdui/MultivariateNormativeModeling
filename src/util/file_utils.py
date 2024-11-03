@@ -1,34 +1,56 @@
 """Utility functions for logging."""
 
 import os
-from datetime import datetime
 
-# def log_message(message: str, save_dir: str = "logs") -> None:
-#     """Log a message to the specified directory."""
-#     if not os.path.exists(save_dir):
-#         os.makedirs(save_dir)
-#     with open(
-#         f"{save_dir}/log_{datetime.now().strftime('%Y%m%d')}.txt", "a", encoding="utf-8"
-#     ) as f:
-#         f.write(message + "\n")
+from entities.log_manager import LogManager
+from entities.properties import Properties
 
 
 def write_output(
     output: str,
-    save_dir: str = "output",
-    model_name: str = "vae_model",
     output_identifier: str = "metrics",
-    date_format: str = "%Y%m%d",
-    use_date: bool = True,
 ) -> None:
     """Write the output to the specified directory."""
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    if use_date:
-        date = datetime.now().strftime(date_format)
-        filename = f"{save_dir}/{model_name}_{output_identifier}_{date}.txt"
-    else:
-        filename = f"{save_dir}/{model_name}_{output_identifier}.txt"
+    properties = Properties.get_instance()
+    output_dir = properties.system.output_dir
+    model_name = properties.model_name
+
+    filename = f"{output_dir}/{model_name}_{output_identifier}.txt"
 
     with open(filename, "w", encoding="utf-8") as f:
         f.write(output)
+
+
+def create_storage_directories() -> None:
+    """Create directories for storing logs and models if they do not exist.
+
+    Data directory is not created here as it is required to be created by the user.
+    """
+    # Get logger
+    logger = LogManager.get_logger(__name__)
+
+    # Get file paths from properties
+    properties = Properties.get_instance()
+    log_dir = properties.system.log_dir
+    models_dir = properties.system.models_dir
+    output_dir = properties.system.output_dir
+
+    # Create log directory if it does not exist
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+        logger.info(f"Created log directory: {log_dir}")
+
+    # Create models directory if it does not exist
+    if not os.path.exists(models_dir):
+        os.makedirs(models_dir)
+        logger.info(f"Created models directory: {models_dir}")
+
+        # Create checkpoints subdirectory
+        checkpoints_dir = os.path.join(models_dir, "checkpoints")
+        os.makedirs(checkpoints_dir)
+        logger.info(f"Created checkpoints directory: {checkpoints_dir}")
+
+    # Create output directory if it does not exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        logger.info(f"Created output directory: {output_dir}")
