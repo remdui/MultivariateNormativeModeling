@@ -17,7 +17,7 @@ class DatasetConfig(BaseModel):
     """Dataset configuration."""
 
     num_covariates: int = 2
-    raw_data: str = "raw_data.rds"
+    raw_data: str = "generated_data.rds"
     input_data: str = "input_data.csv"
     data_type: str = "tabular"
     shuffle: bool = True  # Shuffle the dataset

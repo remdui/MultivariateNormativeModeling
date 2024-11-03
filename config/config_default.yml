@@ -19,7 +19,7 @@ meta:
   version: 1
 dataset:
   num_covariates: 2
-  raw_data: raw_data.rds
+  raw_data: generated_data.rds
   input_data: input_data.csv
   data_type: tabular
   shuffle: true
