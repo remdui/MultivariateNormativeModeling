@@ -1,32 +1,36 @@
 """Entry point for the software."""
 
+import logging
+
 from config.config_manager import ConfigManager
+from entities.log_manager import LogManager
 from entities.properties import Properties
 from training.train import Trainer
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
-from util.log_utils import log_message, write_output
+from util.file_utils import write_output
+
+# Set up a basic temporary logging configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%d-%m-%Y %H:%M:%S",
+)
 
 
 def run_training() -> None:
     """Run the training process."""
-    print("Starting training")
     trainer = Trainer()
     trainer.train()
 
 
 def run_validation() -> None:
     """Run the validation process."""
-    print("Starting validation")
     # Retrieve the Properties object
     properties = Properties.get_instance()
 
-    # Get the log and output directories
-    log_dir = properties.system.log_dir
     output_dir = properties.system.output_dir
 
-    # Temporarily log a message and write an output file for demonstration purposes
-    log_message("Validation started", log_dir)
     write_output(
         "Accuracy: " + "1.00",
         output_dir,
@@ -38,7 +42,18 @@ def run_validation() -> None:
 
 def run_inference() -> None:
     """Run the inference process."""
-    print("Starting inference")
+    # Retrieve the Properties object
+    properties = Properties.get_instance()
+
+    output_dir = properties.system.output_dir
+
+    write_output(
+        "Accuracy: " + "1.00",
+        output_dir,
+        properties.model_name,
+        "metrics",
+        use_date=False,
+    )
 
 
 if __name__ == "__main__":
@@ -63,8 +78,15 @@ if __name__ == "__main__":
     # Initialize the Properties object with the merged configuration
     Properties.initialize(config)
 
+    # Reconfigure logging with the actual properties
+    LogManager.reconfigure_logging()
+
+    # Get the root logger
+    logger = LogManager.get_logger(__name__)
+
     # Display the merged configuration
-    log_message(str(Properties.get_instance()))
+    logger.info("Configuration loaded successfully.")
+    logger.debug(str(Properties.get_instance()))
 
     # Perform action based on the argument
     if args.mode == "train":

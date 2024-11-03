@@ -9,8 +9,8 @@ import yaml
 from pydantic import ValidationError
 
 from config.config_schema import ConfigSchema, MetaConfig
+from entities.log_manager import LogManager
 from util.errors import ConfigurationError
-from util.log_utils import log_message
 
 
 class ConfigManager:
@@ -18,6 +18,7 @@ class ConfigManager:
 
     def __init__(self, config_file: str, command_line_args: argparse.Namespace):
         """Initialize the ConfigManager with the provided configuration file and command-line arguments."""
+        self.logger = LogManager.get_logger(__name__)
         self.config_file = config_file
         self.config: dict = {}
         self.args = command_line_args
@@ -53,7 +54,7 @@ class ConfigManager:
         else:
             # Key not found in any section
             if key not in {"config", "mode"}:
-                log_message(
+                self.logger.warning(
                     f"Warning: Command-line argument '{key}' does not match any configuration key."
                 )
 
@@ -82,7 +83,7 @@ class ConfigManager:
                 f"Configuration file version ({version}) is newer than supported ({ConfigSchema().meta.config_version}). Please update your software."
             )
         if version < ConfigSchema().meta.config_version:
-            log_message(
+            self.logger.warning(
                 f"Configuration file version ({version}) is older than schema ({ConfigSchema().meta.config_version}). Attempting to migrate settings."
             )
             self._migrate_config(version)
@@ -104,14 +105,14 @@ class ConfigManager:
                 )
             migration_function()
             current_version = self.config["meta"]["config_version"]
-            log_message(f"Configuration migrated to version {current_version}.")
-        log_message(
+            self.logger.info(f"Configuration migrated to version {current_version}.")
+        self.logger.info(
             f"Configuration successfully migrated from {old_version} to version {current_version}."
         )
 
     def _migrate_from_1_to_2(self) -> None:
         """Migrate the configuration from version 1 to version 2."""
-        log_message("Migrating configuration from version 1 to 2")
+        self.logger.info("Migrating configuration from version 1 to 2")
 
         # Add missing sections or keys
         self.config.setdefault("general", {})

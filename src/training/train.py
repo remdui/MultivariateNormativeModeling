@@ -1,7 +1,10 @@
 """Train the model using the configuration."""
 
 import torch
+from torch import Tensor
+from tqdm import tqdm
 
+from entities.log_manager import LogManager
 from entities.properties import Properties
 from model.components.factory import get_decoder, get_encoder
 from model.loss.factory import get_loss_function
@@ -9,7 +12,6 @@ from model.models.vae_modular import VAE
 from model.optimizers.factory import get_optimizer
 from model.schedulers.factory import get_scheduler
 from preprocessing.dataloader import FreeSurferDataloader
-from util.log_utils import log_message
 from util.model_utils import save_model
 
 
@@ -18,6 +20,7 @@ class Trainer:
 
     def __init__(self) -> None:
         """Initialize the Trainer class."""
+        self.logger = LogManager.get_logger(__name__)
         self.properties = Properties.get_instance()
         self.device = self.properties.system.device
         self._setup()
@@ -30,18 +33,23 @@ class Trainer:
         self.model_name = f"{self.properties.meta.name}_v{self.properties.meta.version}"
 
         # Initialize data loader
-        self.dataloader = FreeSurferDataloader.init_dataloader()
-        self.input_dim = self.dataloader.dataset[0][0].shape[0]
-        self.output_dim = self.input_dim  # Assuming reconstruction
+        self._initialize_dataloader()
 
         # Build model
         self._build_model()
 
-        # Seting up optimizer, scheduler, loss function, and regularization
+        # Setup training components
         self._setup_optimizer()
         self._setup_scheduler()
         self._setup_loss_function()
         self._setup_regularization()
+
+    def _initialize_dataloader(self) -> None:
+        """Initialize the data loader."""
+        # Initialize data loader
+        self.dataloader = FreeSurferDataloader.init_dataloader()
+        self.input_dim = self.dataloader.dataset[0][0].shape[0]
+        self.output_dim = self.input_dim  # Assuming reconstruction
 
     def _build_model(self) -> None:
         """Build the model based on the configuration."""
@@ -96,6 +104,47 @@ class Trainer:
     def _setup_regularization(self) -> None:
         """TODO: Implement regularization setup."""
 
+    def _save_checkpoint(self, epoch: int) -> None:
+        """Save a checkpoint of the model."""
+        save_model(
+            self.model,
+            epoch + 1,
+            self.model_save_dir + "/checkpoints",
+            self.model_name,
+            use_date=False,
+        )
+
+    def _save_model(self, epoch: int) -> None:
+        """Save the final model."""
+        save_model(
+            self.model,
+            epoch + 1,
+            self.model_save_dir,
+            self.model_name,
+            use_date=False,
+        )
+
+    def _train_step(self, data: Tensor) -> float:
+        """Perform a single training step."""
+        data = data.float().to(self.device)
+        self.optimizer.zero_grad()
+        recon_batch, mu, logvar = self.model(data)
+        loss = self.loss_function(recon_batch, data, mu, logvar)
+        loss.backward()
+
+        if self.properties.train.gradient_clipping:
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.properties.train.gradient_clipping
+            )
+
+        self.optimizer.step()
+        train_loss = loss.item()
+
+        if self.scheduler_step_per_batch:
+            self.scheduler.step()
+
+        return train_loss
+
     def train(self) -> None:
         """Train the model."""
         epochs = self.properties.train.epochs
@@ -103,39 +152,28 @@ class Trainer:
         for epoch in range(epochs):
             self.model.train()
             train_loss = 0.0
-            for _, (data, _) in enumerate(self.dataloader):
-                data = data.float().to(self.device)
-                self.optimizer.zero_grad()
-                recon_batch, mu, logvar = self.model(data)
-                loss = self.loss_function(recon_batch, data, mu, logvar)
-                loss.backward()
+            tqdm_loader = tqdm(
+                enumerate(self.dataloader),
+                total=len(self.dataloader),
+                desc=f"Epoch {epoch+1}/{epochs}",
+            )
 
-                if self.properties.train.gradient_clipping:
-                    torch.nn.utils.clip_grad_norm_(
-                        self.model.parameters(), self.properties.train.gradient_clipping
-                    )
-
-                self.optimizer.step()
-                train_loss += loss.item()
-
-                if self.scheduler_step_per_batch:
-                    self.scheduler.step()
+            for _, (data, _) in tqdm_loader:
+                train_loss_batch = self._train_step(data)
+                train_loss += train_loss_batch
 
             if not self.scheduler_step_per_batch:
                 self.scheduler.step()
 
             avg_loss = train_loss / float(len(self.dataloader.dataset))
-            print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.6f}")
-            log_message(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.6f}")
+            self.logger.info(f"Finished epoch {epoch+1}: loss: {avg_loss:.2f}")
 
             if (
                 self.properties.model.save_model
                 and (epoch + 1) % self.properties.model.save_model_interval == 0
             ):
-                save_model(
-                    self.model,
-                    epoch + 1,
-                    self.model_save_dir,
-                    self.model_name,
-                    use_date=False,
-                )
+                self._save_checkpoint(epoch + 1)
+
+        # Save the final model
+        self._save_model(epochs + 1)
+        self.logger.info("Training completed.")

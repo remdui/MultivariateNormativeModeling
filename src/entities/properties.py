@@ -16,6 +16,7 @@ from config.config_schema import (
     SystemConfig,
     TrainConfig,
 )
+from util.errors import ConfigurationError
 
 
 class Properties:
@@ -42,7 +43,7 @@ class Properties:
     def get_instance(cls) -> "Properties":
         """Returns the initialized Properties instance."""
         if cls._instance is None:
-            raise ValueError("Properties have not been initialized.")
+            raise ConfigurationError("Properties have not been initialized.")
         return cls._instance
 
     def __init__(self, config: dict) -> None:

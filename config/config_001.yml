@@ -25,12 +25,12 @@ model:
   dropout_rate: 0.5
   encoder: mlp
   hidden_dim:
-  - 16
-  - 64
-  - 32
+  - 100
+  - 50
+  - 25
   kl_annealing: true
   kl_annealing_steps: 1000
-  latent_dim: 10
+  latent_dim: 15
   normalization_layer: batch_norm
   reconstruction_loss_weight: 1.0
   save_model: true

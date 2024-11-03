@@ -3,15 +3,14 @@
 import os
 from datetime import datetime
 
-
-def log_message(message: str, save_dir: str = "logs") -> None:
-    """Log a message to the specified directory."""
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    with open(
-        f"{save_dir}/log_{datetime.now().strftime('%Y%m%d')}.txt", "a", encoding="utf-8"
-    ) as f:
-        f.write(message + "\n")
+# def log_message(message: str, save_dir: str = "logs") -> None:
+#     """Log a message to the specified directory."""
+#     if not os.path.exists(save_dir):
+#         os.makedirs(save_dir)
+#     with open(
+#         f"{save_dir}/log_{datetime.now().strftime('%Y%m%d')}.txt", "a", encoding="utf-8"
+#     ) as f:
+#         f.write(message + "\n")
 
 
 def write_output(
