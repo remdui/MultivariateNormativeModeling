@@ -17,14 +17,12 @@ class DatasetConfig(BaseModel):
     """Dataset configuration."""
 
     covariates: list[str] = ["age", "sex"]
-    raw_data: str = "generated_data.rds"
-    input_data: str = "input_data.csv"
+    input_data: str = "generated_data.rds"
     data_type: str = "tabular"
     shuffle: bool = True  # Shuffle the dataset
     test_split: float = 0.1
     train_split: float = 0.7
     val_split: float = 0.2
-    data_converter: str = "RdsToCsvConverter"
     enable_preprocessing: bool = False
     preprocessors: list[PreprocessorConfig] = [
         PreprocessorConfig(

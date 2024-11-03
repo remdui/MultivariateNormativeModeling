@@ -11,6 +11,7 @@ from data.preprocessing.impl.data_cleaning import DataCleaningPreprocessor
 from data.preprocessing.impl.normalization import NormalizationPreprocessor
 from entities.log_manager import LogManager
 from entities.properties import Properties
+from util.file_utils import get_processed_file_path, is_data_file, is_image_folder
 
 DATA_CONVERTER_MAPPING: dict[str, type[AbstractDataConverter]] = {
     "RdsToCsvConverter": RDSToCSVDataConverter,
@@ -35,25 +36,8 @@ class PreprocessingPipeline:
         self.logger = LogManager.get_logger(__name__)
         self.properties = Properties.get_instance()
 
-        # instantiate the data converter
-        self.__init_data_converter()
-
         # instantiate the preprocessors
         self.__init_preprocessors()
-
-    def __init_data_converter(self) -> None:
-        """Initialize the data converter."""
-        converter_name = self.properties.dataset.data_converter
-
-        if converter_name in DATA_CONVERTER_MAPPING:
-            converter_class = DATA_CONVERTER_MAPPING[converter_name]
-            self.data_converter = converter_class()
-            self.logger.info(f"Using data converter: {converter_name}")
-        elif converter_name == "":
-            self.logger.info("No data converter specified in configuration")
-        else:
-            self.logger.error(f"Unknown data converter: {converter_name}")
-            raise ValueError(f"Unknown data converter: {converter_name}")
 
     def __init_preprocessors(self) -> None:
         """Initialize the preprocessors."""
@@ -73,29 +57,37 @@ class PreprocessingPipeline:
     def run(self) -> None:
         """Run the data conversion and preprocessing pipeline."""
         # Paths from properties
-        raw_data = self.properties.dataset.raw_data
         input_data = self.properties.dataset.input_data
 
-        # Step 1: Data Conversion
-        if hasattr(self, "data_converter") and self.data_converter:
-            self.logger.info("Starting data conversion")
-            self.data_converter.convert(
-                input_file_name=raw_data, output_file_name=input_data
+        # Check if the input data is a file, then proceed with the pipeline for tabular data
+        if is_data_file(input_data):
+            # Get the file name and extension
+            input_file_name, input_file_extension = input_data.split(".")
+
+            # Step 1: Data Conversion
+            if input_file_extension == "rds":
+                data_converter = RDSToCSVDataConverter()
+                csv_file_name = input_file_name + ".csv"
+                data_converter.convert(input_data, csv_file_name)
+                self.logger.info(f"Converted {input_data} to {csv_file_name}")
+
+            processed_data_file = get_processed_file_path(
+                self.properties.system.data_dir, input_data
             )
 
-        # Step 2: Preprocessing Steps
-        if self.properties.dataset.enable_preprocessing:
-            processed_data_file = (
-                self.properties.system.data_dir + "/processed/" + input_data
-            )
-            self.logger.info("Loading converted data for further processing")
-            data = pd.read_csv(processed_data_file)
+            # Step 2: Preprocessing Steps
+            if self.properties.dataset.enable_preprocessing:
+                self.logger.info("Loading converted data for further processing")
+                data = pd.read_csv(processed_data_file)
 
-            for preprocessor in self.preprocessors:
-                self.logger.info(
-                    f"Applying preprocessor: {preprocessor.__class__.__name__}"
-                )
-                data = preprocessor.process(data)
-                self.logger.info(f"Saving processed data to {processed_data_file}")
-                data.to_csv(processed_data_file, index=False)
-                self.logger.info("Preprocessing pipeline completed successfully")
+                for preprocessor in self.preprocessors:
+                    self.logger.info(
+                        f"Applying preprocessor: {preprocessor.__class__.__name__}"
+                    )
+                    data = preprocessor.process(data)
+                    self.logger.info(f"Saving processed data to {processed_data_file}")
+                    data.to_csv(processed_data_file, index=False)
+                    self.logger.info("Preprocessing pipeline completed successfully")
+
+        elif is_image_folder(input_data):
+            pass

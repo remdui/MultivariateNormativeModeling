@@ -2,14 +2,12 @@ dataset:
   covariates:
   - age
   - sex
-  raw_data: generated_data.rds
   shuffle: true
   test_split: 0.1
   train_split: 0.7
   val_split: 0.2
   data_type: tabular
-  input_data: input_data.csv
-  data_converter: RdsToCsvConverter
+  input_data: generated_data.rds
   enable_preprocessing: true
   preprocessors:
   - name: DataCleaningPreprocessor

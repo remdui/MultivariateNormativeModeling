@@ -54,3 +54,32 @@ def create_storage_directories() -> None:
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         logger.info(f"Created output directory: {output_dir}")
+
+
+def is_data_file(file_path: str) -> bool:
+    """Check if the file is a data file."""
+    return (
+        file_path.endswith(".csv")
+        or file_path.endswith(".rds")
+        or file_path.endswith(".txt")
+        or file_path.endswith(".json")
+    )
+
+
+def is_image_folder(folder_path: str) -> bool:
+    """Check if the provided path is a folder and check if the folder contains images in any of its child directories."""
+    if not os.path.isdir(folder_path):
+        return False
+
+    for _, _, files in os.walk(folder_path):
+        for file in files:
+            if file.endswith((".jpg", ".jpeg", ".png")):
+                return True
+
+    return False
+
+
+def get_processed_file_path(data_dir: str, input_data: str) -> str:
+    """Get the processed file path based on the input data."""
+    input_file_name, _ = input_data.split(".")
+    return os.path.join(data_dir, "processed", f"{input_file_name}.csv")

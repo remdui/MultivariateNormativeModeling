@@ -1,7 +1,5 @@
 """FreeSurferDataloader class."""
 
-from pathlib import Path
-
 import torch
 from torch.utils.data import DataLoader, random_split
 
@@ -9,6 +7,7 @@ from data.abstract_dataloader import AbstractDataloader
 from data.impl.tabular_data.tabular_dataset import TabularDataset
 from entities.log_manager import LogManager
 from entities.properties import Properties
+from util.file_utils import get_processed_file_path, is_data_file
 
 
 class TabularDataloader(AbstractDataloader):
@@ -22,7 +21,13 @@ class TabularDataloader(AbstractDataloader):
         # Access configuration directly from properties
         self.data_dir = self.properties.system.data_dir
         self.input_data = self.properties.dataset.input_data
-        self.csv_path = Path(self.data_dir) / "processed" / self.input_data
+
+        if is_data_file(self.input_data):
+            self.csv_path = get_processed_file_path(
+                self.properties.system.data_dir, self.input_data
+            )
+        else:
+            raise ValueError(f"Invalid data format: {self.input_data}")
 
         self.batch_size = self.properties.train.batch_size
         self.num_workers = self.properties.system.num_workers
