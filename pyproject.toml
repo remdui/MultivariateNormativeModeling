@@ -24,6 +24,8 @@ pydantic = "2.9.2" # data validation
 pyreadr = "0.5.2" # read R data files
 types-psutil = "6.1.0.20241102" # type hints for psutil
 psutil = "6.1.0" # process and system utilities
+torchview = "0.2.6" # model visualization library
+graphviz = "0.20.3" # graph visualization library
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.3.1" # linting

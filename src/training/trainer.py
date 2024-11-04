@@ -23,9 +23,9 @@ class Trainer:
         self.logger = LogManager.get_logger(__name__)
         self.properties = Properties.get_instance()
         self.device = self.properties.system.device
-        self._setup()
+        self.__setup()
 
-    def _setup(self) -> None:
+    def __setup(self) -> None:
         """Setup the Trainer class."""
 
         # Model save info
@@ -33,22 +33,23 @@ class Trainer:
         self.model_name = f"{self.properties.meta.name}_v{self.properties.meta.version}"
 
         # Initialize data loader
-        self._initialize_dataloader()
+        self.__initialize_dataloader()
 
         # Get input and output dimensions
         self.input_dim = self.train_dataloader.dataset[0][0].shape[0]
         self.output_dim = self.input_dim
+        self.batch_size = self.properties.train.batch_size
 
         # Build model
-        self._build_model()
+        self.__build_model()
 
         # Setup training components
-        self._setup_optimizer()
-        self._setup_scheduler()
-        self._setup_loss_function()
-        self._setup_regularization()
+        self.__setup_optimizer()
+        self.__setup_scheduler()
+        self.__setup_loss_function()
+        self.__setup_regularization()
 
-    def _initialize_dataloader(self) -> None:
+    def __initialize_dataloader(self) -> None:
         """Initialize the data loader."""
         # Initialize data loader
         dataloader = get_dataloader(self.properties.dataset.data_type)
@@ -59,7 +60,7 @@ class Trainer:
 
         self.logger.info(f"Initialized Dataloader: {dataloader}")
 
-    def _build_model(self) -> None:
+    def __build_model(self) -> None:
         """Build the model based on the configuration."""
         encoder = get_encoder(
             self.properties.model.encoder,
@@ -83,7 +84,7 @@ class Trainer:
             f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}"
         )
 
-    def _setup_optimizer(self) -> None:
+    def __setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
         optimizer_params: dict = {}
         self.optimizer = get_optimizer(
@@ -94,7 +95,7 @@ class Trainer:
         )
         self.logger.info(f"Initialized optimizer: {self.optimizer}")
 
-    def _setup_scheduler(self) -> None:
+    def __setup_scheduler(self) -> None:
         """Get the scheduler based on the configuration."""
         scheduler_params = {
             "step_size": self.properties.train.scheduler.step_size,
@@ -116,16 +117,16 @@ class Trainer:
         )
         self.logger.info(f"Initialized scheduler: {self.scheduler}")
 
-    def _setup_loss_function(self) -> None:
+    def __setup_loss_function(self) -> None:
         """Get the loss function based on the configuration."""
         self.loss_function = get_loss_function(self.properties.train.loss_function)
         self.logger.info(f"Initialized loss function: {self.loss_function}")
 
-    def _setup_regularization(self) -> None:
+    def __setup_regularization(self) -> None:
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
 
-    def _save_checkpoint(self, epoch: int) -> None:
+    def __save_checkpoint(self, epoch: int) -> None:
         """Save a checkpoint of the model."""
         save_model(
             self.model,
@@ -135,7 +136,7 @@ class Trainer:
             use_date=False,
         )
 
-    def _save_model(self, epoch: int) -> None:
+    def __save_model(self, epoch: int) -> None:
         """Save the final model."""
         save_model(
             self.model,
@@ -145,7 +146,7 @@ class Trainer:
             use_date=False,
         )
 
-    def _train_step(self, data: Tensor) -> float:
+    def __train_step(self, data: Tensor) -> float:
         """Perform a single training step."""
         self.optimizer.zero_grad()
         recon_batch, mu, logvar = self.model(data)
@@ -160,7 +161,7 @@ class Trainer:
         epochs = self.properties.train.epochs
 
         self.logger.info(
-            f"Training model: {self.model_name} for {epochs} epochs with batch size {self.properties.train.batch_size} using device {self.device}"
+            f"Training model: {self.model_name} for {epochs} epochs with batch size {self.batch_size} using device {self.device}"
         )
 
         for epoch in range(epochs):
@@ -178,7 +179,7 @@ class Trainer:
                 data, _ = batch
                 data = data.to(self.device)
 
-                batch_loss = self._train_step(data)
+                batch_loss = self.__train_step(data)
                 batch_size = data.size(0)
                 total_loss += batch_loss * batch_size
                 total_samples += batch_size
@@ -203,7 +204,7 @@ class Trainer:
 
             # Early stopping check
             if self.properties.train.early_stopping.enabled:
-                if self._early_stopping_check(val_loss):
+                if self.__early_stopping_check(val_loss):
                     self.logger.info("Early stopping triggered.")
                     break
 
@@ -211,11 +212,11 @@ class Trainer:
                 self.properties.train.checkpoint.save_checkpoint
                 and (epoch + 1) % self.properties.train.checkpoint.interval == 0
             ):
-                self._save_checkpoint(epoch)
+                self.__save_checkpoint(epoch)
 
         # Save the final model
         if self.properties.train.save_model:
-            self._save_model(epochs - 1)
+            self.__save_model(epochs - 1)
 
         self.logger.info("Training completed.")
 
@@ -239,7 +240,7 @@ class Trainer:
         avg_val_loss = total_val_loss / total_val_samples
         return avg_val_loss
 
-    def _early_stopping_check(self, val_loss: float) -> bool:
+    def __early_stopping_check(self, val_loss: float) -> bool:
         """Check if early stopping criteria are met.
 
         Args:
@@ -265,3 +266,11 @@ class Trainer:
         if self.no_improvement_epochs >= self.properties.train.early_stopping.patience:
             return True
         return False
+
+    def get_model(self) -> VAE:
+        """Return the trained model."""
+        return self.model
+
+    def get_input_size(self) -> int:
+        """Return the input size of the model."""
+        return self.input_dim

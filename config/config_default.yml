@@ -71,6 +71,7 @@ model:
   - 32
   latent_dim: 10
   activation_function: relu
+  final_activation_function: sigmoid
   covariate_embedding: input_embedding
   normalization_layer: batch_norm
   weight_initialization: xavier

@@ -6,10 +6,11 @@ from config.config_manager import ConfigManager
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.pipeline import PreprocessingPipeline
-from training.train import Trainer
+from training.trainer import Trainer
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
 from util.file_utils import create_storage_directories, write_output
+from util.model_utils import visualize_model
 from util.system_utils import log_system_info
 
 # Set up a basic temporary logging configuration
@@ -23,7 +24,16 @@ logging.basicConfig(
 def run_training() -> None:
     """Run the training process."""
     trainer = Trainer()
+
+    # Train the model
     trainer.train()
+
+    # Get the model
+    model = trainer.get_model()
+    input_size = trainer.get_input_size()
+
+    # Visualize the model
+    visualize_model(model, input_size)
 
 
 def run_validation() -> None:

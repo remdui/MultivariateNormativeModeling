@@ -139,6 +139,7 @@ class ModelConfig(BaseModel):
 
     # Model components
     activation_function: str = "relu"
+    final_activation_function: str = "sigmoid"
     covariate_embedding: str = "input_embedding"
     normalization_layer: str = "batch_norm"
     weight_initialization: str = "xavier"

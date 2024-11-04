@@ -5,8 +5,10 @@ from datetime import datetime
 
 import torch
 from torch import nn
+from torchview import draw_graph
 
 from entities.log_manager import LogManager
+from entities.properties import Properties
 
 
 def save_model(
@@ -34,3 +36,29 @@ def save_model(
 
     torch.save(model, filename)
     logger.info(f"Saved model to: {filename}")
+
+
+def visualize_model(model: nn.Module, input_size: int) -> None:
+    """Visualize the model architecture."""
+    logger = LogManager.get_logger(__name__)
+
+    properties = Properties.get_instance()
+    batch_size = properties.train.batch_size
+    output_dir = properties.system.output_dir
+    model_name = properties.model_name
+
+    file_name = f"model_arch_{model_name}"
+
+    # Draw the model architecture and save to output directory
+    draw_graph(
+        model,
+        input_size=(batch_size, input_size),
+        graph_name=file_name,
+        save_graph=True,
+        directory=output_dir,
+        filename=file_name,
+    )
+
+    logger.info(
+        f"Visualized model architecture and saved to: {output_dir}/{file_name}.png"
+    )
