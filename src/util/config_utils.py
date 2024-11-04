@@ -9,7 +9,6 @@ from config.config_schema import (
     GeneralConfig,
     MetaConfig,
     ModelConfig,
-    SchedulerConfig,
     SystemConfig,
     TrainConfig,
 )
@@ -43,7 +42,6 @@ def create_default_config() -> None:
         "dataset": extract_config(DatasetConfig),
         "train": extract_config(TrainConfig),
         "model": extract_config(ModelConfig),
-        "scheduler": extract_config(SchedulerConfig),
     }
 
     with open(file_path, "w", encoding="utf-8") as file:

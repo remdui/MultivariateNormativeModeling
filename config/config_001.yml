@@ -1,13 +1,30 @@
+system:
+  data_dir: ./data
+  device: cuda
+  log_dir: ./logs
+  models_dir: ./models
+  num_workers: 4
+  output_dir: ./output
+general:
+  debug: false
+  log_level: INFO
+  seed: 42
+  verbose: false
+meta:
+  config_version: 2
+  description: Variational Autoencoder design experiment setup
+  name: vae_basic
+  version: 1
 dataset:
   covariates:
   - age
   - sex
+  input_data: generated_data.rds
+  data_type: tabular
   shuffle: true
   test_split: 0.1
   train_split: 0.8
   val_split: 0.1
-  data_type: tabular
-  input_data: generated_data.rds
   enable_preprocessing: true
   preprocessors:
   - name: DataCleaningPreprocessor
@@ -17,59 +34,55 @@ dataset:
   - name: NormalizationPreprocessor
     params:
       method: min-max
-general:
-  debug: false
-  log_level: INFO
-  seed: 42
-  verbose: false
-meta:
-  config_version: 2
-  description: Variational Autoencoder design experiment setup
-  version: 1
-  name: vae_design
+train:
+  batch_size: 32
+  epochs: 100
+  loss_function: bce_kld
+  optimizer: adam
+  mixed_precision: false
+  save_model: true
+  checkpoint:
+    save_checkpoint: true
+    interval: 20
+    use_checkpoint: false
+    checkpoint: ''
+  early_stopping:
+    enabled: true
+    metric: loss
+    min_delta: 0.0
+    patience: 10
+  regularization:
+    gradient_clipping: 5.0
+    weight_decay: 0.0001
+  scheduler:
+    learning_rate: 0.001
+    warmup_steps: 500
+    method: steplr
+    gamma: 0.1
+    step_size: 10
+    kl_annealing: true
+    kl_annealing_steps: 1000
 model:
   encoder: mlp
   decoder: mlp
-  activation_function: relu
-  covariate_embedding: input_embedding
-  dropout_rate: 0.5
   hidden_dim:
   - 512
   - 256
   - 128
-  latent_dim: 32
+  latent_dim: 16
+  activation_function: relu
+  covariate_embedding: input_embedding
   normalization_layer: batch_norm
   weight_initialization: xavier
-scheduler:
-  gamma: 0.1
-  scheduler: steplr
-  step_size: 10
-system:
-  data_dir: ./data
-  device: cuda
-  log_dir: ./logs
-  model_dir: ./models
-  num_workers: 4
-  output_dir: ./output
-train:
-  batch_size: 64
-  early_stopping: true
-  early_stopping_metric: loss
-  early_stopping_min_delta: 0.0
-  early_stopping_patience: 10
-  epochs: 200
-  gradient_clipping: 5.0
-  learning_rate: 0.001
-  log_interval: 10
-  loss_function: bce_kld
-  lr_warmup_steps: 500
-  kl_annealing: true
-  kl_annealing_steps: 1000
-  mixed_precision: false
-  optimizer: adam
-  save_model: true
-  save_checkpoint: true
-  checkpoint_interval: 50
-  use_checkpoint: false
-  checkpoint: ''
-  weight_decay: 0.0001
+  batch_norm:
+    enabled: true
+    eps: 1.0e-05
+    momentum: 0.1
+    affine: true
+    track_running_stats: true
+  linear:
+    bias: true
+  dropout:
+    enabled: true
+    p: 0.2
+    inplace: false

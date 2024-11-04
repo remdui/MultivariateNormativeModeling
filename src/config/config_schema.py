@@ -6,6 +6,9 @@ from typing import Any
 from pydantic import BaseModel, Field, model_validator
 
 
+###################################################################
+# Sub-configurations used in the main configuration schema
+###################################################################
 class PreprocessorConfig(BaseModel):
     """Preprocessor configuration type."""
 
@@ -13,13 +16,77 @@ class PreprocessorConfig(BaseModel):
     params: dict[str, Any]
 
 
+class BatchNormConfig(BaseModel):
+    """Batch normalization configuration."""
+
+    enabled: bool = True
+    eps: float = 1e-5
+    momentum: float = 0.1
+    affine: bool = True
+    track_running_stats: bool = True
+
+
+class LinearConfig(BaseModel):
+    """Linear layer configuration."""
+
+    bias: bool = True
+
+
+class DropoutConfig(BaseModel):
+    """Dropout configuration."""
+
+    enabled: bool = True
+    p: float = 0.2
+    inplace: bool = False
+
+
+class EarlyStoppingConfig(BaseModel):
+    """Early stopping configuration."""
+
+    enabled: bool = True
+    metric: str = "loss"
+    min_delta: float = 0.0
+    patience: int = 10
+
+
+class SchedulerConfig(BaseModel):
+    """Learning rate configuration."""
+
+    learning_rate: float = 0.001
+    warmup_steps: int = 500
+    method: str = "steplr"
+    gamma: float = 0.1
+    step_size: int = 10
+    kl_annealing: bool = True
+    kl_annealing_steps: int = 1000
+
+
+class CheckpointConfig(BaseModel):
+    """Checkpoint configuration."""
+
+    save_checkpoint: bool = True
+    interval: int = 20
+    use_checkpoint: bool = False
+    checkpoint: str = ""
+
+
+class RegularizationConfig(BaseModel):
+    """Regularization configuration."""
+
+    gradient_clipping: float = 5.0
+    weight_decay: float = 0.0001
+
+
+###################################################################
+# Main configuration schema
+###################################################################
 class DatasetConfig(BaseModel):
     """Dataset configuration."""
 
     covariates: list[str] = ["age", "sex"]
     input_data: str = "generated_data.rds"
     data_type: str = "tabular"
-    shuffle: bool = True  # Shuffle the dataset
+    shuffle: bool = True
     test_split: float = 0.1
     train_split: float = 0.7
     val_split: float = 0.2
@@ -64,23 +131,22 @@ class MetaConfig(BaseModel):
 class ModelConfig(BaseModel):
     """Model configuration."""
 
+    # Model architecture
     encoder: str = "mlp"
     decoder: str = "mlp"
-    activation_function: str = "relu"
-    covariate_embedding: str = "input_embedding"
-    dropout_rate: float = 0.5
     hidden_dim: list[int] = [128, 64, 32]
     latent_dim: int = 10
+
+    # Model components
+    activation_function: str = "relu"
+    covariate_embedding: str = "input_embedding"
     normalization_layer: str = "batch_norm"
     weight_initialization: str = "xavier"
 
-
-class SchedulerConfig(BaseModel):
-    """Scheduler configuration."""
-
-    gamma: float = 0.1
-    scheduler: str = "steplr"
-    step_size: int = 10
+    # Layer-specific configurations
+    batch_norm: BatchNormConfig = Field(default_factory=BatchNormConfig)
+    linear: LinearConfig = Field(default_factory=LinearConfig)
+    dropout: DropoutConfig = Field(default_factory=DropoutConfig)
 
 
 class SystemConfig(BaseModel):
@@ -97,29 +163,24 @@ class SystemConfig(BaseModel):
 class TrainConfig(BaseModel):
     """Training configuration."""
 
+    # General training settings
     batch_size: int = 32
-    early_stopping: bool = True
-    early_stopping_metric: str = "loss"
-    early_stopping_min_delta: float = 0.0
-    early_stopping_patience: int = 10
     epochs: int = 100
-    gradient_clipping: float = 5.0
-    learning_rate: float = 0.001
-    log_interval: int = 10
     loss_function: str = "bce_kld"
-    lr_warmup_steps: int = 500
-    kl_annealing: bool = True
-    kl_annealing_steps: int = 1000
-    mixed_precision: bool = False
     optimizer: str = "adam"
+    mixed_precision: bool = False
     save_model: bool = True
-    save_checkpoint: bool = True
-    checkpoint_interval: int = 5
-    use_checkpoint: bool = False
-    checkpoint: str = ""
-    weight_decay: float = 0.0001
+
+    # Grouped configurations
+    checkpoint: CheckpointConfig = Field(default_factory=CheckpointConfig)
+    early_stopping: EarlyStoppingConfig = Field(default_factory=EarlyStoppingConfig)
+    regularization: RegularizationConfig = Field(default_factory=RegularizationConfig)
+    scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
 
 
+###################################################################
+# Configuration schema definition
+###################################################################
 class ConfigSchema(BaseModel):
     """Configuration schema (following pydantic model validation)."""
 
@@ -127,6 +188,5 @@ class ConfigSchema(BaseModel):
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     meta: MetaConfig = Field(default_factory=MetaConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
-    scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
     system: SystemConfig = Field(default_factory=SystemConfig)
     train: TrainConfig = Field(default_factory=TrainConfig)

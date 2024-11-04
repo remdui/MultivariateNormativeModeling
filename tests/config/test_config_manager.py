@@ -31,7 +31,6 @@ def test_load_default_config_sections():
     assert "general" in config
     assert "meta" in config
     assert "model" in config
-    assert "scheduler" in config
     assert "system" in config
     assert "train" in config
 
@@ -83,7 +82,6 @@ def test_no_command_line_args():
     assert "general" in config
     assert "meta" in config
     assert "model" in config
-    assert "scheduler" in config
     assert "system" in config
     assert "train" in config
 

@@ -89,7 +89,7 @@ class Trainer:
         self.optimizer = get_optimizer(
             self.properties.train.optimizer,
             self.model.parameters(),
-            float(self.properties.train.learning_rate),
+            float(self.properties.train.scheduler.learning_rate),
             **optimizer_params,
         )
         self.logger.info(f"Initialized optimizer: {self.optimizer}")
@@ -97,20 +97,23 @@ class Trainer:
     def _setup_scheduler(self) -> None:
         """Get the scheduler based on the configuration."""
         scheduler_params = {
-            "step_size": self.properties.scheduler.step_size,
-            "gamma": self.properties.scheduler.gamma,
+            "step_size": self.properties.train.scheduler.step_size,
+            "gamma": self.properties.train.scheduler.gamma,
         }
         self.scheduler = get_scheduler(
-            self.properties.scheduler.scheduler.lower(),
+            self.properties.train.scheduler.method.lower(),
             self.optimizer,
             **scheduler_params,
         )
         # Determine if scheduler steps per batch
-        self.scheduler_step_per_batch = self.properties.scheduler.scheduler.lower() in {
-            "cycliclr",
-            "onecyclelr",
-            "cosineannealingwarmrestarts",
-        }
+        self.scheduler_step_per_batch = (
+            self.properties.train.scheduler.method.lower()
+            in {
+                "cycliclr",
+                "onecyclelr",
+                "cosineannealingwarmrestarts",
+            }
+        )
         self.logger.info(f"Initialized scheduler: {self.scheduler}")
 
     def _setup_loss_function(self) -> None:
@@ -199,14 +202,14 @@ class Trainer:
             self.logger.info(f"Validation loss after epoch {epoch + 1}: {val_loss:.4f}")
 
             # Early stopping check
-            if self.properties.train.early_stopping:
+            if self.properties.train.early_stopping.enabled:
                 if self._early_stopping_check(val_loss):
                     self.logger.info("Early stopping triggered.")
                     break
 
             if (
-                self.properties.train.save_checkpoint
-                and (epoch + 1) % self.properties.train.checkpoint_interval == 0
+                self.properties.train.checkpoint.save_checkpoint
+                and (epoch + 1) % self.properties.train.checkpoint.interval == 0
             ):
                 self._save_checkpoint(epoch)
 
@@ -252,13 +255,13 @@ class Trainer:
 
         if (
             val_loss
-            < self.best_val_loss - self.properties.train.early_stopping_min_delta
+            < self.best_val_loss - self.properties.train.early_stopping.min_delta
         ):
             self.best_val_loss = val_loss
             self.no_improvement_epochs = 0
         else:
             self.no_improvement_epochs += 1
 
-        if self.no_improvement_epochs >= self.properties.train.early_stopping_patience:
+        if self.no_improvement_epochs >= self.properties.train.early_stopping.patience:
             return True
         return False

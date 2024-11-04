@@ -12,7 +12,6 @@ from config.config_schema import (
     GeneralConfig,
     MetaConfig,
     ModelConfig,
-    SchedulerConfig,
     SystemConfig,
     TrainConfig,
 )
@@ -29,7 +28,6 @@ class Properties:
     general: GeneralConfig
     meta: MetaConfig
     model: ModelConfig
-    scheduler: SchedulerConfig
     system: SystemConfig
     train: TrainConfig
 
