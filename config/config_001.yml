@@ -4,8 +4,8 @@ dataset:
   - sex
   shuffle: true
   test_split: 0.1
-  train_split: 0.7
-  val_split: 0.2
+  train_split: 0.8
+  val_split: 0.1
   data_type: tabular
   input_data: generated_data.rds
   enable_preprocessing: true
@@ -34,10 +34,10 @@ model:
   covariate_embedding: input_embedding
   dropout_rate: 0.5
   hidden_dim:
-  - 96
-  - 64
-  - 32
-  latent_dim: 10
+  - 512
+  - 256
+  - 128
+  latent_dim: 32
   normalization_layer: batch_norm
   weight_initialization: xavier
 scheduler:
@@ -52,12 +52,12 @@ system:
   num_workers: 4
   output_dir: ./output
 train:
-  batch_size: 32
+  batch_size: 64
   early_stopping: true
   early_stopping_metric: loss
   early_stopping_min_delta: 0.0
   early_stopping_patience: 10
-  epochs: 10
+  epochs: 200
   gradient_clipping: 5.0
   learning_rate: 0.001
   log_interval: 10
@@ -69,7 +69,7 @@ train:
   optimizer: adam
   save_model: true
   save_checkpoint: true
-  checkpoint_interval: 5
+  checkpoint_interval: 50
   use_checkpoint: false
   checkpoint: ''
   weight_decay: 0.0001
