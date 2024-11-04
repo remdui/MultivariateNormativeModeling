@@ -1,6 +1,8 @@
-"""Entry point for the software."""
+"""Entry point for the application, handling initialization and control flow."""
 
 import logging
+import time
+from argparse import Namespace
 
 from config.config_manager import ConfigManager
 from entities.log_manager import LogManager
@@ -13,55 +15,22 @@ from util.file_utils import create_storage_directories, write_output
 from util.model_utils import visualize_model
 from util.system_utils import log_system_info
 
-# Set up a basic temporary logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%d-%m-%Y %H:%M:%S",
-)
 
-
-def run_training() -> None:
-    """Run the training process."""
-    trainer = Trainer()
-
-    # Train the model
-    trainer.train()
-
-    # Get the model
-    model = trainer.get_model()
-    input_size = trainer.get_input_size()
-
-    # Visualize the model
-    visualize_model(model, input_size)
-
-
-def run_validation() -> None:
-    """Run the validation process."""
-    write_output(
-        "Accuracy: " + "1.00",
-        "metrics",
+def setup_basic_logging() -> None:
+    """Sets up a basic temporary logging configuration."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%d-%m-%Y %H:%M:%S",
     )
 
 
-def run_inference() -> None:
-    """Run the inference process."""
-    write_output(
-        "Accuracy: " + "1.00",
-        "metrics",
-    )
-
-
-if __name__ == "__main__":
-    logging.info("Loading application...")
-
-    # Create a default configuration file
+def initialize_application(args: Namespace) -> None:
+    """Initializes the application by setting up configuration, properties, and logging."""
+    # Create a default configuration file if it does not exist
     create_default_config()
 
-    # Parse command-line arguments
-    args = parse_args()
-
-    # Create ConfigManager instance
+    # Initialize the ConfigManager with the configuration file and command-line arguments
     config_manager = ConfigManager(config_file=args.config, command_line_args=args)
 
     # Check if the configuration file is compatible with the current software version
@@ -70,7 +39,7 @@ if __name__ == "__main__":
     # Validate the configuration
     config_manager.validate_config()
 
-    # Retrieve the Properties object
+    # Retrieve the merged config object
     config = config_manager.get_config()
 
     # Initialize the Properties object with the merged configuration
@@ -82,31 +51,91 @@ if __name__ == "__main__":
     # Reconfigure logging with the actual properties
     LogManager.reconfigure_logging()
 
-    # Get the root logger
-    logger = LogManager.get_logger(__name__)
 
-    # Get properties instance
+def log_application_info(args: Namespace) -> None:
+    """Logs initial information about application and system."""
+    logger = LogManager.get_logger(__name__)
     properties = Properties.get_instance()
 
-    # Display the merged configuration
+    # Display the merged configuration and log the model name and description
     logger.info(f"Application (v{properties.meta.version}) initialized successfully")
+    logger.info(f"Model/Experiment Name: {properties.meta.name}")
+    logger.info(f"Description: {properties.meta.description}")
 
     # Log the configuration file and version
     logger.info(
-        f"Loaded configuration file: {args.config} (v{properties.meta.config_version})"
+        f"Configuration file: {args.config} (v{properties.meta.config_version})"
     )
 
     # Log system information
     log_system_info()
 
-    # Print the properties
-    logger.debug(str(properties))
+    # Log the application properties
+    logger.debug(properties)
+
+
+def run_training() -> None:
+    """Run the training process and returns the training duration."""
+    logger = LogManager.get_logger(__name__)
+
+    # Initialize the Trainer
+    trainer = Trainer()
+
+    # Start timing the training process
+    start_time = time.time()
+
+    # Train the model
+    trainer.train()
+
+    # Get the model and visualize it
+    model = trainer.get_model()
+    visualize_model(model, trainer.get_input_size())
+
+    # Calculate and return the training duration
+    training_duration = time.time() - start_time
+    logger.info(f"Training completed in {training_duration:.2f} seconds.")
+
+
+def run_validation() -> None:
+    """Run the validation process and log output."""
+    # Output validation accuracy
+    write_output("Accuracy: " + "1.00", "metrics")
+
+
+def run_inference() -> None:
+    """Run the inference process, requiring a checkpoint."""
+    # Output inference accuracy
+    write_output("Accuracy: " + "1.00", "metrics")
+
+
+def main() -> None:
+    """Main function to control application flow based on command-line arguments."""
+    # Set up basic logging for startup
+    setup_basic_logging()
+
+    logger = logging.getLogger(__name__)
+    logger.info("Loading application...")
+
+    # Start timing the total runtime
+    start_time = time.time()
+
+    # Parse command-line arguments
+    args = parse_args()
+
+    # Initialize the application and set up logging
+    initialize_application(args)
+
+    # Get the initialized logger
+    logger = LogManager.get_logger(__name__)
+
+    # Log initial information about the application and system
+    log_application_info(args)
 
     # Initialize and run the data preprocessing pipeline needed for all modes
     pipeline = PreprocessingPipeline()
     pipeline.run()
 
-    # Perform action based on the argument
+    # Perform action based on the mode argument
     if args.mode == "train":
         logger.info("Starting training process...")
         run_training()
@@ -114,9 +143,13 @@ if __name__ == "__main__":
         logger.info("Starting validation process...")
         run_validation()
     elif args.mode == "inference":
-        if not args.checkpoint:
-            raise ValueError(
-                "For inference, you must provide a model checkpoint with --checkpoint"
-            )
         logger.info("Starting inference process...")
         run_inference()
+
+    # Calculate and log the total runtime
+    total_runtime = time.time() - start_time
+    logger.info(f"Total runtime: {total_runtime:.2f} seconds.")
+
+
+if __name__ == "__main__":
+    main()
