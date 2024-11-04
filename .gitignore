@@ -13,13 +13,10 @@ venv/
 tests/.hypothesis
 
 # Logs and models
-logs/*.log
-logs/*.txt
-models/*.pt
-models/checkpoints/*.pt
-models/baseline/*.pt
+logs/*
+models/*
 data/*.csv
-output/*.txt
+output/*
 
 # Jupyter Notebooks checkpoints
 .ipynb_checkpoints/
