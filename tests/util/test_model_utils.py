@@ -1,3 +1,5 @@
+"""Unit tests for model_utils.py."""
+
 from datetime import datetime
 from unittest.mock import patch
 
@@ -11,7 +13,10 @@ fixed_date = "2024-10-27"
 
 # Mock model to simulate saving a PyTorch model
 class MockModel(nn.Module):
+    """Mock model to simulate saving a PyTorch model."""
+
     def forward(self, x):
+        """Forward pass of the model."""
         return x
 
 
@@ -52,7 +57,7 @@ def test_save_model_with_date(fixed_datetime, mocked_torch_save, mocked_os_maked
 
     # Verify that torch.save was called with the correct filename
     filename = (
-        f"{save_dir}/{model_name}_{epoch}_{fixed_datetime.now().strftime("%Y%m%d")}.pt"
+        f"{save_dir}/{model_name}_{epoch}_{fixed_datetime.now().strftime('%Y%m%d')}.pt"
     )
     mocked_torch_save.assert_called_once_with(model, filename)
 
@@ -77,18 +82,21 @@ def test_save_model_without_date(mocked_os_makedirs, mocked_torch_save):
 
 
 def test_save_model_invalid_model():
+    """Test save_model with an invalid model."""
     epoch = 0
     with pytest.raises(ValueError, match="Model is invalid."):
         save_model(None, epoch)
 
 
 def test_save_model_invalid_epoch():
+    """Test save_model with an invalid epoch."""
     model = MockModel()
     with pytest.raises(ValueError, match="Epoch cannot be negative."):
         save_model(model, -1)
 
 
 def test_save_model_directory_creation(mocked_torch_save, mocker, mocked_os_makedirs):
+    """Test save_model with directory creation."""
     model = MockModel()
     epoch = 0
     save_dir = "new_dir"

@@ -9,7 +9,7 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "3.12.3" # Python version
+python = "3.11.3" # Python version
 torch = "2.5.0" # deep learning library
 pandas = "2.2.3" # data manipulation library
 numpy = "2.1.3" # numerical computing library
@@ -23,6 +23,7 @@ types-tqdm = "4.66.0.20240417" # type hints for tqdm
 pydantic = "2.9.2" # data validation
 pyreadr = "0.5.2" # read R data files
 types-psutil = "6.1.0.20241102" # type hints for psutil
+psutil = "6.1.0" # process and system utilities
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.3.1" # linting

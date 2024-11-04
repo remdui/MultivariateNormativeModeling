@@ -50,7 +50,7 @@ Please find more information on installing, running, and testing the project in 
 ## Requirements
 
 This project requires the following dependencies installed:
-- Python >= 3.12
+- Python >= 3.11.3 (matching the latest version on Snellius HPC)
 - Poetry >= 1.8.4
 
 All dependencies are listed in the `pyproject.toml` file.
