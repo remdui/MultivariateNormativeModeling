@@ -7,11 +7,19 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
-#SBATCH --output=logs/mt_vae_training_job_%j.out
-#SBATCH --error=logs/mt_vae_training_job_%j.err
+#SBATCH --output=slurm_logs/mt_vae_training_job_%j.out
+#SBATCH --error=slurm_logs/mt_vae_training_job_%j.err
 
 # Load the required modules
 module load 2023
 module load Python/3.11.3-GCCcore-12.3.0
-module load poetry/1.5.1-GCCcore-12.3.0
-#module load PyTorch/2.1.2-foss-2023a-CUDA-12.1.1
+
+# Configure poetry
+poetry config installer.max-workers 10
+
+# Install the dependencies
+poetry lock --quiet
+poetry install --only main --no-interaction --no-ansi --quiet
+
+# Run the training script
+poetry run python src/main.py --config config_001.yml --mode train --debug --verbose
