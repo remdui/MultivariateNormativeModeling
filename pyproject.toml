@@ -12,7 +12,7 @@ package-mode = false
 python = "3.12.3" # Python version
 torch = "2.5.0" # deep learning library
 pandas = "2.2.3" # data manipulation library
-numpy = "2.1.2" # numerical computing library
+numpy = "2.1.3" # numerical computing library
 scipy = "1.14.1" # scientific computing library
 scikit-learn = "1.5.2" # machine learning library
 PyYAML = "6.0.2" # YAML parser
@@ -30,7 +30,7 @@ mypy = "1.13.0" # static type checking
 pydocstringformatter = "0.7.3" # format docstrings
 black = "24.10.0" # code formatting
 isort = "5.13.2" # import sorting
-ruff = "0.7.1" # linting
+ruff = "0.7.2" # linting
 autoflake = "2.3.1" # remove unused imports
 pyupgrade = "3.19.0" # upgrade syntax to newer versions
 pre-commit = "4.0.1" # pre-commit hooks
@@ -42,7 +42,7 @@ xenon = "0.9.3" # code metrics (machine)
 pytest = "8.3.3" # unit testing
 pytest-cov = "5.0.0" # wrapper for coverage
 pytest-mock = "3.14.0" # mock library for pytest
-hypothesis = "6.115.5" # property based testing
+hypothesis = "6.116.0" # property based testing
 
 [tool.isort]
 profile = "black"
