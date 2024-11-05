@@ -88,7 +88,7 @@ class DatasetConfig(BaseModel):
     data_type: str = "tabular"
     shuffle: bool = True
     test_split: float = 0.1
-    train_split: float = 0.7
+    train_split: float = 0.8
     val_split: float = 0.2
     enable_preprocessing: bool = False
     preprocessors: list[PreprocessorConfig] = [
@@ -103,11 +103,11 @@ class DatasetConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_config_dataset_splits(self) -> "DatasetConfig":
-        """Validate that the dataset splits sum to 1.0."""
-        total = self.train_split + self.val_split + self.test_split
+        """Validate that the train and val dataset splits sum to 1.0."""
+        total = self.train_split + self.val_split
         if isclose(total, 1.0):
             return self
-        raise ValueError("Train, validation, and test splits must sum to 1.0 or less.")
+        raise ValueError("Train and validation splits must sum to 1.0.")
 
 
 class GeneralConfig(BaseModel):

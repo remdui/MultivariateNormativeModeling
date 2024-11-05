@@ -21,68 +21,69 @@ class TabularDataloader(AbstractDataloader):
         # Access configuration directly from properties
         self.data_dir = self.properties.system.data_dir
         self.input_data = self.properties.dataset.input_data
-
-        if is_data_file(self.input_data):
-            self.csv_path = get_processed_file_path(
-                self.properties.system.data_dir, self.input_data
-            )
-        else:
-            raise ValueError(f"Invalid data format: {self.input_data}")
-
         self.batch_size = self.properties.train.batch_size
         self.num_workers = self.properties.system.num_workers
         self.covariates = self.properties.dataset.covariates
         self.shuffle = self.properties.dataset.shuffle
         self.train_split = self.properties.dataset.train_split
         self.val_split = self.properties.dataset.val_split
-        self.test_split = self.properties.dataset.test_split
         self.seed = self.properties.general.seed
 
         # Set up the dataloader
-        self._setup()
+        self.__setup_file_paths()
+        self.__initialize_datasets()
 
-    def _setup(self) -> None:
+    def __setup_file_paths(self) -> None:
+        """Set up the file paths for the training/validation, and test datasets."""
+        if is_data_file(self.input_data):
+            self.csv_path = get_processed_file_path(self.data_dir, self.input_data)
+            self.test_csv_path = get_processed_file_path(
+                self.data_dir, "test_" + self.input_data
+            )
+        else:
+            raise ValueError(f"Invalid data format: {self.input_data}")
+
+    def __initialize_datasets(self) -> None:
         """Set up the datasets for training, validation, and testing."""
         self.logger.info("Initializing TabularDataloader...")
-        try:
-            self.dataset = TabularDataset(
-                csv_file=str(self.csv_path), covariates=self.covariates
-            )
-            self.logger.info(f"Dataset loaded from {self.csv_path}")
-        except Exception as e:
-            self.logger.exception("Failed to initialize the dataset.")
-            raise e
 
-        dataset_size = len(self.dataset)
-        self.logger.info(f"Total dataset size: {dataset_size}")
+        # Load the datasets
+        dataset = self.__load__dataset(self.csv_path)
+        self.test_dataset = self.__load__dataset(self.test_csv_path)
+
+        # Get and log dataset sizes
+        dataset_size = len(dataset)
+        self.logger.info(f"Dataset size: {dataset_size}")
+        test_dataset_size = len(self.test_dataset)
+        self.logger.info(f"Test dataset size: {test_dataset_size}")
 
         # Calculate split sizes
         train_size = int(self.train_split * dataset_size)
         val_size = int(self.val_split * dataset_size)
-        test_size = dataset_size - train_size - val_size
 
-        # Handle rounding issues
-        if test_size < 0:
-            self.logger.warning("Adjusting test_size to 0 due to rounding issues.")
-            test_size = 0
-            val_size = dataset_size - train_size
-        elif test_size == 0 and self.test_split > 0:
-            self.logger.warning("Adjusting test_size to 1 to include test data.")
-            test_size = 1
-            val_size -= 1
+        self.logger.info(f"Splitting dataset: {train_size} train, {val_size} val")
 
-        self.logger.info(
-            f"Splitting dataset: {train_size} train, {val_size} val, {test_size} test"
-        )
-
-        # Split the dataset
-        self.train_dataset, self.val_dataset, self.test_dataset = random_split(
-            self.dataset,
-            [train_size, val_size, test_size],
+        # Split the dataset into training and validation sets
+        self.train_dataset, self.val_dataset = random_split(
+            dataset,
+            [train_size, val_size],
             generator=torch.Generator().manual_seed(self.seed),
         )
 
-        self.logger.info("Datasets split successfully.")
+        self.logger.info("Dataset split successfully into train and val sets.")
+
+    def __load__dataset(self, file_path: str) -> TabularDataset:
+        """Load the dataset from the provided file path."""
+        try:
+            dataset = TabularDataset(
+                csv_file=str(file_path), covariates=self.covariates
+            )
+            self.logger.info(f"Dataset loaded from {file_path}")
+        except Exception as e:
+            self.logger.exception("Failed to initialize the tabular dataset.")
+            raise e
+
+        return dataset
 
     def train_dataloader(self) -> DataLoader:
         """Get the DataLoader for the training dataset.
@@ -93,7 +94,7 @@ class TabularDataloader(AbstractDataloader):
         Raises:
             ValueError: If the training dataset has not been initialized.
         """
-        if self.train_dataset is None:
+        if self.train_dataset is None or len(self.train_dataset) == 0:
             self.logger.error("Train dataset not correctly initialized.")
             raise ValueError("Train dataset not correctly initialized.")
         return DataLoader(
@@ -112,7 +113,7 @@ class TabularDataloader(AbstractDataloader):
         Raises:
             ValueError: If the validation dataset has not been initialized.
         """
-        if self.val_dataset is None:
+        if self.val_dataset is None or len(self.val_dataset) == 0:
             self.logger.error("Validation dataset not correctly initialized.")
             raise ValueError("Validation dataset not correctly initialized.")
         return DataLoader(
@@ -131,7 +132,7 @@ class TabularDataloader(AbstractDataloader):
         Raises:
             ValueError: If the test dataset has not been initialized.
         """
-        if self.test_dataset is None:
+        if self.test_dataset is None or len(self.test_dataset) == 0:
             self.logger.error("Test dataset not correctly initialized.")
             raise ValueError("Test dataset not correctly initialized.")
         return DataLoader(

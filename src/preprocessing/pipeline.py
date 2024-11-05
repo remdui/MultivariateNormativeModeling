@@ -9,7 +9,7 @@ from preprocessing.converter.abstract_dataconverter import AbstractDataConverter
 from preprocessing.converter.impl.r_to_csv_converter import RDSToCSVDataConverter
 from preprocessing.impl.data_cleaning import DataCleaningPreprocessor
 from preprocessing.impl.normalization import NormalizationPreprocessor
-from util.file_utils import get_processed_file_path, is_data_file, is_image_folder
+from util.file_utils import get_processed_file_path, is_data_file
 
 DATA_CONVERTER_MAPPING: dict[str, type[AbstractDataConverter]] = {
     "RdsToCsvConverter": RDSToCSVDataConverter,
@@ -57,7 +57,17 @@ class PreprocessingPipeline:
         # Paths from properties
         input_data = self.properties.dataset.input_data
         data_dir = self.properties.system.data_dir
+        internal_data_type = self.properties.dataset.data_type
 
+        if internal_data_type == "tabular":
+            self.__execute_tabular_pipeline(input_data, data_dir)
+        if internal_data_type in {"image2d", "image3d"}:
+            self.__execute_image_pipeline(input_data, data_dir)
+
+        self.logger.info("Preprocessing pipeline completed")
+
+    def __execute_tabular_pipeline(self, input_data: str, data_dir: str) -> None:
+        """Execute the tabular data pipeline."""
         # Check if the input data is a file, then proceed with the pipeline for tabular data
         if is_data_file(input_data):
             # Get the file name and extension
@@ -95,7 +105,39 @@ class PreprocessingPipeline:
                     self.logger.info(f"Saving processed data to {processed_data_file}")
                     data.to_csv(processed_data_file, index=False)
 
-        elif is_image_folder(input_data):
-            pass
+            # Step 3: Data Splitting
+            test_split = self.properties.dataset.test_split
 
-        self.logger.info("Preprocessing pipeline completed")
+            # If test_split is set to 0, only train and validation splits are created
+            if test_split > 0:
+                self.logger.info("Splitting data into train/validation, and test sets")
+                train_val_split = 1 - test_split
+                dataset = pd.read_csv(processed_data_file)
+                dataset_size = len(dataset)
+
+                # Calculate split sizes
+                train_val_size = int(train_val_split * dataset_size)
+                test_size = int(test_split * dataset_size)
+
+                self.logger.info(
+                    f"Splitting dataset: {train_val_size} train/val, {test_size} test"
+                )
+
+                # Split the csv file into train/val and test sets
+                train_val_data = dataset.iloc[:train_val_size]
+                test_data = dataset.iloc[train_val_size:]
+
+                # Save the train/val and test data
+                train_val_data.to_csv(
+                    processed_data_file,
+                    index=False,
+                )
+
+                test_data.to_csv(
+                    get_processed_file_path(data_dir, "test_" + input_data),
+                    index=False,
+                )
+
+    def __execute_image_pipeline(self, input_data: str, data_dir: str) -> None:
+        """Execute the image data pipeline."""
+        raise NotImplementedError

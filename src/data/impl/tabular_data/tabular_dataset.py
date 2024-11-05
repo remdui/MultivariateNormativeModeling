@@ -1,4 +1,4 @@
-"""This module contains the FreeSurferDataset class which is used to load the FreeSurfer dataset."""
+"""TabularDataset class to process Tabular datasets."""
 
 import pandas as pd
 import torch
