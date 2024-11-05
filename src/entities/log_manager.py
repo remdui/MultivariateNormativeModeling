@@ -65,7 +65,7 @@ class LogManager:
             logger = LogManager.get_logger(__name__)
 
             logger.info(
-                f"Logging initialized with settings: verbose={verbose}, debug={debug}, log_level={log_level}"
+                f"Logging initialized with settings: verbose={verbose}, debug={debug}, log_level={log_level_str}"
             )
 
         except ConfigurationError:

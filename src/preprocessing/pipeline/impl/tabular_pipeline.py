@@ -1,0 +1,108 @@
+"""Implementation of the tabular data preprocessing pipeline."""
+
+import pandas as pd
+
+from entities.log_manager import LogManager
+from preprocessing.converter.impl.r_to_csv_converter import RDSToCSVDataConverter
+from preprocessing.pipeline.abstract_pipeline import AbstractPreprocessingPipeline
+from util.file_utils import get_processed_file_path, is_data_file
+
+
+class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
+    """Pipeline for processing tabular data."""
+
+    def __init__(self) -> None:
+        """Initialize the tabular preprocessing pipeline."""
+        super().__init__(LogManager.get_logger(__name__))
+
+    def execute_pipeline(self, input_data: str, data_dir: str) -> None:
+        """Execute the preprocessing pipeline for tabular data."""
+        self.logger.info("Executing Tabular Preprocessing Pipeline.")
+
+        if not is_data_file(input_data):
+            self.logger.error(f"Invalid data file: {input_data}")
+            return
+
+        # Get output path for processed data
+        output_path = get_processed_file_path(data_dir, input_data)
+        test_output_path = get_processed_file_path(data_dir, f"test_{input_data}")
+        input_path = f"{data_dir}/{input_data}"
+
+        # Load and convert data if necessary
+        self.__load_and_convert_data(input_path, output_path)
+
+        # Apply preprocessing steps if enabled
+        self.__apply_preprocessing(output_path)
+
+        # Split data into training/validation and test sets if test split is defined
+        self.__split_test_data(output_path, test_output_path)
+
+    def __load_and_convert_data(self, input_path: str, output_path: str) -> None:
+        """Load and convert data if necessary, then save to the processed path."""
+        self.logger.info(f"Loading and converting input data: {input_path}")
+
+        if not is_data_file(input_path):
+            self.logger.error(f"Invalid data file: {input_path}")
+            raise ValueError(f"Invalid data file: {input_path}")
+
+        input_file_extension = input_path.split(".")[-1]
+
+        if input_file_extension == "csv":
+            self.logger.info("Data is already in CSV format.")
+            self.data = pd.read_csv(input_path)
+        elif input_file_extension == "rds":
+            self.logger.info("Converting RDS to CSV format.")
+            data_converter = RDSToCSVDataConverter()
+            self.data = data_converter.convert(input_path)
+        else:
+            self.logger.error(f"Unsupported file extension: {input_file_extension}")
+            raise ValueError(f"Unsupported file extension: {input_file_extension}")
+
+        self.data.to_csv(output_path, index=False)
+        self.logger.info(f"Data loaded and saved to {output_path}")
+
+    def __apply_preprocessing(self, output_path: str) -> None:
+        """Apply preprocessing steps to the data if enabled."""
+        if self.properties.dataset.enable_preprocessing:
+            self.logger.info("Applying data preprocessing methods")
+
+            # Apply each preprocessor to the data
+            for preprocessor in self.preprocessors:
+                self.logger.info(
+                    f"Applying preprocessor: {preprocessor.__class__.__name__}"
+                )
+                self.data = preprocessor.process(self.data)
+
+            self.data.to_csv(output_path, index=False)
+            self.logger.info(
+                f"Preprocessing steps applied to data and saved to {output_path}"
+            )
+
+    def __split_test_data(self, output_path: str, test_output_path: str) -> None:
+        """Split data into training/validation and test sets if test split is defined."""
+        self.logger.info("Splitting data into training/validation and test sets")
+
+        test_split = self.properties.dataset.test_split
+
+        if test_split <= 0:
+            self.logger.info("Test split not required; skipping data splitting.")
+            return
+
+        # Calculate the sizes of the training/validation and test sets
+        train_val_split = 1 - test_split
+        dataset_size = len(self.data)
+        train_val_size = int(train_val_split * dataset_size)
+        test_size = dataset_size - train_val_size
+
+        # Split the data
+        # TODO: Shuffle the data before splitting if enabled
+        self.logger.info(
+            f"Splitting dataset: {train_val_size} train/val, {test_size} test"
+        )
+        train_val_data = self.data.iloc[:train_val_size]
+        test_data = self.data.iloc[train_val_size:]
+
+        # Save the splitted data
+        train_val_data.to_csv(output_path, index=False)
+        test_data.to_csv(test_output_path, index=False)
+        self.logger.info(f"Data splits saved to {output_path} and {test_output_path}")

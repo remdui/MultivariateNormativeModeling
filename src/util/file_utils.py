@@ -58,12 +58,19 @@ def create_storage_directories() -> None:
 
 def is_data_file(file_path: str) -> bool:
     """Check if the file is a data file."""
-    return (
-        file_path.endswith(".csv")
-        or file_path.endswith(".rds")
-        or file_path.endswith(".txt")
-        or file_path.endswith(".json")
-    )
+    valid_file_extensions = [
+        ".csv",
+        ".rds",
+        ".parquet",
+        ".xls",
+        ".xlsx",
+        ".feather",
+        ".dta",
+        ".json",
+        ".txt",
+        ".pkl",
+    ]
+    return any(file_path.endswith(extension) for extension in valid_file_extensions)
 
 
 def is_image_folder(folder_path: str) -> bool:

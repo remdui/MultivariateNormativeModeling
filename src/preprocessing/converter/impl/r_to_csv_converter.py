@@ -1,5 +1,6 @@
 """Data converter for RDS files to CSV Files."""
 
+import pandas as pd
 import pyreadr  # type: ignore
 
 from entities.log_manager import LogManager
@@ -16,22 +17,15 @@ class RDSToCSVDataConverter(AbstractDataConverter):
         self.data_dir = properties.system.data_dir
         self.logger = LogManager.get_logger(__name__)
 
-    def convert(self, input_file_name: str, output_file_name: str) -> None:
+    def convert(self, input_file_path: str) -> pd.DataFrame:
         """Convert the RDS file to CSV format."""
-        rds_file_path = f"{self.data_dir}/{input_file_name}"
-        csv_file_path = f"{self.data_dir}/processed/{output_file_name}"
-
-        self.logger.info(f"Converting {rds_file_path} to {csv_file_path}")
+        self.logger.info(f"Converting {input_file_path}")
         try:
-            result = pyreadr.read_r(str(rds_file_path))
+            result = pyreadr.read_r(str(input_file_path))
             # Assuming there's only one dataframe in the RDS file
-            df = next(iter(result.values()))
-            df.to_csv(csv_file_path, index=False)
-            self.logger.info(
-                f"Successfully converted {rds_file_path} to {csv_file_path}"
-            )
+            data = next(iter(result.values()))
+            self.logger.info(f"Successfully converted {input_file_path}")
+            return data
         except OSError as e:
-            self.logger.exception(
-                f"Failed to convert {rds_file_path} to {csv_file_path}"
-            )
+            self.logger.exception(f"Failed to convert {input_file_path}")
             raise e

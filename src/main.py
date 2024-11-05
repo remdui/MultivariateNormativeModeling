@@ -7,7 +7,7 @@ from argparse import Namespace
 from config.config_manager import ConfigManager
 from entities.log_manager import LogManager
 from entities.properties import Properties
-from preprocessing.pipeline import PreprocessingPipeline
+from preprocessing.pipeline.factory import create_preprocessing_pipeline
 from training.trainer import Trainer
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
@@ -57,21 +57,27 @@ def log_application_info(args: Namespace) -> None:
     logger = LogManager.get_logger(__name__)
     properties = Properties.get_instance()
 
-    # Display the merged configuration and log the model name and description
+    # Display application version and experiment information
     logger.info(f"Application (v{properties.meta.version}) initialized successfully")
-    logger.info(f"Model/Experiment Name: {properties.meta.name}")
-    logger.info(f"Description: {properties.meta.description}")
-
-    # Log the configuration file and version
     logger.info(
         f"Configuration file: {args.config} (v{properties.meta.config_version})"
     )
+    logger.info(f"Model/Experiment Name: {properties.meta.name}")
+    logger.info(f"Description: {properties.meta.description}")
 
     # Log system information
     log_system_info()
 
     # Log the application properties
     logger.debug(properties)
+
+
+def apply_preprocessing() -> None:
+    """Apply the preprocessing pipeline to the input data."""
+    properties = Properties.get_instance()
+    data_type = properties.dataset.data_type
+    pipeline = create_preprocessing_pipeline(data_type)
+    pipeline.run()
 
 
 def run_training() -> None:
@@ -131,9 +137,8 @@ def main() -> None:
     # Log initial information about the application and system
     log_application_info(args)
 
-    # Initialize and run the data preprocessing pipeline needed for all modes
-    pipeline = PreprocessingPipeline()
-    pipeline.run()
+    # Run preprocessing pipeline
+    apply_preprocessing()
 
     # Perform action based on the mode argument
     if args.mode == "train":
