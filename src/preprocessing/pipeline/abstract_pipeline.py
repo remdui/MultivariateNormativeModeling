@@ -5,6 +5,7 @@ from logging import Logger
 
 import pandas as pd
 
+from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.preprocessor.abstract_preprocessor import AbstractPreprocessor
 from preprocessing.preprocessor.factory import get_preprocessor
@@ -13,7 +14,7 @@ from preprocessing.preprocessor.factory import get_preprocessor
 class AbstractPreprocessingPipeline(ABC):
     """Abstract base class for preprocessing pipelines."""
 
-    def __init__(self, logger: Logger) -> None:
+    def __init__(self, logger: Logger = LogManager.get_logger(__name__)) -> None:
         """Initialize the preprocessing pipeline and configure preprocessors."""
         self.logger = logger
         self.logger.info("Initializing Preprocessing Pipeline")

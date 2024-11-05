@@ -15,6 +15,7 @@ class NormalizationPreprocessor(AbstractPreprocessor):
         Args:
             method (str): Normalization method ('min-max' or 'z-score').
         """
+        super().__init__()
         self.logger = LogManager.get_logger(__name__)
         self.method = method
 

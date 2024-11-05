@@ -16,6 +16,7 @@ class DataCleaningPreprocessor(AbstractPreprocessor):
             drop_na (bool): Whether to drop rows with missing values.
             remove_duplicates (bool): Whether to remove duplicate rows.
         """
+        super().__init__()
         self.logger = LogManager.get_logger(__name__)
         self.drop_na = drop_na
         self.remove_duplicates = remove_duplicates

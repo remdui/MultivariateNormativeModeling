@@ -9,7 +9,7 @@ class ImagePreprocessingPipeline(AbstractPreprocessingPipeline):
 
     def __init__(self) -> None:
         """Initialize the image preprocessing pipeline."""
-        super().__init__(LogManager.get_logger(__name__))
+        super().__init__(logger=LogManager.get_logger(__name__))
 
     def execute_pipeline(self, input_data: str, data_dir: str) -> None:
         """Execute the image data preprocessing pipeline."""

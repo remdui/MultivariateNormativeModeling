@@ -13,7 +13,7 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
 
     def __init__(self) -> None:
         """Initialize the tabular preprocessing pipeline."""
-        super().__init__(LogManager.get_logger(__name__))
+        super().__init__(logger=LogManager.get_logger(__name__))
 
     def execute_pipeline(self, input_data: str, data_dir: str) -> None:
         """Execute the preprocessing pipeline for tabular data."""

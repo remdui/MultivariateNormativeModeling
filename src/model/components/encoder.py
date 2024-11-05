@@ -8,7 +8,7 @@ from torch import Tensor, nn
 class BaseEncoder(nn.Module):
     """Base class for encoders."""
 
-    def __init__(self) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the encoder."""
         super().__init__()
 
