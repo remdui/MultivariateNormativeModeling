@@ -8,7 +8,7 @@ from config.config_manager import ConfigManager
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.pipeline.factory import create_preprocessing_pipeline
-from training.trainer import Trainer
+from tasks.training.trainer import Trainer
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
 from util.file_utils import create_storage_directories, write_output

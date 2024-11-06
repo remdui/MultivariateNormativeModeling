@@ -13,29 +13,49 @@ from entities.properties import Properties
 
 def save_model(
     model: nn.Module,
-    epoch: int,
+    epoch: int | None = None,
     save_dir: str = "models",
     model_name: str = "vae_model",
-    date_format: str = "%Y%m%d",
-    use_date: bool = True,
+    use_date: bool = False,
+    save_as_checkpoint: bool = False,
 ) -> None:
-    """Save the model to the specified directory."""
+    """
+    Save the model to the specified directory.
+
+    Args:
+        model (nn.Module): Model to save.
+
+        epoch (Optional[int]): Epoch number; None for final save.
+        save_dir (str): Directory to save the model.
+        model_name (str): Base name for the model file.
+        use_date (bool): Whether to include the current date in the file name.
+        save_as_checkpoint (bool): If True, save as an intermediate checkpoint.
+    """
     logger = LogManager.get_logger(__name__)
-
     if model is None:
-        raise ValueError("Model is invalid.")
-    if epoch < 0:
-        raise ValueError("Epoch cannot be negative.")
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    if use_date:
-        date = datetime.now().strftime(date_format)
-        filename = f"{save_dir}/{model_name}_{epoch}_{date}.pt"
-    else:
-        filename = f"{save_dir}/{model_name}_{epoch}.pt"
+        raise ValueError("Model cannot be None.")
 
-    torch.save(model, filename)
-    logger.info(f"Saved model to: {filename}")
+    if save_as_checkpoint:
+        save_dir = os.path.join(save_dir, "checkpoints")
+
+    # Set up the file naming
+    file_name = f"{save_dir}/{model_name}"
+
+    # Add epoch number for checkpoints
+    if epoch is not None:
+        file_name += f"_{epoch}"
+
+    # Add date if required
+    if use_date:
+        date_str = datetime.now().strftime("%Y%m%d")
+        file_name += f"_{date_str}"
+
+    # Finalize file name with extension
+    file_name += ".pt"
+
+    # Save only state dict to reduce file size
+    torch.save(model.state_dict(), file_name)
+    logger.info(f"Model state saved to: {file_name}")
 
 
 def visualize_model(model: nn.Module, input_size: int) -> None:

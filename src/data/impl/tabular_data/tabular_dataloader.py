@@ -36,9 +36,11 @@ class TabularDataloader(AbstractDataloader):
     def __setup_file_paths(self) -> None:
         """Set up the file paths for the training/validation, and test datasets."""
         if is_data_file(self.input_data):
-            self.csv_path = get_processed_file_path(self.data_dir, self.input_data)
+            self.train_csv_path = get_processed_file_path(
+                self.data_dir, self.input_data, "train"
+            )
             self.test_csv_path = get_processed_file_path(
-                self.data_dir, "test_" + self.input_data
+                self.data_dir, self.input_data, "test"
             )
         else:
             raise ValueError(f"Invalid data format: {self.input_data}")
@@ -48,29 +50,37 @@ class TabularDataloader(AbstractDataloader):
         self.logger.info("Initializing TabularDataloader...")
 
         # Load the datasets
-        dataset = self.__load__dataset(self.csv_path)
+        train_dataset = self.__load__dataset(self.train_csv_path)
         self.test_dataset = self.__load__dataset(self.test_csv_path)
 
         # Get and log dataset sizes
-        dataset_size = len(dataset)
-        self.logger.info(f"Dataset size: {dataset_size}")
+        train_dataset_size = len(train_dataset)
+        train_dataset_features = train_dataset.get_num_features()
+        self.logger.info(
+            f"Train dataset: {train_dataset_size} samples, {train_dataset_features} features"
+        )
+
         test_dataset_size = len(self.test_dataset)
-        self.logger.info(f"Test dataset size: {test_dataset_size}")
+        test_dataset_features = self.test_dataset.get_num_features()
+        self.logger.info(
+            f"Test dataset: {test_dataset_size} samples, {test_dataset_features} features"
+        )
 
         # Calculate split sizes
-        train_size = int(self.train_split * dataset_size)
-        val_size = int(self.val_split * dataset_size)
-
-        self.logger.info(f"Splitting dataset: {train_size} train, {val_size} val")
+        train_size = int(self.train_split * train_dataset_size)
+        val_size = int(self.val_split * train_dataset_size)
+        self.logger.info(
+            f"Splitting train dataset: {train_size} train samples, {val_size} validation samples"
+        )
 
         # Split the dataset into training and validation sets
         self.train_dataset, self.val_dataset = random_split(
-            dataset,
+            train_dataset,
             [train_size, val_size],
             generator=torch.Generator().manual_seed(self.seed),
         )
 
-        self.logger.info("Dataset split successfully into train and val sets.")
+        self.logger.info("Dataset split successfully into train and validation sets.")
 
     def __load__dataset(self, file_path: str) -> TabularDataset:
         """Load the dataset from the provided file path."""

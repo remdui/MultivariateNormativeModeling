@@ -86,3 +86,15 @@ model:
     enabled: true
     p: 0.2
     inplace: false
+validation:
+  model: ''
+  baseline_model: null
+  data_representation: tabular
+  metrics:
+  - mse
+  - mae
+  image:
+    length: 28
+    width: 28
+    num_visual_samples: 5
+    save_images: true

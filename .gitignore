@@ -16,6 +16,7 @@ tests/.hypothesis
 logs/*
 models/*
 data/*.csv
+data/processed/*.csv
 output/*
 
 # Jupyter Notebooks checkpoints

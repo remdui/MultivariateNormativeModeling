@@ -33,6 +33,7 @@ def test_load_default_config_sections():
     assert "model" in config
     assert "system" in config
     assert "train" in config
+    assert "validation" in config
 
 
 def test_override_with_command_line_args():
@@ -84,6 +85,7 @@ def test_no_command_line_args():
     assert "model" in config
     assert "system" in config
     assert "train" in config
+    assert "validation" in config
 
     # No overrides should have occurred
     assert config["general"]["debug"] is False

@@ -11,6 +11,7 @@ from config.config_schema import (
     ModelConfig,
     SystemConfig,
     TrainConfig,
+    ValidationConfig,
 )
 from entities.log_manager import LogManager
 
@@ -42,6 +43,7 @@ def create_default_config() -> None:
         "dataset": extract_config(DatasetConfig),
         "train": extract_config(TrainConfig),
         "model": extract_config(ModelConfig),
+        "validation": extract_config(ValidationConfig),
     }
 
     with open(file_path, "w", encoding="utf-8") as file:

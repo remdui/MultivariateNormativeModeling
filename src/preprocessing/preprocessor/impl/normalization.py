@@ -30,8 +30,24 @@ class NormalizationPreprocessor(AbstractPreprocessor):
         """
         self.logger.info(f"Normalizing data using {self.method} method")
         if self.method == "min-max":
-            return (data - data.min()) / (data.max() - data.min())
+            # Calculate min and max values for each column
+            data_min = data.min()
+            data_max = data.max()
+            # Avoid division by zero by setting range to 1 for columns with constant values
+            range_values = data_max - data_min
+            range_values[range_values == 0] = (
+                1  # Replace zeros in range with 1 to avoid division by zero
+            )
+
+            return (data - data_min) / range_values
         if self.method == "z-score":
-            return (data - data.mean()) / data.std()
+            # Calculate mean and standard deviation for each column
+            data_mean = data.mean()
+            data_std = data.std()
+
+            # Replace zero standard deviations with 1 to avoid division by zero
+            data_std[data_std == 0] = 1
+
+            return (data - data_mean) / data_std
         self.logger.error(f"Unknown normalization method: {self.method}")
         raise ValueError(f"Unknown normalization method: {self.method}")

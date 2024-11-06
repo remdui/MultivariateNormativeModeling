@@ -16,8 +16,9 @@ meta:
   name: vae_val_mnist
   version: 1
 dataset:
-  covariates: []
-  input_data: generated_data.rds
+  covariates:
+  - '0' # '0' is the label column
+  input_data: mnist.csv
   data_type: tabular
   shuffle: true
   test_split: 0.0
@@ -34,7 +35,7 @@ dataset:
       method: min-max
 train:
   batch_size: 32
-  epochs: 100
+  epochs: 10
   loss_function: bce_kld
   optimizer: adam
   mixed_precision: false
@@ -64,10 +65,10 @@ model:
   encoder: mlp
   decoder: mlp
   hidden_dim:
+  - 1024
   - 512
   - 256
-  - 128
-  latent_dim: 16
+  latent_dim: 32
   activation_function: relu
   covariate_embedding: input_embedding
   normalization_layer: batch_norm
@@ -84,3 +85,15 @@ model:
     enabled: true
     p: 0.2
     inplace: false
+validation:
+  model: 'vae_val_mnist_v1'
+  baseline_model: null
+  data_representation: image
+  metrics:
+  - mse
+  - mae
+  image:
+    length: 28
+    width: 28
+    num_visual_samples: 5
+    save_images: true

@@ -14,6 +14,7 @@ from config.config_schema import (
     ModelConfig,
     SystemConfig,
     TrainConfig,
+    ValidationConfig,
 )
 from util.errors import ConfigurationError
 
@@ -30,6 +31,7 @@ class Properties:
     model: ModelConfig
     system: SystemConfig
     train: TrainConfig
+    validation: ValidationConfig
 
     @classmethod
     def initialize(cls, config: dict) -> None:

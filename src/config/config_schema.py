@@ -77,6 +77,15 @@ class RegularizationConfig(BaseModel):
     weight_decay: float = 0.0001
 
 
+class ImageConfig(BaseModel):
+    """Configuration for image data representation."""
+
+    length: int = 28
+    width: int = 28
+    num_visual_samples: int = 5
+    save_images: bool = True
+
+
 ###################################################################
 # Main configuration schema
 ###################################################################
@@ -179,6 +188,16 @@ class TrainConfig(BaseModel):
     scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
 
 
+class ValidationConfig(BaseModel):
+    """Validation configuration."""
+
+    model: str = ""
+    baseline_model: str | None = None
+    data_representation: str = "tabular"
+    metrics: list[str] = ["mse", "mae"]
+    image: ImageConfig = Field(default_factory=ImageConfig)
+
+
 ###################################################################
 # Configuration schema definition
 ###################################################################
@@ -191,3 +210,4 @@ class ConfigSchema(BaseModel):
     model: ModelConfig = Field(default_factory=ModelConfig)
     system: SystemConfig = Field(default_factory=SystemConfig)
     train: TrainConfig = Field(default_factory=TrainConfig)
+    validation: ValidationConfig = Field(default_factory=ValidationConfig)

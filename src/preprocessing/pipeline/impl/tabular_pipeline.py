@@ -1,5 +1,7 @@
 """Implementation of the tabular data preprocessing pipeline."""
 
+import os
+
 import pandas as pd
 
 from entities.log_manager import LogManager
@@ -21,35 +23,43 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
 
         if not is_data_file(input_data):
             self.logger.error(f"Invalid data file: {input_data}")
-            return
+            raise ValueError(f"Invalid data file: {input_data}")
 
         # Get output path for processed data
-        output_path = get_processed_file_path(data_dir, input_data)
-        test_output_path = get_processed_file_path(data_dir, f"test_{input_data}")
-        input_path = f"{data_dir}/{input_data}"
+        train_output_path = get_processed_file_path(data_dir, input_data, "train")
+        test_output_path = get_processed_file_path(data_dir, input_data, "test")
 
-        # Load and convert data if necessary
-        self.__load_and_convert_data(input_path, output_path)
+        # Get test input path based on input data file name
+        test_input_data = input_data.split(".")[0] + "_test." + input_data.split(".")[1]
+        test_input_path = f"{data_dir}/{test_input_data}"
+        train_input_path = f"{data_dir}/{input_data}"
 
-        # Apply preprocessing steps if enabled
-        self.__apply_preprocessing(output_path)
+        # Check if test input data file exists with os function
+        if os.path.exists(test_input_path):
+            self.__load_and_convert_data(test_input_path, test_output_path)
+            self.__apply_preprocessing(test_output_path)
 
-        # Split data into training/validation and test sets if test split is defined
-        self.__split_test_data(output_path, test_output_path)
+        self.__load_and_convert_data(train_input_path, train_output_path)
+        self.__apply_preprocessing(train_output_path)
+
+        if not os.path.exists(test_input_path):
+            self.__split_test_data(train_output_path, test_output_path)
 
     def __load_and_convert_data(self, input_path: str, output_path: str) -> None:
         """Load and convert data if necessary, then save to the processed path."""
         self.logger.info(f"Loading and converting input data: {input_path}")
 
-        if not is_data_file(input_path):
-            self.logger.error(f"Invalid data file: {input_path}")
-            raise ValueError(f"Invalid data file: {input_path}")
-
         input_file_extension = input_path.split(".")[-1]
 
         if input_file_extension == "csv":
             self.logger.info("Data is already in CSV format.")
-            self.data = pd.read_csv(input_path)
+            self.data = pd.read_csv(input_path, header=None)
+            # Check if the first row contains only strings (indicating possible headers) and re-read with headers if so
+            if all(isinstance(x, str) for x in self.data.iloc[0]):
+                self.logger.info(
+                    "Detected headers in the first row; re-reading with headers."
+                )
+                self.data = pd.read_csv(input_path)
         elif input_file_extension == "rds":
             self.logger.info("Converting RDS to CSV format.")
             data_converter = RDSToCSVDataConverter()
@@ -78,7 +88,7 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
                 f"Preprocessing steps applied to data and saved to {output_path}"
             )
 
-    def __split_test_data(self, output_path: str, test_output_path: str) -> None:
+    def __split_test_data(self, train_output_path: str, test_output_path: str) -> None:
         """Split data into training/validation and test sets if test split is defined."""
         self.logger.info("Splitting data into training/validation and test sets")
 
@@ -103,6 +113,8 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         test_data = self.data.iloc[train_val_size:]
 
         # Save the splitted data
-        train_val_data.to_csv(output_path, index=False)
+        train_val_data.to_csv(train_output_path, index=False)
         test_data.to_csv(test_output_path, index=False)
-        self.logger.info(f"Data splits saved to {output_path} and {test_output_path}")
+        self.logger.info(
+            f"Data splits saved to {train_output_path} and {test_output_path}"
+        )

@@ -86,7 +86,7 @@ def is_image_folder(folder_path: str) -> bool:
     return False
 
 
-def get_processed_file_path(data_dir: str, input_data: str) -> str:
+def get_processed_file_path(data_dir: str, input_data: str, dataset_type: str) -> str:
     """Get the processed file path based on the input data."""
     input_file_name, _ = input_data.split(".")
-    return os.path.join(data_dir, "processed", f"{input_file_name}.csv")
+    return os.path.join(data_dir, "processed", f"{input_file_name}_{dataset_type}.csv")

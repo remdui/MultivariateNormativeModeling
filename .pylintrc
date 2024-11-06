@@ -97,6 +97,7 @@ enable=
 
 disable=
     attribute-defined-outside-init,
+    unsupported-binary-operation,
     invalid-name,
     protected-access,
     too-few-public-methods,
