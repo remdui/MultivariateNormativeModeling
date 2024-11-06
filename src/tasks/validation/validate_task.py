@@ -2,11 +2,10 @@
 
 import random
 
-import numpy as np
 import torch
-from PIL import Image
 from tqdm import tqdm
 
+from analysis.visualization.image import combine_images, tensor_to_image
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
@@ -107,34 +106,16 @@ class ValidateTask(AbstractTask):
                 reconstructed_images.append(recon_data.cpu())  # Remove batch dimension
 
         for idx in range(num_samples):
-            # Retrieve image tensor and check its shape
-            original_tensor = original_images[idx]
-            reconstructed_tensor = reconstructed_images[idx]
-
-            # Ensure tensors are in shape (H, W) by reshaping or squeezing selectively
-            if original_tensor.ndim == 3 and original_tensor.size(0) == 1:
-                # For (1, H, W), we can safely squeeze out the singleton dimension
-                original_tensor = original_tensor.squeeze(0)
-                reconstructed_tensor = reconstructed_tensor.squeeze(0)
-            else:
-                # For other shapes, reshape explicitly if necessary
-                original_tensor = original_tensor.view(image_length, image_width)
-                reconstructed_tensor = reconstructed_tensor.view(
-                    image_length, image_width
-                )
-
             # Convert to PIL images
-            original_image = Image.fromarray(
-                (original_tensor.numpy() * 255).astype(np.uint8)
+            original_image = tensor_to_image(
+                original_images[idx], image_length, image_width
             )
-            reconstructed_image = Image.fromarray(
-                (reconstructed_tensor.numpy() * 255).astype(np.uint8)
+            reconstructed_image = tensor_to_image(
+                reconstructed_images[idx], image_length, image_width
             )
 
-            # Display or save images as needed
-            combined_image = Image.new("L", (image_width * 2, image_length))
-            combined_image.paste(original_image, (0, 0))
-            combined_image.paste(reconstructed_image, (image_width, 0))
+            # Combine original and reconstructed images side by side
+            combined_image = combine_images(original_image, reconstructed_image)
 
             # Show images
             if self.properties.validation.image.show_image_samples:
