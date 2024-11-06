@@ -9,13 +9,14 @@ from entities.properties import Properties
 def write_output(
     output: str,
     output_identifier: str = "metrics",
+    task: str = "train",
 ) -> None:
     """Write the output to the specified directory."""
     properties = Properties.get_instance()
     output_dir = properties.system.output_dir
     model_name = properties.model_name
 
-    filename = f"{output_dir}/{model_name}_{output_identifier}.txt"
+    filename = f"{output_dir}/{model_name}_{task}_{output_identifier}.txt"
 
     with open(filename, "w", encoding="utf-8") as f:
         f.write(output)

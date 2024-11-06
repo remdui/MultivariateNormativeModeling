@@ -65,7 +65,7 @@ def load_model(model: AbstractModel, model_path: str, device: str) -> AbstractMo
     model.load_state_dict(torch.load(model_path, weights_only=True))
     model.to(device)
     model.eval()
-    logger.info(f"Model loaded from: {model_path} to device: {device}")
+    logger.info(f"Model state loaded from: {model_path}")
     return model
 
 
@@ -78,7 +78,7 @@ def visualize_model(model: nn.Module, input_size: int) -> None:
     output_dir = properties.system.output_dir
     model_name = properties.model_name
 
-    file_name = f"model_arch_{model_name}"
+    file_name = f"{model_name}_model_arch"
 
     # Draw the model architecture and save to output directory
     draw_graph(

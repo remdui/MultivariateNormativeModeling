@@ -64,4 +64,4 @@ def log_system_info() -> None:
     system_info = f"{os_info}\n\n{hardware_info}\n\n{gpu_info}\n\n{version_info}"
 
     # Log the combined system information
-    logger.info(system_info)
+    logger.debug(system_info)

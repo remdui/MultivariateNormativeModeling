@@ -7,6 +7,7 @@ from data.impl.factory import get_dataloader
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from model.components.factory import get_decoder, get_encoder
+from model.loss.factory import get_loss_function
 from model.models.abstract_model import AbstractModel
 from model.models.impl.vae_modular import VAE
 from tasks.abstract_result import AbstractResult
@@ -47,6 +48,9 @@ class AbstractTask(ABC):
         # Build model
         self.__build_model()
 
+        # Setup loss function
+        self.__setup_loss_function()
+
     def __initialize_dataloader(self) -> None:
         """Initialize the data loader."""
         dataloader = get_dataloader(self.properties.dataset.data_type)
@@ -86,6 +90,11 @@ class AbstractTask(ABC):
         self.logger.info(
             f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}"
         )
+
+    def __setup_loss_function(self) -> None:
+        """Get the loss function based on the configuration."""
+        self.loss_function = get_loss_function(self.properties.train.loss_function)
+        self.logger.info(f"Initialized loss function: {self.loss_function}")
 
     def get_model(self) -> AbstractModel:
         """Return the trained model."""

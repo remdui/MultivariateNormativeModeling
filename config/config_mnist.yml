@@ -95,5 +95,6 @@ validation:
   image:
     length: 28
     width: 28
-    num_visual_samples: 5
-    save_images: true
+    num_visual_samples: 3
+    save_image_samples: true
+    show_image_samples: false

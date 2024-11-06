@@ -5,7 +5,6 @@ from torch import Tensor
 from tqdm import tqdm
 
 from entities.log_manager import LogManager
-from model.loss.factory import get_loss_function
 from model.optimizers.factory import get_optimizer
 from model.schedulers.factory import get_scheduler
 from tasks.abstract_task import AbstractTask
@@ -26,7 +25,6 @@ class TrainTask(AbstractTask):
         """Setup the train task."""
         self.__setup_optimizer()
         self.__setup_scheduler()
-        self.__setup_loss_function()
         self.__setup_regularization()
 
     def __setup_optimizer(self) -> None:
@@ -62,11 +60,6 @@ class TrainTask(AbstractTask):
         )
         self.logger.info(f"Initialized scheduler: {self.scheduler}")
 
-    def __setup_loss_function(self) -> None:
-        """Get the loss function based on the configuration."""
-        self.loss_function = get_loss_function(self.properties.train.loss_function)
-        self.logger.info(f"Initialized loss function: {self.loss_function}")
-
     def __setup_regularization(self) -> None:
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
@@ -74,6 +67,9 @@ class TrainTask(AbstractTask):
     def run(self) -> TrainingResult:
         """Train the model."""
         epochs = self.properties.train.epochs
+
+        # Initialize the training result
+        results = TrainingResult()
 
         self.logger.info(
             f"Training model: {self.model_name} for {epochs} epochs with batch size {self.batch_size} using device {self.device}"
@@ -86,7 +82,6 @@ class TrainTask(AbstractTask):
 
             tqdm_loader = tqdm(
                 self.train_dataloader,
-                total=len(self.train_dataloader),
                 desc=f"Epoch {epoch+1}/{epochs}",
             )
 
@@ -144,7 +139,7 @@ class TrainTask(AbstractTask):
             )
 
         self.logger.info("Training completed.")
-        return TrainingResult()
+        return results
 
     def __train_step(self, batch: Tensor) -> float:
         """Perform a single training step."""

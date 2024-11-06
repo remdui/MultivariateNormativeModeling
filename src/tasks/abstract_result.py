@@ -19,7 +19,7 @@ class AbstractResult(ABC):
     def validate_results(self) -> None:
         """Abstract method to validate the result data."""
 
-    def get(self, key: str) -> Any:
+    def __get(self, key: str) -> Any:
         """Get a key from the result data.
 
         Args:
@@ -29,7 +29,7 @@ class AbstractResult(ABC):
         """
         return self._result_data.get(key, None)
 
-    def set(self, key: str, value: Any) -> None:
+    def __set(self, key: str, value: Any) -> None:
         """Set a key in the result data.
 
         Args:
@@ -54,7 +54,7 @@ class AbstractResult(ABC):
         Returns:
             Any: The value associated with the key
         """
-        return self.get(key)
+        return self.__get(key)
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Set a key in the result data.
@@ -63,4 +63,4 @@ class AbstractResult(ABC):
             key (str): The key to set in the result data
             value (Any): The value to associate with the key
         """
-        self.set(key, value)
+        self.__set(key, value)

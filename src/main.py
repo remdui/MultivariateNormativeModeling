@@ -92,7 +92,13 @@ def run_training() -> None:
     start_time = time.time()
 
     # Train the model
-    trainer.run()
+    results = trainer.run()
+
+    # Validate and process the results
+    results.validate_results()
+    results.process_results()
+    accuracy = results["accuracy"]
+    write_output(f"Accuracy: {accuracy}", "metrics")
 
     # Get the model and visualize it
     model = trainer.get_model()
@@ -105,6 +111,7 @@ def run_training() -> None:
 
 def run_validation() -> None:
     """Run the validation process and log output."""
+    task = "validation"
     logger = LogManager.get_logger(__name__)
 
     # Initialize the Trainer
@@ -114,13 +121,13 @@ def run_validation() -> None:
     start_time = time.time()
 
     # Train the model
-    result = validator.run()
+    results = validator.run()
 
     # Validate and process the results
-    result.validate_results()
-    result.process_results()
-    accuracy = result["accuracy"]
-    write_output(f"Accuracy: {accuracy}", "metrics")
+    results.validate_results()
+    results.process_results()
+    accuracy = results["accuracy"]
+    write_output(f"Accuracy: {accuracy}", "metrics", task)
 
     # Calculate and return the training duration
     training_duration = time.time() - start_time
@@ -130,7 +137,8 @@ def run_validation() -> None:
 def run_inference() -> None:
     """Run the inference process, requiring a checkpoint."""
     # Output inference accuracy
-    write_output("Accuracy: " + "1.00", "metrics")
+    task = "inference"
+    write_output("Accuracy: " + "1.00", "metrics", task)
 
 
 def main() -> None:

@@ -97,4 +97,5 @@ validation:
     length: 28
     width: 28
     num_visual_samples: 5
-    save_images: true
+    save_image_samples: true
+    show_image_samples: false

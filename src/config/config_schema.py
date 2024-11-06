@@ -83,7 +83,8 @@ class ImageConfig(BaseModel):
     length: int = 28
     width: int = 28
     num_visual_samples: int = 5
-    save_images: bool = True
+    save_image_samples: bool = True
+    show_image_samples: bool = False
 
 
 ###################################################################

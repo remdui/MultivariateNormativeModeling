@@ -1,5 +1,12 @@
 """Validator class module."""
 
+import random
+
+import numpy as np
+import torch
+from PIL import Image
+from tqdm import tqdm
+
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.validation.validation_result import ValidationResult
@@ -37,4 +44,105 @@ class ValidateTask(AbstractTask):
         """
         self.logger.info("Starting the validation process.")
 
+        # Initialize results dictionary
+        results = ValidationResult()
+
+        total_loss = 0.0
+        total_samples = 0
+
+        # Process each batch in the test dataset
+        with torch.no_grad():
+            for batch in tqdm(self.test_dataloader, desc="Validating"):
+                data, _ = batch
+                data = data.to(self.device)
+
+                # Perform a forward pass
+                recon_batch, mu, logvar = self.model(data)
+
+                # Calculate loss for the batch
+                loss = self.loss_function(recon_batch, data, mu, logvar)
+                total_loss += loss.item()
+                total_samples += self.properties.train.batch_size
+
+            # Calculate average loss
+            avg_loss = total_loss / total_samples
+            self.logger.info(f"Average validation loss: {avg_loss:.4f}")
+            results["average_loss"] = avg_loss
+
+        # Draw image samples if applicable
+        if (
+            self.data_representation == "image"
+            or self.properties.dataset.data_type == "image"
+        ):
+            self.__draw_image_samples()
+
         return ValidationResult()
+
+    def __draw_image_samples(self) -> None:
+        """Draw original and reconstructed images if data is represented in a flattened tabular form."""
+        # Select random indices from the test dataset
+        num_samples = self.properties.validation.image.num_visual_samples
+        total_samples = len(self.test_dataloader)
+        random_indices = random.sample(range(total_samples), num_samples)
+
+        # Dimensions for image reconstruction if data is flattened
+        image_width = self.properties.validation.image.width
+        image_length = self.properties.validation.image.length
+
+        # Retrieve data for the selected indices
+        original_images = []
+        reconstructed_images = []
+
+        # Access specific samples by index
+        with torch.no_grad():
+            for idx in tqdm(random_indices, desc="Image Sampling"):
+                data, _ = self.test_dataloader.dataset[idx]  # Direct access to dataset
+                data = data.to(self.device)  # Add batch dimension
+
+                # Forward pass to get the reconstructed image
+                recon_data, _, _ = self.model(data)
+
+                # Append original and reconstructed images
+                original_images.append(data.cpu())  # Remove batch dimension
+                reconstructed_images.append(recon_data.cpu())  # Remove batch dimension
+
+        for idx in range(num_samples):
+            # Retrieve image tensor and check its shape
+            original_tensor = original_images[idx]
+            reconstructed_tensor = reconstructed_images[idx]
+
+            # Ensure tensors are in shape (H, W) by reshaping or squeezing selectively
+            if original_tensor.ndim == 3 and original_tensor.size(0) == 1:
+                # For (1, H, W), we can safely squeeze out the singleton dimension
+                original_tensor = original_tensor.squeeze(0)
+                reconstructed_tensor = reconstructed_tensor.squeeze(0)
+            else:
+                # For other shapes, reshape explicitly if necessary
+                original_tensor = original_tensor.view(image_length, image_width)
+                reconstructed_tensor = reconstructed_tensor.view(
+                    image_length, image_width
+                )
+
+            # Convert to PIL images
+            original_image = Image.fromarray(
+                (original_tensor.numpy() * 255).astype(np.uint8)
+            )
+            reconstructed_image = Image.fromarray(
+                (reconstructed_tensor.numpy() * 255).astype(np.uint8)
+            )
+
+            # Display or save images as needed
+            combined_image = Image.new("L", (image_width * 2, image_length))
+            combined_image.paste(original_image, (0, 0))
+            combined_image.paste(reconstructed_image, (image_width, 0))
+
+            # Show images
+            if self.properties.validation.image.show_image_samples:
+                combined_image.show(title=f"Sample {idx + 1}")
+
+            # Save images
+            if self.properties.validation.image.save_image_samples:
+                output_dir = self.properties.system.output_dir
+                combined_image.save(
+                    f"{output_dir}/{self.model_name}_image_sample_{idx + 1}.png"
+                )

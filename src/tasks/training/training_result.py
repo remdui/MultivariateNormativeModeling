@@ -13,8 +13,8 @@ class TrainingResult(AbstractResult):
 
     def process_results(self) -> None:
         """Process the result data."""
-        raise NotImplementedError
+        self.logger.info("Processing the training results.")
 
     def validate_results(self) -> None:
         """Validate the result data."""
-        raise NotImplementedError
+        self.logger.info("Validating the training results.")
