@@ -123,7 +123,7 @@ jobs:
 
       - name: Run Validation
         run: |
-          poetry run python src/main.py --config config_default.yml --mode validate
+          poetry run python src/main.py --config config_default.yml --mode inference
 
       - name: Upload Logs
         uses: actions/upload-artifact@v4
@@ -157,7 +157,7 @@ jobs:
             -v ./models:/models \
             -v ./config:/config \
             masterthesis:latest \
-            --config config_default.yml --mode validate
+            --config config_default.yml --mode inference
 
       - name: Upload Logs
         uses: actions/upload-artifact@v4
