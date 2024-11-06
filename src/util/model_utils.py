@@ -9,6 +9,7 @@ from torchview import draw_graph
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
+from model.models.abstract_model import AbstractModel
 
 
 def save_model(
@@ -56,6 +57,16 @@ def save_model(
     # Save only state dict to reduce file size
     torch.save(model.state_dict(), file_name)
     logger.info(f"Model state saved to: {file_name}")
+
+
+def load_model(model: AbstractModel, model_path: str, device: str) -> AbstractModel:
+    """Load a PyTorch state dict from a file into the model."""
+    logger = LogManager.get_logger(__name__)
+    model.load_state_dict(torch.load(model_path, weights_only=True))
+    model.to(device)
+    model.eval()
+    logger.info(f"Model loaded from: {model_path} to device: {device}")
+    return model
 
 
 def visualize_model(model: nn.Module, input_size: int) -> None:

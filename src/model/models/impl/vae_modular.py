@@ -1,13 +1,14 @@
 """Variational Autoencoder with modular components."""
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor
 
-from model.components.decoder import BaseDecoder
-from model.components.encoder import BaseEncoder
+from model.components.base_decoder import BaseDecoder
+from model.components.base_encoder import BaseEncoder
+from model.models.abstract_model import AbstractModel
 
 
-class VAE(nn.Module):
+class VAE(AbstractModel):
     """Variational Autoencoder with modular components."""
 
     def __init__(self, encoder: BaseEncoder, decoder: BaseDecoder) -> None:

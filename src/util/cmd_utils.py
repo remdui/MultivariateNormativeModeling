@@ -60,7 +60,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-
+    parser.add_argument(
+        "--skip-preprocessing", action="store_true", help="Run preprocessing pipeline"
+    )
     # Parse arguments using argparse
     args = parser.parse_args()
 

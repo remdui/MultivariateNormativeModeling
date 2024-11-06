@@ -131,6 +131,7 @@ The `main.py` file accepts the following optional arguments:
 - `--models_dir`: Directory to save models.
 - `--num_workers`: Number of workers for data loading.
 - `--output_dir`: Directory to save output.
+- `--skip-preprocessing`: Skip preprocessing pipeline flag.
 - `--seed`: Seed for reproducibility.
 - `--verbose`: Verbosity flag.
 

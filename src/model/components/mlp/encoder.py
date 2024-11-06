@@ -2,7 +2,7 @@
 
 from torch import Tensor, nn
 
-from model.components.encoder import BaseEncoder
+from model.components.base_encoder import BaseEncoder
 
 
 class MLPEncoder(BaseEncoder):

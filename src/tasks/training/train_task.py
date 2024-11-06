@@ -4,85 +4,30 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 
-from data.impl.factory import get_dataloader
 from entities.log_manager import LogManager
-from entities.properties import Properties
-from model.components.factory import get_decoder, get_encoder
 from model.loss.factory import get_loss_function
-from model.models.vae_modular import VAE
 from model.optimizers.factory import get_optimizer
 from model.schedulers.factory import get_scheduler
+from tasks.abstract_task import AbstractTask
+from tasks.training.training_result import TrainingResult
 from util.model_utils import save_model
 
 
-class Trainer:
+class TrainTask(AbstractTask):
     """Trainer class to train the model."""
 
     def __init__(self) -> None:
         """Initialize the Trainer class."""
-        self.logger = LogManager.get_logger(__name__)
-        self.properties = Properties.get_instance()
-        self.device = self.properties.system.device
-        self.__setup()
+        super().__init__(LogManager.get_logger(__name__))
+        self.logger.info("Initializing TrainTask.")
+        self.__init_train_task()
 
-    def __setup(self) -> None:
-        """Setup the Trainer class."""
-
-        # Model save info
-        self.model_save_dir = self.properties.system.models_dir
-        self.model_name = f"{self.properties.meta.name}_v{self.properties.meta.version}"
-
-        # Initialize data loader
-        self.__initialize_dataloader()
-
-        # Get input and output dimensions
-        self.input_dim = self.train_dataloader.dataset[0][0].shape[0]
-        self.output_dim = self.input_dim
-        self.batch_size = self.properties.train.batch_size
-
-        # Build model
-        self.__build_model()
-
-        # Setup training components
+    def __init_train_task(self) -> None:
+        """Setup the train task."""
         self.__setup_optimizer()
         self.__setup_scheduler()
         self.__setup_loss_function()
         self.__setup_regularization()
-
-    def __initialize_dataloader(self) -> None:
-        """Initialize the data loader."""
-        # Initialize data loader
-        dataloader = get_dataloader(self.properties.dataset.data_type)
-
-        self.train_dataloader = dataloader.train_dataloader()
-        self.val_dataloader = dataloader.val_dataloader()
-        self.test_dataloader = dataloader.test_dataloader()
-
-        self.logger.info(f"Initialized Dataloader: {dataloader}")
-
-    def __build_model(self) -> None:
-        """Build the model based on the configuration."""
-        encoder = get_encoder(
-            self.properties.model.encoder,
-            self.input_dim,
-            self.properties.model.hidden_dim,
-            self.properties.model.latent_dim,
-        ).to(self.device)
-
-        decoder = get_decoder(
-            self.properties.model.decoder,
-            self.properties.model.latent_dim,
-            self.properties.model.hidden_dim[::-1],
-            self.output_dim,
-        ).to(self.device)
-
-        self.model = VAE(encoder, decoder).to(self.device)
-        # print model architecture and parameters
-
-        self.logger.info(f"Initialized model: {self.model}")
-        self.logger.info(
-            f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}"
-        )
 
     def __setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
@@ -126,29 +71,7 @@ class Trainer:
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
 
-    def __train_step(self, batch: Tensor) -> float:
-        """Perform a single training step."""
-        data, _ = batch
-        data = data.to(self.device)
-
-        # Initialize gradients for the optimizer for this batch
-        self.optimizer.zero_grad()
-
-        # Forward pass
-        recon_batch, mu, logvar = self.model(data)
-
-        # Compute loss
-        loss = self.loss_function(recon_batch, data, mu, logvar)
-
-        # Backward pass
-        loss.backward()
-
-        # Update weights
-        self.optimizer.step()
-
-        return loss.item()
-
-    def run(self) -> None:
+    def run(self) -> TrainingResult:
         """Train the model."""
         epochs = self.properties.train.epochs
 
@@ -187,7 +110,7 @@ class Trainer:
             )
 
             # Validation loop
-            avg_val_loss = self.validate()
+            avg_val_loss = self.__validate()
             self.logger.info(
                 f"Average validation loss after epoch {epoch + 1}: {avg_val_loss:.4f}"
             )
@@ -221,8 +144,31 @@ class Trainer:
             )
 
         self.logger.info("Training completed.")
+        return TrainingResult()
 
-    def validate(self) -> float:
+    def __train_step(self, batch: Tensor) -> float:
+        """Perform a single training step."""
+        data, _ = batch
+        data = data.to(self.device)
+
+        # Initialize gradients for the optimizer for this batch
+        self.optimizer.zero_grad()
+
+        # Forward pass
+        recon_batch, mu, logvar = self.model(data)
+
+        # Compute loss
+        loss = self.loss_function(recon_batch, data, mu, logvar)
+
+        # Backward pass
+        loss.backward()
+
+        # Update weights
+        self.optimizer.step()
+
+        return loss.item()
+
+    def __validate(self) -> float:
         """Validate the model on the validation set."""
         self.model.eval()
         total_val_loss = 0.0
@@ -267,11 +213,3 @@ class Trainer:
         if self.no_improvement_epochs >= self.properties.train.early_stopping.patience:
             return True
         return False
-
-    def get_model(self) -> VAE:
-        """Return the trained model."""
-        return self.model
-
-    def get_input_size(self) -> int:
-        """Return the input size of the model."""
-        return self.input_dim

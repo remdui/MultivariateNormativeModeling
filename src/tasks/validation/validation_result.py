@@ -1,7 +1,7 @@
 """This module contains the ValidationResult class."""
 
 from entities.log_manager import LogManager
-from tasks.common.abstract_result import AbstractResult
+from tasks.abstract_result import AbstractResult
 
 
 class ValidationResult(AbstractResult):

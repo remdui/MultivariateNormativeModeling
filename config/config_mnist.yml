@@ -86,7 +86,7 @@ model:
     p: 0.2
     inplace: false
 validation:
-  model: 'vae_val_mnist_v1'
+  model: 'vae_val_mnist_v1.pt'
   baseline_model: null
   data_representation: image
   metrics:

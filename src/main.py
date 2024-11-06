@@ -8,8 +8,8 @@ from config.config_manager import ConfigManager
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.pipeline.factory import create_preprocessing_pipeline
-from tasks.training.trainer import Trainer
-from tasks.validation.validator import Validator
+from tasks.training.train_task import TrainTask
+from tasks.validation.validate_task import ValidateTask
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
 from util.file_utils import create_storage_directories, write_output
@@ -86,7 +86,7 @@ def run_training() -> None:
     logger = LogManager.get_logger(__name__)
 
     # Initialize the Trainer
-    trainer = Trainer()
+    trainer = TrainTask()
 
     # Start timing the training process
     start_time = time.time()
@@ -108,7 +108,7 @@ def run_validation() -> None:
     logger = LogManager.get_logger(__name__)
 
     # Initialize the Trainer
-    validator = Validator()
+    validator = ValidateTask()
 
     # Start timing the training process
     start_time = time.time()
@@ -157,7 +157,10 @@ def main() -> None:
     log_application_info(args)
 
     # Run preprocessing pipeline
-    apply_preprocessing()
+    if not args.skip_preprocessing:
+        apply_preprocessing()
+    else:
+        logger.info("Skipping preprocessing pipeline.")
 
     # Perform action based on the mode argument
     if args.mode == "train":

@@ -1,7 +1,7 @@
 """Factory module for creating encoder and decoder instances."""
 
-from model.components.decoder import BaseDecoder
-from model.components.encoder import BaseEncoder
+from model.components.base_decoder import BaseDecoder
+from model.components.base_encoder import BaseEncoder
 from model.components.mlp.decoder import MLPDecoder
 from model.components.mlp.encoder import MLPEncoder
 
