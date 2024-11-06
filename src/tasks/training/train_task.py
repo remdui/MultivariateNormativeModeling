@@ -8,7 +8,7 @@ from entities.log_manager import LogManager
 from model.optimizers.factory import get_optimizer
 from model.schedulers.factory import get_scheduler
 from tasks.abstract_task import AbstractTask
-from tasks.training.training_result import TrainingResult
+from tasks.task_result import TaskResult
 from util.model_utils import save_model
 
 
@@ -64,12 +64,12 @@ class TrainTask(AbstractTask):
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
 
-    def run(self) -> TrainingResult:
+    def run(self) -> TaskResult:
         """Train the model."""
         epochs = self.properties.train.epochs
 
         # Initialize the training result
-        results = TrainingResult()
+        results = TaskResult()
 
         self.logger.info(
             f"Training model: {self.model_name} for {epochs} epochs with batch size {self.batch_size} using device {self.device}"

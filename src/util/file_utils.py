@@ -1,25 +1,42 @@
 """Utility functions for logging."""
 
+import json
 import os
+from typing import Literal
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
+from tasks.task_result import TaskResult
 
 
-def write_output(
-    output: str,
+def write_result_output(
+    task_result: TaskResult,
     output_identifier: str = "metrics",
-    task: str = "train",
+    task: Literal["train", "validate", "inference"] = "train",
 ) -> None:
-    """Write the output to the specified directory."""
+    """Write the TaskResult content to a JSON file.
+
+    Args:
+        task_result (TaskResult): The TaskResult object containing the data to output.
+        output_identifier (str): Identifier for the output, used in the filename.
+        task (str): The task type (train, validate, or inference).
+    """
+    logger = LogManager.get_logger(__name__)
     properties = Properties.get_instance()
     output_dir = properties.system.output_dir
     model_name = properties.model_name
 
-    filename = f"{output_dir}/{model_name}_{task}_{output_identifier}.txt"
+    # Define the filename
+    filename = f"{output_dir}/{model_name}_{task}_{output_identifier}.json"
 
+    # Convert TaskResult data to a dictionary
+    result_data = task_result.get_data()
+
+    # Write the dictionary to a JSON file with indentation for readability
     with open(filename, "w", encoding="utf-8") as f:
-        f.write(output)
+        json.dump(result_data, f, indent=4)
+
+    logger.info(f"Results written to {filename}")
 
 
 def create_storage_directories() -> None:

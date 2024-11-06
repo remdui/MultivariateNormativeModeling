@@ -10,7 +10,7 @@ from model.components.factory import get_decoder, get_encoder
 from model.loss.factory import get_loss_function
 from model.models.abstract_model import AbstractModel
 from model.models.impl.vae_modular import VAE
-from tasks.abstract_result import AbstractResult
+from tasks.task_result import TaskResult
 
 
 class AbstractTask(ABC):
@@ -28,7 +28,7 @@ class AbstractTask(ABC):
         self.__setup_task()
 
     @abstractmethod
-    def run(self) -> AbstractResult:
+    def run(self) -> TaskResult:
         """Run the task."""
         raise NotImplementedError("Method run() must be implemented in subclass.")
 

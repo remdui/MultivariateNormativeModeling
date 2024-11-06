@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
-from tasks.validation.validation_result import ValidationResult
+from tasks.task_result import TaskResult
 from util.model_utils import load_model
 
 
@@ -36,7 +36,7 @@ class ValidateTask(AbstractTask):
         self.model_path = self.properties.system.models_dir + "/" + self.model_file
         self.model = load_model(self.model, self.model_path, self.device)
 
-    def run(self) -> ValidationResult:
+    def run(self) -> TaskResult:
         """Run the validation process.
 
         Returns:
@@ -45,7 +45,7 @@ class ValidateTask(AbstractTask):
         self.logger.info("Starting the validation process.")
 
         # Initialize results dictionary
-        results = ValidationResult()
+        results = TaskResult()
 
         total_loss = 0.0
         total_samples = 0
@@ -76,7 +76,7 @@ class ValidateTask(AbstractTask):
         ):
             self.__draw_image_samples()
 
-        return ValidationResult()
+        return results
 
     def __draw_image_samples(self) -> None:
         """Draw original and reconstructed images if data is represented in a flattened tabular form."""

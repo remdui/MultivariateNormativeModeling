@@ -8,11 +8,12 @@ from config.config_manager import ConfigManager
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.pipeline.factory import create_preprocessing_pipeline
+from tasks.task_result import TaskResult
 from tasks.training.train_task import TrainTask
 from tasks.validation.validate_task import ValidateTask
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
-from util.file_utils import create_storage_directories, write_output
+from util.file_utils import create_storage_directories, write_result_output
 from util.model_utils import visualize_model
 from util.system_utils import log_system_info
 
@@ -97,8 +98,9 @@ def run_training() -> None:
     # Validate and process the results
     results.validate_results()
     results.process_results()
-    accuracy = results["accuracy"]
-    write_output(f"Accuracy: {accuracy}", "metrics")
+
+    # Output the training results
+    write_result_output(results, "metrics", "train")
 
     # Get the model and visualize it
     model = trainer.get_model()
@@ -111,7 +113,6 @@ def run_training() -> None:
 
 def run_validation() -> None:
     """Run the validation process and log output."""
-    task = "validation"
     logger = LogManager.get_logger(__name__)
 
     # Initialize the Trainer
@@ -126,8 +127,9 @@ def run_validation() -> None:
     # Validate and process the results
     results.validate_results()
     results.process_results()
-    accuracy = results["accuracy"]
-    write_output(f"Accuracy: {accuracy}", "metrics", task)
+
+    # Output the validation results
+    write_result_output(results, "metrics", "validate")
 
     # Calculate and return the training duration
     training_duration = time.time() - start_time
@@ -136,9 +138,17 @@ def run_validation() -> None:
 
 def run_inference() -> None:
     """Run the inference process, requiring a checkpoint."""
-    # Output inference accuracy
-    task = "inference"
-    write_output("Accuracy: " + "1.00", "metrics", task)
+    logger = LogManager.get_logger(__name__)
+
+    # Start timing the training process
+    start_time = time.time()
+
+    # Output the inference results
+    write_result_output(TaskResult(), "metrics", "inference")
+
+    # Calculate and return the training duration
+    training_duration = time.time() - start_time
+    logger.info(f"Inference completed in {training_duration:.2f} seconds.")
 
 
 def main() -> None:
