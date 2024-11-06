@@ -9,6 +9,7 @@ from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.pipeline.factory import create_preprocessing_pipeline
 from tasks.training.trainer import Trainer
+from tasks.validation.validator import Validator
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
 from util.file_utils import create_storage_directories, write_output
@@ -91,7 +92,7 @@ def run_training() -> None:
     start_time = time.time()
 
     # Train the model
-    trainer.train()
+    trainer.run()
 
     # Get the model and visualize it
     model = trainer.get_model()
@@ -104,8 +105,26 @@ def run_training() -> None:
 
 def run_validation() -> None:
     """Run the validation process and log output."""
-    # Output validation accuracy
-    write_output("Accuracy: " + "1.00", "metrics")
+    logger = LogManager.get_logger(__name__)
+
+    # Initialize the Trainer
+    validator = Validator()
+
+    # Start timing the training process
+    start_time = time.time()
+
+    # Train the model
+    result = validator.run()
+
+    # Validate and process the results
+    result.validate_results()
+    result.process_results()
+    accuracy = result["accuracy"]
+    write_output(f"Accuracy: {accuracy}", "metrics")
+
+    # Calculate and return the training duration
+    training_duration = time.time() - start_time
+    logger.info(f"Validation completed in {training_duration:.2f} seconds.")
 
 
 def run_inference() -> None:

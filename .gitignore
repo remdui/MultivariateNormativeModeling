@@ -27,7 +27,6 @@ output/*
 
 # Data files
 .coverage
-data/processed/*.csv
 
 # Python dependencies
 requirements.txt

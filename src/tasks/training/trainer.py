@@ -126,17 +126,29 @@ class Trainer:
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
 
-    def __train_step(self, data: Tensor) -> float:
+    def __train_step(self, batch: Tensor) -> float:
         """Perform a single training step."""
+        data, _ = batch
+        data = data.to(self.device)
+
+        # Initialize gradients for the optimizer for this batch
         self.optimizer.zero_grad()
+
+        # Forward pass
         recon_batch, mu, logvar = self.model(data)
+
+        # Compute loss
         loss = self.loss_function(recon_batch, data, mu, logvar)
+
+        # Backward pass
         loss.backward()
-        # TODO: Maybe clip gradients
+
+        # Update weights
         self.optimizer.step()
+
         return loss.item()
 
-    def train(self) -> None:
+    def run(self) -> None:
         """Train the model."""
         epochs = self.properties.train.epochs
 
@@ -156,12 +168,9 @@ class Trainer:
             )
 
             for batch in tqdm_loader:
-                data, _ = batch
-                data = data.to(self.device)
-
-                batch_loss = self.__train_step(data)
+                batch_loss = self.__train_step(batch)
                 total_loss += batch_loss
-                total_samples += data.size(0)
+                total_samples += self.properties.train.batch_size
 
                 avg_loss = total_loss / total_samples
                 tqdm_loader.set_postfix(loss=f"{avg_loss:.4f}")
@@ -178,12 +187,14 @@ class Trainer:
             )
 
             # Validation loop
-            val_loss = self.validate()
-            self.logger.info(f"Validation loss after epoch {epoch + 1}: {val_loss:.4f}")
+            avg_val_loss = self.validate()
+            self.logger.info(
+                f"Average validation loss after epoch {epoch + 1}: {avg_val_loss:.4f}"
+            )
 
             # Early stopping check
             if self.properties.train.early_stopping.enabled:
-                if self.__early_stopping_check(val_loss):
+                if self.__early_stopping_check(avg_val_loss):
                     self.logger.info("Early stopping triggered.")
                     break
 
