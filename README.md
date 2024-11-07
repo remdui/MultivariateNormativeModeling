@@ -163,7 +163,7 @@ Check the following files for more information:
 
 Datasets must be provided in the `data` directory.
 
-This project supports the following dataset formats:
+This project supports the following data types:
 - **Tabular data** in the following formats: `csv`, `rds`.
 
   If a test split is provided, the test split name must be suffixed with `_test` (e.g., `dataset.rds` and `dataset_test.rds`).
@@ -179,7 +179,7 @@ To skip the preprocessing pipeline, use the `--skip-preprocessing` flag.
 
 ### Configuration
 
-The project configuration is defined in the `config` directory. The configuration file is a `YAML` file. The default configuration file is `config/config_default.yml`.
+The project configuration is defined in the `config` directory. The configuration file is in `YAML` format. The default configuration file is `config/config_default.yml`.
 
 **Important:** Copy this file to create a custom configuration. The default configuration will be **overwritten** each time the application is run.
 
