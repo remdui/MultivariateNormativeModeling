@@ -24,4 +24,4 @@ poetry lock --quiet
 poetry install --only main --no-interaction --no-ansi --quiet
 
 # Run the training script
-poetry run python src/main.py --config config_001.yml --mode train --debug --verbose --device cuda
+poetry run python src/main.py --config config_mnist.yml --mode train --debug --verbose --device cuda
