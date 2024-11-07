@@ -53,7 +53,7 @@ This project requires the following dependencies installed:
 - Python >= 3.11.3 (matching the latest version on Snellius HPC)
 - Poetry >= 1.8.4
 
-All dependencies are listed in the `pyproject.toml` file.
+All dependencies[README.md](README.md) are listed in the `pyproject.toml` file.
 
 Alternatively, Docker can be used to run the project. The Dockerfile is provided in the repository. This requires Docker to be installed on the host machine.
 
@@ -114,6 +114,21 @@ The entry point of the project is the `main.py` file. Run the project using `poe
 poetry run python src/main.py --config [CONFIG_PATH] --mode [MODE] [OPTIONS]
 ```
 
+You can also run the project in a Docker container after building the image (see the `Setup` section above):
+
+```bash
+docker run --rm \
+           -v ./data:/data \
+           -v ./output:/output \
+           -v ./logs:/logs \
+           -v ./models:/models \
+           -v ./config:/config \
+           masterthesis:latest \
+           --config [CONFIG_PATH] \
+           --mode [MODE] \
+           [OPTIONS]
+```
+
 ### Arguments
 
 The `main.py` file accepts the following required arguments:
@@ -144,22 +159,61 @@ Check the following files for more information:
 - [`docs/code/inference.md`](docs/code/inference.md) for information on how to run inference.
 
 
-### Using Docker
+### Datasets
 
-You can run the project in a Docker container after building the image (see the `Setup` section above):
+Datasets must be provided in the `data` directory.
 
-```bash
-docker run --rm \
-           -v ./data:/data \
-           -v ./output:/output \
-           -v ./logs:/logs \
-           -v ./models:/models \
-           -v ./config:/config \
-           masterthesis:latest \
-           --config [CONFIG_PATH] \
-           --mode [MODE] \
-           [OPTIONS]
-```
+This project supports the following dataset formats:
+- **Tabular data** in the following formats: `csv`, `rds`.
+
+  If a test split is provided, the test split name must be suffixed with `_test` (e.g., `dataset.rds` and `dataset_test.rds`).
+
+- **Image data** in the following formats: `jpg`, `jpeg`, `png`, `bmp`, `tiff`.
+  Images should be placed in a directory with the same name as the dataset file (e.g., `dataset/<image_name>.jpg`). If a test split is provided, the test split directory must be named `test` (e.g., `dataset/test/<image_name>.jpg`).
+
+The preprocessing pipeline is automatically applied to the datasets. Processed datasets are saved in the `data/processed` directory. The internal file format is `csv`.
+
+Manually processed datasets can be placed in the `data/processed` directory. Training splits should be named `<dataset_name>_train.csv` and test splits should be named `<dataset_name>_test.csv`.
+
+To skip the preprocessing pipeline, use the `--skip-preprocessing` flag.
+
+### Configuration
+
+The project configuration is defined in the `config` directory. The configuration file is a `YAML` file. The default configuration file is `config/config_default.yml`.
+
+**Important:** Copy this file to create a custom configuration. The default configuration will be **overwritten** each time the application is run.
+
+The configuration file contains the following sections:
+
+- `dataset`: Configuration for the dataset.
+- `model`: Configuration for the model.
+- `train`: Configuration for the training process.
+- `inference`: Configuration for the inference process.
+- `validation`: Configuration for the validation process.
+- `meta`: Meta information for the project.
+- `general`: General configuration for the project.
+- `system`: System configuration for the project.
+
+The configuration is validated against the schema before a task is run. Missing values are filled with default values from the default configuration file.
+
+### Output Files
+
+The application generates different types of artifacts during the execution of the project.
+
+- **Logs**: Logs are saved in the `logs` directory, unless a custom log directory is provided. Logs are saved in the `log` format.
+- **Models**: Models are saved in the `models` directory, unless a custom models directory is provided. Models are represented by their state dictionary and are saved in the `pt` format. Checkpoints are stored in the `checkpoints` subdirectory.
+- **Output**: Output files are saved in the `output` directory, unless a custom output directory is provided. Examples of output files are metrics, visualizations, and predictions.
+- **Processed Data**: Processed data is saved in the `data/processed` directory. Processed data is saved in the `csv` format.
+
+Output files are not tracked in the repository. Output files and folders can be safely deleted.
+
+### Scripts
+
+The `scripts` directory contains various scripts:
+
+- The data scripts can be used to generate artificial data for testing purposes.
+- The slurm script are used to run the project on the (Snellius) HPC.
+- The sync script can be used to synchronize the required files to the HPC (requires established SSH connection).
 
 ---
 
