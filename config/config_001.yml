@@ -63,15 +63,19 @@ train:
     kl_annealing: true
     kl_annealing_steps: 1000
 model:
-  encoder: mlp
-  decoder: mlp
-  hidden_dim:
+  architecture: vae
+  components:
+    vae:
+      encoder: mlp
+      decoder: mlp
+      latent_dim: 16
+      covariate_embedding: input_embedding
+  hidden_layers:
   - 512
   - 256
   - 128
-  latent_dim: 16
   activation_function: relu
-  covariate_embedding: input_embedding
+  final_activation_function: sigmoid
   normalization_layer: batch_norm
   weight_initialization: xavier
   batch_norm:

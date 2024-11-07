@@ -3,13 +3,12 @@
 from abc import ABC, abstractmethod
 from logging import Logger
 
-from data.impl.factory import get_dataloader
+from data.factory import get_dataloader
 from entities.log_manager import LogManager
 from entities.properties import Properties
-from model.components.factory import get_decoder, get_encoder
 from model.loss.factory import get_loss_function
 from model.models.abstract_model import AbstractModel
-from model.models.impl.vae_modular import VAE
+from model.models.factory import get_model
 from tasks.task_result import TaskResult
 
 
@@ -69,23 +68,13 @@ class AbstractTask(ABC):
 
     def __build_model(self) -> None:
         """Build the model based on the configuration."""
-        encoder = get_encoder(
-            self.properties.model.encoder,
-            self.input_dim,
-            self.properties.model.hidden_dim,
-            self.properties.model.latent_dim,
-        ).to(self.device)
+        # Get the model based on the configuration
+        model = get_model(
+            self.properties.model.architecture, self.input_dim, self.output_dim
+        )
+        self.model = model.to(self.device)
 
-        decoder = get_decoder(
-            self.properties.model.decoder,
-            self.properties.model.latent_dim,
-            self.properties.model.hidden_dim[::-1],
-            self.output_dim,
-        ).to(self.device)
-        # TODO: make factory and config option for model type of AbstractModel
-        self.model = VAE(encoder, decoder).to(self.device)
         # print model architecture and parameters
-
         self.logger.info(f"Initialized model: {self.model}")
         self.logger.info(
             f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}"

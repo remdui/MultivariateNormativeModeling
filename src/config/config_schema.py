@@ -141,16 +141,23 @@ class MetaConfig(BaseModel):
 class ModelConfig(BaseModel):
     """Model configuration."""
 
-    # Model architecture
-    encoder: str = "mlp"
-    decoder: str = "mlp"
-    hidden_dim: list[int] = [128, 64, 32]
-    latent_dim: int = 10
+    # Dynamic model components
+    architecture: str = "vae"
+    components: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "vae": {
+                "encoder": "mlp",
+                "decoder": "mlp",
+                "latent_dim": 32,
+                "covariate_embedding": "input_embedding",
+            },
+        }
+    )
 
     # Model components
+    hidden_layers: list[int] = [1024, 512, 256]
     activation_function: str = "relu"
     final_activation_function: str = "sigmoid"
-    covariate_embedding: str = "input_embedding"
     normalization_layer: str = "batch_norm"
     weight_initialization: str = "xavier"
 
