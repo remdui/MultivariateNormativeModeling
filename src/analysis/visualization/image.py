@@ -27,6 +27,32 @@ def tensor_to_image(
     # Ensure tensor is on CPU and detached from the computation graph
     tensor = tensor.cpu().detach()
 
+    # Convert tensor to correct shape and format
+    tensor = __convert_tensor(image_length, image_width, slice_index, tensor)
+
+    # Scale to 0-255 and convert to uint8
+    array = (tensor.numpy() * 255).astype(np.uint8)
+    image_mode = "RGB" if array.ndim == 3 else "L"  # Choose mode based on array shape
+    image = PIL.Image.fromarray(array, mode=image_mode)
+
+    return image
+
+
+def __convert_tensor(
+    image_length: int, image_width: int, slice_index: int | None, tensor: Tensor
+) -> Tensor:
+    """Convert tensor to the correct shape and format for visualization.
+
+    Args:
+        image_length (int): Image length
+        image_width (int): Image width
+        slice_index (int, optional): Index of the depth slice to visualize for 3D images. Defaults to the middle slice.
+        tensor (Tensor): Input tensor of shape (C, D, H, W), (D, H, W), (C, H, W), (H, W), or flattened.
+
+    Returns:
+        Tensor: Processed tensor
+    """
+
     # Convert (1, D, H, W) to (D, H, W) for single-channel 3D data
     if tensor.ndim == 4 and tensor.size(0) == 1:
         tensor = tensor.squeeze(0)
@@ -53,13 +79,7 @@ def tensor_to_image(
         raise ValueError(
             f"Unsupported tensor shape {tensor.shape}. Expected (C, D, H, W), (D, H, W), (C, H, W), (H, W), or flattened."
         )
-
-    # Scale to 0-255 and convert to uint8
-    array = (tensor.numpy() * 255).astype(np.uint8)
-    image_mode = "RGB" if array.ndim == 3 else "L"  # Choose mode based on array shape
-    image = PIL.Image.fromarray(array, mode=image_mode)
-
-    return image
+    return tensor
 
 
 def combine_images(original_image: Image, reconstructed_image: Image) -> Image:

@@ -29,10 +29,13 @@ class ValidateTask(AbstractTask):
         self.metrics = self.properties.validation.metrics
         self.data_representation = self.properties.validation.data_representation
         self.model_file = self.properties.validation.model
-        self.baseline_model_file = self.properties.validation.baseline_model
+        self.model_path = self.properties.system.models_dir + "/" + self.model_file
+        self.baseline_model_file = str(self.properties.validation.baseline_model)
+        self.baseline_model_path = (
+            self.properties.system.models_dir + "/" + self.baseline_model_file
+        )
 
         # Load model state dictionary from model file
-        self.model_path = self.properties.system.models_dir + "/" + self.model_file
         self.model = load_model(self.model, self.model_path, self.device)
 
     def run(self) -> TaskResult:
