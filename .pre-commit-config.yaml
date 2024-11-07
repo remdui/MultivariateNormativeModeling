@@ -94,7 +94,7 @@ repos:
         language: system
         types: [ python ]
         require_serial: true
-        args: [ --max-absolute B, --max-modules B, --max-average A ]
+        args: [-bB, -mB, -aA]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
