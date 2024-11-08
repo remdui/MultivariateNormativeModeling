@@ -6,9 +6,22 @@ from torch.optim import lr_scheduler
 
 # Mapping for available learning rate schedulers
 SCHEDULER_MAPPING: dict[str, type[lr_scheduler.LRScheduler]] = {
-    "steplr": lr_scheduler.StepLR,
-    "exponentiallr": lr_scheduler.ExponentialLR,
-    "cosineannealinglr": lr_scheduler.CosineAnnealingLR,
+    "default": lr_scheduler.LRScheduler,
+    "lambda": lr_scheduler.LambdaLR,
+    "multiplicative": lr_scheduler.MultiplicativeLR,
+    "step": lr_scheduler.StepLR,
+    "multistep": lr_scheduler.MultiStepLR,
+    "constant": lr_scheduler.ConstantLR,
+    "linear": lr_scheduler.LinearLR,
+    "exponential": lr_scheduler.ExponentialLR,
+    "polynomial": lr_scheduler.PolynomialLR,
+    "cosineannealing": lr_scheduler.CosineAnnealingLR,
+    "chained": lr_scheduler.ChainedScheduler,
+    "sequential": lr_scheduler.SequentialLR,
+    "plateau": lr_scheduler.ReduceLROnPlateau,
+    "cyclic": lr_scheduler.CyclicLR,
+    "onecycle": lr_scheduler.OneCycleLR,
+    "cosineannealingwarmrestarts": lr_scheduler.CosineAnnealingWarmRestarts,
 }
 
 

@@ -54,7 +54,7 @@ class SchedulerConfig(BaseModel):
 
     learning_rate: float = 0.001
     warmup_steps: int = 500
-    method: str = "steplr"
+    method: str = "step"
     gamma: float = 0.1
     step_size: int = 10
     kl_annealing: bool = True

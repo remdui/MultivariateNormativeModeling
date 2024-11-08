@@ -53,8 +53,8 @@ class TrainTask(AbstractTask):
         self.scheduler_step_per_batch = (
             self.properties.train.scheduler.method.lower()
             in {
-                "cycliclr",
-                "onecyclelr",
+                "cyclic",
+                "onecycle",
                 "cosineannealingwarmrestarts",
             }
         )
