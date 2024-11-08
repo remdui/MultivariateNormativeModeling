@@ -82,6 +82,10 @@ class ValidateTask(AbstractTask):
 
     def __draw_image_samples(self) -> None:
         """Draw original and reconstructed images if data is represented in a flattened tabular form."""
+        self.logger.info(
+            "Creating samples to compare original and reconstructed images."
+        )
+
         # Select random indices from the test dataset
         num_samples = self.properties.validation.image.num_visual_samples
         total_samples = len(self.test_dataloader)
@@ -126,7 +130,6 @@ class ValidateTask(AbstractTask):
 
             # Save images
             if self.properties.validation.image.save_image_samples:
-                output_dir = self.properties.system.output_dir
-                combined_image.save(
-                    f"{output_dir}/{self.model_name}_image_sample_{idx + 1}.png"
-                )
+                output_file_path = f"{self.properties.system.output_dir}/{self.model_name}_image_sample_{idx + 1}.png"
+                combined_image.save(output_file_path)
+                self.logger.info(f"Sample {idx + 1} saved to {output_file_path}")

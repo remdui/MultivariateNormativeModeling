@@ -60,7 +60,7 @@ class ConfigManager:
                 break
         else:
             # Key not found in any section
-            if key not in {"config", "mode"}:
+            if key not in {"config", "mode", "skip_preprocessing"}:
                 self.logger.warning(
                     f"Warning: Command-line argument '{key}' does not match any configuration key."
                 )
