@@ -59,10 +59,10 @@ class ValidateTask(AbstractTask):
                 data = data.to(self.device)
 
                 # Perform a forward pass
-                recon_batch, mu, logvar = self.model(data)
+                recon_batch, z_mean, z_logvar = self.model(data)
 
                 # Calculate loss for the batch
-                loss = self.loss_function(recon_batch, data, mu, logvar)
+                loss = self.loss(recon_batch, data, z_mean, z_logvar)
                 total_loss += loss.item()
                 total_samples += self.properties.train.batch_size
 

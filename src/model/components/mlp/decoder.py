@@ -20,9 +20,9 @@ class MLPDecoder(BaseDecoder):
             prev_dim = h_dim
         self.model = nn.Sequential(*layers)
         self.final_layer = nn.Linear(prev_dim, output_dim)
-        self.output_activation = nn.Sigmoid()  # Change if needed
+        self.output_activation = nn.Sigmoid()
 
-    def forward(self, z: Tensor) -> Tensor:
-        h = self.model(z)
-        x_recon = self.output_activation(self.final_layer(h))
-        return x_recon
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.model(x)
+        x = self.output_activation(self.final_layer(x))
+        return x

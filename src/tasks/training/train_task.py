@@ -87,8 +87,10 @@ class TrainTask(AbstractTask):
 
             for batch in tqdm_loader:
                 batch_loss = self.__train_step(batch)
-                total_loss += batch_loss
-                total_samples += self.properties.train.batch_size
+                total_loss += batch_loss  # Batch loss is the summed loss over the batch
+                total_samples += (
+                    self.properties.train.batch_size
+                )  # increment total samples by batch size for correct average
 
                 avg_loss = total_loss / total_samples
                 tqdm_loader.set_postfix(loss=f"{avg_loss:.4f}")
@@ -150,10 +152,10 @@ class TrainTask(AbstractTask):
         self.optimizer.zero_grad()
 
         # Forward pass
-        recon_batch, mu, logvar = self.model(data)
+        recon_batch, z_mean, z_logvar = self.model(data)
 
         # Compute loss
-        loss = self.loss_function(recon_batch, data, mu, logvar)
+        loss = self.loss(recon_batch, data, z_mean, z_logvar)
 
         # Backward pass
         loss.backward()
@@ -174,8 +176,8 @@ class TrainTask(AbstractTask):
                 data, _ = batch
                 data = data.to(self.device)
 
-                recon_batch, mu, logvar = self.model(data)
-                loss = self.loss_function(recon_batch, data, mu, logvar)
+                recon_batch, z_mean, z_logvar = self.model(data)
+                loss = self.loss(recon_batch, data, z_mean, z_logvar)
                 total_val_loss += loss.item()
                 total_val_samples += data.size(0)
 

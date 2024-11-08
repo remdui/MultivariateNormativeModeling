@@ -7,11 +7,21 @@ from model.components.factory import get_decoder, get_encoder
 from model.models.abstract_model import AbstractModel
 
 
-def reparameterize(mu: Tensor, logvar: Tensor) -> Tensor:
-    """Reparameterize the latent space."""
-    std = torch.exp(0.5 * logvar)
-    eps = torch.randn_like(std)
-    return mu + eps * std
+def reparameterize(z_mean: Tensor, z_logvar: Tensor) -> Tensor:
+    """Reparameterize the latent space using the Reparameterization Trick.
+
+       See Section 2.4 of the VAE paper (Kingma & Welling, 2013).
+
+    Args:
+        z_mean (Tensor): Mean of the latent space.
+        z_logvar (Tensor): Log variance of the latent space.
+
+    Returns:
+        Tensor: Reparameterized samples from the latent space.
+    """
+    std = torch.exp(0.5 * z_logvar)
+    eps = torch.randn_like(std)  # sample from N(0, 1) with the same shape as std
+    return z_mean + std * eps
 
 
 class VAE(AbstractModel):
@@ -36,7 +46,7 @@ class VAE(AbstractModel):
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         """Forward pass of the VAE model."""
-        mu, logvar = self.encoder(x)
-        z = reparameterize(mu, logvar)
+        z_mean, z_logvar = self.encoder(x)
+        z = reparameterize(z_mean, z_logvar)
         x_recon = self.decoder(z)
-        return x_recon, mu, logvar
+        return x_recon, z_mean, z_logvar

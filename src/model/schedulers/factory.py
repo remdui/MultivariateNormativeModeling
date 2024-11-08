@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from torch import optim
 from torch.optim import lr_scheduler
 
 # Mapping for available learning rate schedulers
@@ -14,13 +13,13 @@ SCHEDULER_MAPPING: dict[str, type[lr_scheduler.LRScheduler]] = {
 
 
 def get_scheduler(
-    scheduler_type: str, optimizer: optim.Optimizer, **kwargs: Any
+    scheduler_type: str, *args: Any, **kwargs: Any
 ) -> lr_scheduler.LRScheduler:
     """Factory method to get the learning rate scheduler based on config.
 
     Args:
-        scheduler_type (str): The type of scheduler (e.g., 'steplr', 'exponentiallr', 'cosineannealinglr').
-        optimizer (optim.Optimizer): The optimizer to which the scheduler will be applied.
+        scheduler_type (str): The type of scheduler.
+        *args: Additional arguments specific to the scheduler.
         **kwargs: Additional parameters specific to the scheduler.
 
     Returns:
@@ -32,4 +31,4 @@ def get_scheduler(
     scheduler_class = SCHEDULER_MAPPING.get(scheduler_type.lower())
     if not scheduler_class:
         raise ValueError(f"Unknown scheduler type: {scheduler_type}")
-    return scheduler_class(optimizer, **kwargs)
+    return scheduler_class(*args, **kwargs)

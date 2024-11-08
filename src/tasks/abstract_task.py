@@ -82,8 +82,8 @@ class AbstractTask(ABC):
 
     def __setup_loss_function(self) -> None:
         """Get the loss function based on the configuration."""
-        self.loss_function = get_loss_function(self.properties.train.loss_function)
-        self.logger.info(f"Initialized loss function: {self.loss_function}")
+        self.loss = get_loss_function(self.properties.train.loss_function)
+        self.logger.info(f"Initialized loss function: {self.loss}")
 
     def get_model(self) -> AbstractModel:
         """Return the trained model."""

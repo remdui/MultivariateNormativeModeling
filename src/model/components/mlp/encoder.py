@@ -17,11 +17,11 @@ class MLPEncoder(BaseEncoder):
             layers.append(nn.ReLU())
             prev_dim = h_dim
         self.model = nn.Sequential(*layers)
-        self.fc_mu = nn.Linear(prev_dim, latent_dim)
-        self.fc_logvar = nn.Linear(prev_dim, latent_dim)
+        self.fc_z_mean = nn.Linear(prev_dim, latent_dim)
+        self.fc_z_logvar = nn.Linear(prev_dim, latent_dim)
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
-        h = self.model(x)
-        mu = self.fc_mu(h)
-        logvar = self.fc_logvar(h)
-        return mu, logvar
+        x = self.model(x)
+        z_mean = self.fc_z_mean(x)
+        z_logvar = self.fc_z_logvar(x)
+        return z_mean, z_logvar

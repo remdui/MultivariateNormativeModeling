@@ -12,7 +12,7 @@ class BaseDecoder(nn.Module):
         """Initialize the decoder."""
         super().__init__()
 
-    def forward(self, z: Tensor) -> Any:
+    def forward(self, x: Tensor) -> Any:
         """Forward pass of the decoder.
 
         This method should be implemented in the child class.

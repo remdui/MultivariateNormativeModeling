@@ -13,12 +13,13 @@ PREPROCESSOR_MAPPING: dict[str, type[AbstractPreprocessor]] = {
 }
 
 
-def get_preprocessor(name: str, **params: Any) -> AbstractPreprocessor:
+def get_preprocessor(name: str, *args: Any, **kwargs: Any) -> AbstractPreprocessor:
     """Factory method to get a preprocessor instance by name.
 
     Args:
         name (str): The name of the preprocessor.
-        **params: Additional parameters for the preprocessor.
+        *args: Additional arguments for the preprocessor.
+        **kwargs: Additional parameters for the preprocessor.
 
     Returns:
         AbstractPreprocessor: An instance of the requested preprocessor.
@@ -29,4 +30,4 @@ def get_preprocessor(name: str, **params: Any) -> AbstractPreprocessor:
     preprocessor_class = PREPROCESSOR_MAPPING.get(name)
     if not preprocessor_class:
         raise ValueError(f"Unknown preprocessor: {name}")
-    return preprocessor_class(**params)
+    return preprocessor_class(*args, **kwargs)

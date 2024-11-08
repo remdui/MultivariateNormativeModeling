@@ -184,7 +184,7 @@ class TrainConfig(BaseModel):
     # General training settings
     batch_size: int = 32
     epochs: int = 100
-    loss_function: str = "bce_kld"
+    loss_function: str = "bce_vae"
     optimizer: str = "adam"
     mixed_precision: bool = False
     save_model: bool = True

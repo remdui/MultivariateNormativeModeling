@@ -6,11 +6,22 @@ from torch import optim
 
 # Mapping for available optimizers
 OPTIMIZER_MAPPING: dict[str, type[optim.Optimizer]] = {
+    # PyTorch optimizers supported for cuda
     "adam": optim.Adam,
     "adamw": optim.AdamW,
     "sgd": optim.SGD,
+    # PyTorch optimizers
+    "adadelta": optim.Adadelta,
+    "adafactor": optim.Adafactor,
     "adagrad": optim.Adagrad,
+    "sparse_adam": optim.SparseAdam,
+    "adamax": optim.Adamax,
+    "asgd": optim.ASGD,
+    "lbfgs": optim.LBFGS,
+    "nadam": optim.NAdam,
+    "radam": optim.RAdam,
     "rmsprop": optim.RMSprop,
+    "rprop": optim.Rprop,
 }
 
 

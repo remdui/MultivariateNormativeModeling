@@ -37,7 +37,7 @@ dataset:
 train:
   batch_size: 32
   epochs: 100
-  loss_function: bce_kld
+  loss_function: bce_vae
   optimizer: adam
   mixed_precision: false
   save_model: true
