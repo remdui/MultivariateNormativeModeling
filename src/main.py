@@ -8,54 +8,72 @@ from config.config_manager import ConfigManager
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.pipeline.factory import create_preprocessing_pipeline
-from tasks.task_result import TaskResult
+from tasks.inference.inference_task import InferenceTask
 from tasks.training.train_task import TrainTask
 from tasks.validation.validate_task import ValidateTask
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
-from util.file_utils import create_storage_directories, write_result_output
+from util.file_utils import create_storage_directories, write_results_to_file
 from util.model_utils import visualize_model
 from util.system_utils import log_system_info
+
+# Task selection and execution
+TASK_MAP = {
+    "train": TrainTask,
+    "validate": ValidateTask,
+    "inference": InferenceTask,
+}
 
 
 def setup_basic_logging() -> None:
     """Sets up a basic temporary logging configuration."""
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%d-%m-%Y %H:%M:%S",
     )
 
 
 def initialize_application(args: Namespace) -> None:
-    """Initializes the application by setting up configuration, properties, and logging."""
-    # Create a default configuration file if it does not exist
-    create_default_config()
+    """Initializes the application by setting up configuration, properties, and logging.
 
-    # Initialize the ConfigManager with the configuration file and command-line arguments
-    config_manager = ConfigManager(config_file=args.config, command_line_args=args)
+    Args:
+        args (Namespace): The command-line arguments.
+    """
+    try:
+        # Create a default configuration file if it does not exist
+        create_default_config()
 
-    # Check if the configuration file is compatible with the current software version
-    config_manager.is_version_compatible()
+        # Initialize the ConfigManager with the configuration file and command-line arguments
+        config_manager = ConfigManager(config_file=args.config, command_line_args=args)
 
-    # Validate the configuration
-    config_manager.validate_config()
+        # Check if the configuration file is compatible with the current software version
+        config_manager.is_version_compatible()
 
-    # Retrieve the merged config object
-    config = config_manager.get_config()
+        # Validate the configuration
+        config_manager.validate_config()
 
-    # Initialize the Properties object with the merged configuration
-    Properties.initialize(config)
+        # Initialize the Properties object with the merged configuration
+        config = config_manager.get_config()
+        Properties.initialize(config)
 
-    # Create storage directories if they do not exist
-    create_storage_directories()
+        # Create storage directories if they do not exist
+        create_storage_directories()
 
-    # Reconfigure logging with the actual properties
-    LogManager.reconfigure_logging()
+        # Reconfigure logging with the actual properties
+        LogManager.reconfigure_logging()
+
+    except Exception as e:
+        logging.error(f"Error during application initialization: {e}", exc_info=True)
+        raise
 
 
 def log_application_info(args: Namespace) -> None:
-    """Logs initial information about application and system."""
+    """Logs initial information about application and system.
+
+    Args:
+        args (Namespace): The command-line arguments.
+    """
     logger = LogManager.get_logger(__name__)
     properties = Properties.get_instance()
 
@@ -76,132 +94,97 @@ def log_application_info(args: Namespace) -> None:
 
 def apply_preprocessing() -> None:
     """Apply the preprocessing pipeline to the input data."""
-    properties = Properties.get_instance()
-    data_type = properties.dataset.data_type
-    pipeline = create_preprocessing_pipeline(data_type)
-    pipeline.run()
+    logger = logging.getLogger(__name__)
+    try:
+        properties = Properties.get_instance()
+        data_type = properties.dataset.data_type
+        pipeline = create_preprocessing_pipeline(data_type)
+        pipeline.run()
+    except Exception as e:
+        logger.error(f"Preprocessing failed: {e}", exc_info=True)
+        raise
 
 
-def run_training() -> None:
-    """Run the training process and returns the training duration."""
+def run_task(task_class: type) -> None:
+    """Generalized function to run a training, validation, or inference task.
+
+    Args:
+        task_class: The class of the task to execute (e.g., TrainTask, ValidateTask).
+    """
     logger = LogManager.get_logger(__name__)
+    task_instance = task_class()
+    task_name = task_instance.get_task_name()
 
-    # Initialize the Trainer
-    trainer = TrainTask()
-
-    # Start timing the training process
     start_time = time.time()
 
-    # Train the model
-    results = trainer.run()
+    try:
+        # Run the task and process results
+        results = task_instance.run()
+        results.validate_results()
+        results.process_results()
+        write_results_to_file(results, "metrics", task_name)
 
-    # Validate and process the results
-    results.validate_results()
-    results.process_results()
+        # If the task is train, visualize the model
+        if task_name == "train":
+            model = task_instance.get_model()
+            visualize_model(model, task_instance.get_input_size())
 
-    # Output the training results
-    write_result_output(results, "metrics", "train")
+    except Exception as e:
+        logger.error(f"Task {task_name} failed: {e}", exc_info=True)
+        raise
 
-    # Get the model and visualize it
-    model = trainer.get_model()
-    visualize_model(model, trainer.get_input_size())
-
-    # Calculate and return the training duration
-    training_runtime = time.time() - start_time
-    logger.info(f"Training completed in {training_runtime:.2f} seconds.")
-
-
-def run_validation() -> None:
-    """Run the validation process and log output."""
-    logger = LogManager.get_logger(__name__)
-
-    # Initialize the Trainer
-    validator = ValidateTask()
-
-    # Start timing the training process
-    start_time = time.time()
-
-    # Train the model
-    results = validator.run()
-
-    # Validate and process the results
-    results.validate_results()
-    results.process_results()
-
-    # Output the validation results
-    write_result_output(results, "metrics", "validate")
-
-    # Calculate and return the training duration
-    validation_runtime = time.time() - start_time
-    logger.info(f"Validation completed in {validation_runtime:.2f} seconds.")
-
-
-def run_inference() -> None:
-    """Run the inference process, requiring a checkpoint."""
-    logger = LogManager.get_logger(__name__)
-
-    # Start timing the training process
-    start_time = time.time()
-
-    # Output the inference results
-    write_result_output(TaskResult(), "metrics", "inference")
-
-    # Calculate and return the training duration
-    inference_runtime = time.time() - start_time
-    logger.info(f"Inference completed in {inference_runtime:.2f} seconds.")
+    runtime = time.time() - start_time
+    logger.info(f"Task {task_name} completed in {runtime:.2f} seconds.")
 
 
 def main() -> None:
     """Main function to control application flow based on command-line arguments."""
-    # Set up basic logging for startup
     setup_basic_logging()
-
     logger = logging.getLogger(__name__)
-    logger.info("Loading application...")
 
-    # Start timing the total runtime
-    start_time = time.time()
+    try:
+        logger.info("Loading application...")
+        start_time = time.time()
 
-    # Parse command-line arguments
-    args = parse_args()
+        # Parse command-line arguments
+        args = parse_args()
 
-    # Initialize the application and set up logging
-    initialize_application(args)
+        # Initialize the application
+        initialize_application(args)
 
-    # Get the initialized logger
-    logger = LogManager.get_logger(__name__)
+        # Reconfigure logger after full initialization
+        logger = LogManager.get_logger(__name__)
+        log_application_info(args)
 
-    # Log initial information about the application and system
-    log_application_info(args)
+        preprocessing_runtime = 0.0
 
-    preprocessing_runtime = 0.0
+        if not args.skip_preprocessing:
+            start_time_preprocessing = time.time()
+            apply_preprocessing()
+            preprocessing_runtime = time.time() - start_time_preprocessing
+        else:
+            logger.info("Skipping preprocessing pipeline.")
 
-    # Run preprocessing pipeline
-    if not args.skip_preprocessing:
-        start_time_preprocessing = time.time()
-        apply_preprocessing()
-        preprocessing_runtime = time.time() - start_time_preprocessing
-    else:
-        logger.info("Skipping preprocessing pipeline.")
+        task = TASK_MAP.get(args.mode)
 
-    # Perform action based on the mode argument
-    if args.mode == "train":
-        logger.info("Starting training process...")
-        run_training()
-    elif args.mode == "validate":
-        logger.info("Starting validation process...")
-        run_validation()
-    elif args.mode == "inference":
-        logger.info("Starting inference process...")
-        run_inference()
+        if task:
+            logger.info(f"Starting {args.mode} process...")
+            run_task(task)
+        else:
+            logger.error(f"Unimplemented mode specified: {args.mode}")
+            return
 
-    # Log the preprocessing duration
-    if preprocessing_runtime > 0:
-        logger.info(f"Preprocessing completed in {preprocessing_runtime:.2f} seconds.")
+        if preprocessing_runtime > 0:
+            logger.info(
+                f"Preprocessing completed in {preprocessing_runtime:.2f} seconds."
+            )
 
-    # Calculate and log the total runtime
-    total_runtime = time.time() - start_time
-    logger.info(f"Application completed in {total_runtime:.2f} seconds.")
+        total_runtime = time.time() - start_time
+        logger.info(f"Application completed in {total_runtime:.2f} seconds.")
+
+    except Exception as e:
+        logger.error(f"An unhandled error occurred: {e}", exc_info=True)
+        raise
 
 
 if __name__ == "__main__":

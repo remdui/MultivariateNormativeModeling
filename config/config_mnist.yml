@@ -43,7 +43,7 @@ train:
   save_model: true
   checkpoint:
     save_checkpoint: true
-    interval: 20
+    interval: 5
     use_checkpoint: false
     checkpoint: ''
   early_stopping:

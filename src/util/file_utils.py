@@ -11,7 +11,7 @@ from entities.properties import Properties
 from tasks.task_result import TaskResult
 
 
-def write_result_output(
+def write_results_to_file(
     task_result: TaskResult,
     output_identifier: str = "metrics",
     task: Literal["train", "validate", "inference"] = "train",
@@ -128,7 +128,7 @@ def load_data(data_file_path: str) -> Any:
     file_format = properties.dataset.internal_file_format
 
     if file_format == "csv":
-        return pd.read_csv(data_file_path + ".csv")
+        return pd.read_csv(data_file_path)
     if file_format == "hdf":
         return pd.read_hdf(data_file_path, key="df")
     raise ValueError(f"Unsupported file format: {file_format}")
@@ -147,17 +147,21 @@ def is_image_folder(folder_path: str) -> bool:
     return False
 
 
-def get_processed_file_path(data_dir: str, input_data: str, dataset_type: str) -> str:
-    """Get the processed file path based on the input data."""
+def get_internal_file_extension() -> str:
+    """Get the internal file extension based on the internal file format."""
     properties = Properties.get_instance()
     file_format = properties.dataset.internal_file_format
 
     if file_format == "hdf":
-        file_extension = "h5"
-    elif file_format == "csv":
-        file_extension = "csv"
-    else:
-        raise ValueError(f"Unsupported file format: {file_format}")
+        return "h5"
+    if file_format == "csv":
+        return "csv"
+    raise ValueError(f"Unsupported file format: {file_format}")
+
+
+def get_processed_file_path(data_dir: str, input_data: str, dataset_type: str) -> str:
+    """Get the processed file path based on the input data."""
+    file_extension = get_internal_file_extension()
 
     input_file_name, _ = input_data.split(".")
     return os.path.join(

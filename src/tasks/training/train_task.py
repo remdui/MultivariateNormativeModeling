@@ -64,6 +64,14 @@ class TrainTask(AbstractTask):
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
 
+    def get_task_name(self) -> str:
+        """Return the task name.
+
+        Returns:
+            str: The task name.
+        """
+        return "train"
+
     def run(self) -> TaskResult:
         """Train the model."""
         epochs = self.properties.train.epochs
