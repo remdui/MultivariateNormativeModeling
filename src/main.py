@@ -107,8 +107,8 @@ def run_training() -> None:
     visualize_model(model, trainer.get_input_size())
 
     # Calculate and return the training duration
-    training_duration = time.time() - start_time
-    logger.info(f"Training completed in {training_duration:.2f} seconds.")
+    training_runtime = time.time() - start_time
+    logger.info(f"Training completed in {training_runtime:.2f} seconds.")
 
 
 def run_validation() -> None:
@@ -132,8 +132,8 @@ def run_validation() -> None:
     write_result_output(results, "metrics", "validate")
 
     # Calculate and return the training duration
-    training_duration = time.time() - start_time
-    logger.info(f"Validation completed in {training_duration:.2f} seconds.")
+    validation_runtime = time.time() - start_time
+    logger.info(f"Validation completed in {validation_runtime:.2f} seconds.")
 
 
 def run_inference() -> None:
@@ -147,8 +147,8 @@ def run_inference() -> None:
     write_result_output(TaskResult(), "metrics", "inference")
 
     # Calculate and return the training duration
-    training_duration = time.time() - start_time
-    logger.info(f"Inference completed in {training_duration:.2f} seconds.")
+    inference_runtime = time.time() - start_time
+    logger.info(f"Inference completed in {inference_runtime:.2f} seconds.")
 
 
 def main() -> None:
@@ -174,9 +174,13 @@ def main() -> None:
     # Log initial information about the application and system
     log_application_info(args)
 
+    preprocessing_runtime = 0.0
+
     # Run preprocessing pipeline
     if not args.skip_preprocessing:
+        start_time_preprocessing = time.time()
         apply_preprocessing()
+        preprocessing_runtime = time.time() - start_time_preprocessing
     else:
         logger.info("Skipping preprocessing pipeline.")
 
@@ -191,9 +195,13 @@ def main() -> None:
         logger.info("Starting inference process...")
         run_inference()
 
+    # Log the preprocessing duration
+    if preprocessing_runtime > 0:
+        logger.info(f"Preprocessing completed in {preprocessing_runtime:.2f} seconds.")
+
     # Calculate and log the total runtime
     total_runtime = time.time() - start_time
-    logger.info(f"Total runtime: {total_runtime:.2f} seconds.")
+    logger.info(f"Application completed in {total_runtime:.2f} seconds.")
 
 
 if __name__ == "__main__":

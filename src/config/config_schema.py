@@ -9,8 +9,8 @@ from pydantic import BaseModel, Field, model_validator
 ###################################################################
 # Sub-configurations used in the main configuration schema
 ###################################################################
-class PreprocessorConfig(BaseModel):
-    """Preprocessor configuration type."""
+class TransformConfig(BaseModel):
+    """Transform configuration type."""
 
     name: str
     params: dict[str, Any]
@@ -100,14 +100,15 @@ class DatasetConfig(BaseModel):
     test_split: float = 0.1
     train_split: float = 0.8
     val_split: float = 0.2
-    enable_preprocessing: bool = False
-    preprocessors: list[PreprocessorConfig] = [
-        PreprocessorConfig(
-            name="DataCleaningPreprocessor",
+    enable_transforms: bool = True
+    transforms: list[TransformConfig] = [
+        TransformConfig(
+            name="DataCleaningTransform",
             params={"drop_na": True, "remove_duplicates": True},
         ),
-        PreprocessorConfig(
-            name="NormalizationPreprocessor", params={"method": "min-max"}
+        TransformConfig(
+            name="NormalizationTransform",
+            params={"method": "min-max"},
         ),
     ]
 

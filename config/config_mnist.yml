@@ -24,13 +24,13 @@ dataset:
   test_split: 0.0
   train_split: 0.9
   val_split: 0.1
-  enable_preprocessing: true
-  preprocessors:
-  - name: DataCleaningPreprocessor
+  enable_transforms: true
+  transforms:
+  - name: DataCleaningTransform
     params:
       drop_na: true
       remove_duplicates: true
-  - name: NormalizationPreprocessor
+  - name: NormalizationTransform
     params:
       method: min-max
 train:

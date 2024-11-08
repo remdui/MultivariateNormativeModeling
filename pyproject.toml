@@ -28,6 +28,7 @@ torchview = "0.2.6" # model visualization library
 graphviz = "0.20.3" # graph visualization library
 matplotlib = "3.9.2" # plotting library
 pillow = "11.0.0" # image processing library
+torchvision ="0.20.1" # computer vision library
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.3.1" # linting

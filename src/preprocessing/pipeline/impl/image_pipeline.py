@@ -11,7 +11,7 @@ class ImagePreprocessingPipeline(AbstractPreprocessingPipeline):
         """Initialize the image preprocessing pipeline."""
         super().__init__(logger=LogManager.get_logger(__name__))
 
-    def execute_pipeline(self, input_data: str, data_dir: str) -> None:
+    def _execute_pipeline(self) -> None:
         """Execute the image data preprocessing pipeline."""
         self.logger.warning("Image data pipeline is not implemented yet.")
         raise NotImplementedError("Image data pipeline is not implemented yet.")

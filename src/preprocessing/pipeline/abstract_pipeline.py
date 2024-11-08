@@ -3,47 +3,41 @@
 from abc import ABC, abstractmethod
 from logging import Logger
 
-import pandas as pd
+from torchvision.transforms.v2 import Transform  # type: ignore
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
-from preprocessing.preprocessor.abstract_preprocessor import AbstractPreprocessor
-from preprocessing.preprocessor.factory import get_preprocessor
+from preprocessing.transform.factory import get_transform
 
 
 class AbstractPreprocessingPipeline(ABC):
     """Abstract base class for preprocessing pipelines."""
 
     def __init__(self, logger: Logger = LogManager.get_logger(__name__)) -> None:
-        """Initialize the preprocessing pipeline and configure preprocessors."""
+        """Initialize the preprocessing pipeline and configure transformers."""
         self.logger = logger
         self.logger.info("Initializing Preprocessing Pipeline")
         self.properties = Properties.get_instance()
-        self.preprocessors: list[AbstractPreprocessor] = []
-        self.data: pd.DataFrame = pd.DataFrame()
-        self.__init_preprocessors()
+        self.transforms: list[Transform] = []
+        self.__init_transforms()
 
-    def __init_preprocessors(self) -> None:
-        """Initialize preprocessors based on configuration in properties."""
-        for preprocessor_config in self.properties.dataset.preprocessors:
-            preprocessor_name = preprocessor_config.name
-            preprocessor_params = preprocessor_config.params or {}
+    def __init_transforms(self) -> None:
+        """Initialize transforms based on configuration in properties."""
+        for transform_config in self.properties.dataset.transforms:
+            transform_name = transform_config.name
+            transform_params = transform_config.params or {}
             try:
-                preprocessor_instance = get_preprocessor(
-                    preprocessor_name, **preprocessor_params
-                )
-                self.preprocessors.append(preprocessor_instance)
-                self.logger.info(f"Added preprocessor: {preprocessor_name}")
+                transform_instance = get_transform(transform_name, **transform_params)
+                self.transforms.append(transform_instance)
+                self.logger.info(f"Added transform: {transform_name}")
             except ValueError as e:
                 self.logger.error(str(e))
                 raise
 
     def run(self) -> None:
         """Run the preprocessing pipeline for the specific data type."""
-        input_data = self.properties.dataset.input_data
-        data_dir = self.properties.system.data_dir
-        self.execute_pipeline(input_data, data_dir)
+        self._execute_pipeline()
 
     @abstractmethod
-    def execute_pipeline(self, input_data: str, data_dir: str) -> None:
+    def _execute_pipeline(self) -> None:
         """Abstract method to execute the pipeline for a specific data type."""
