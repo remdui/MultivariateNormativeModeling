@@ -6,9 +6,10 @@ import pandas as pd
 import torch
 
 from entities.log_manager import LogManager
-from preprocessing.converter.impl.r_to_csv_converter import RDSToCSVDataConverter
+from preprocessing.converter.impl.csv_converter import CSVConverter
+from preprocessing.converter.impl.rds_converter import RDSConverter
 from preprocessing.pipeline.abstract_pipeline import AbstractPreprocessingPipeline
-from util.file_utils import get_processed_file_path, is_data_file
+from util.file_utils import get_processed_file_path, is_data_file, load_data, save_data
 
 
 class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
@@ -55,27 +56,18 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         self.logger.info(f"Loading and converting input data: {input_path}")
 
         input_file_extension = input_path.split(".")[-1]
-        data: pd.DataFrame
 
         if input_file_extension == "csv":
-            self.logger.info("Data is already in CSV format.")
-            data = pd.read_csv(input_path, header=None)
-            # Check if the first row contains only strings (indicating possible headers) and re-read with headers if so
-            if all(isinstance(x, str) for x in data.iloc[0]):
-                self.logger.info(
-                    "Detected headers in the first row; re-reading with headers."
-                )
-                data = pd.read_csv(input_path)
+            self.logger.info("Converting CSV to HDF format.")
+            csv_converter = CSVConverter()
+            csv_converter.convert(input_path, output_path)
         elif input_file_extension == "rds":
-            self.logger.info("Converting RDS to CSV format.")
-            data_converter = RDSToCSVDataConverter()
-            data = data_converter.convert(input_path)
+            self.logger.info("Converting RDS to HDF format.")
+            rds_converter = RDSConverter()
+            rds_converter.convert(input_path, output_path)
         else:
             self.logger.error(f"Unsupported file extension: {input_file_extension}")
             raise ValueError(f"Unsupported file extension: {input_file_extension}")
-
-        data.to_csv(output_path, index=False)
-        self.logger.info(f"Data loaded and saved to {output_path}")
 
     def __apply_transforms(self, data_path: str) -> None:
         """Apply preprocessing steps to the data if enabled."""
@@ -83,7 +75,7 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
             self.logger.info("Applying data preprocessing methods")
 
             # Load data as a torch tensor and apply preprocessing
-            data = pd.read_csv(data_path)
+            data = load_data(data_path)
             data_tensor = torch.tensor(data.values, dtype=torch.float32).to(
                 self.properties.system.device
             )
@@ -96,7 +88,7 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
             transformed_data = pd.DataFrame(
                 data_tensor.cpu().numpy(), columns=data.columns
             )
-            transformed_data.to_csv(data_path, index=False)
+            save_data(transformed_data, data_path)
             self.logger.info(
                 f"Preprocessing steps applied to data and saved to {data_path}"
             )
@@ -112,7 +104,7 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
             return
 
         # Load the data
-        data = pd.read_csv(self.train_output_path)
+        data = load_data(self.train_output_path)
 
         # Calculate the sizes of the training/validation and test sets
         train_val_split = 1 - test_split
@@ -129,8 +121,8 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         test_data = data.iloc[train_val_size:]
 
         # Save the splitted data
-        train_val_data.to_csv(self.train_output_path, index=False)
-        test_data.to_csv(self.test_output_path, index=False)
+        save_data(train_val_data, self.train_output_path)
+        save_data(test_data, self.test_output_path)
         self.logger.info(
             f"Data splits saved to {self.train_output_path} and {self.test_output_path}"
         )

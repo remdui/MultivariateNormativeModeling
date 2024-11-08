@@ -36,10 +36,10 @@ class TabularDataloader(AbstractDataloader):
     def __setup_file_paths(self) -> None:
         """Set up the file paths for the training/validation, and test datasets."""
         if is_data_file(self.input_data):
-            self.train_csv_path = get_processed_file_path(
+            self.train_data_path = get_processed_file_path(
                 self.data_dir, self.input_data, "train"
             )
-            self.test_csv_path = get_processed_file_path(
+            self.test_data_path = get_processed_file_path(
                 self.data_dir, self.input_data, "test"
             )
         else:
@@ -50,8 +50,8 @@ class TabularDataloader(AbstractDataloader):
         self.logger.info("Initializing TabularDataloader...")
 
         # Load the datasets
-        train_dataset = self.__load__dataset(self.train_csv_path)
-        self.test_dataset = self.__load__dataset(self.test_csv_path)
+        train_dataset = self.__load__dataset(self.train_data_path)
+        self.test_dataset = self.__load__dataset(self.test_data_path)
 
         # Get and log dataset sizes
         train_dataset_size = len(train_dataset)
@@ -86,7 +86,7 @@ class TabularDataloader(AbstractDataloader):
         """Load the dataset from the provided file path."""
         try:
             dataset = TabularDataset(
-                csv_file=str(file_path), covariates=self.covariates
+                file_path=str(file_path), covariates=self.covariates
             )
             self.logger.info(f"Dataset loaded from {file_path}")
         except Exception as e:

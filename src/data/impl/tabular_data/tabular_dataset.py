@@ -4,20 +4,21 @@ import pandas as pd
 import torch
 
 from data.abstract_dataset import AbstractDataset
+from util.file_utils import load_data
 
 
 class TabularDataset(AbstractDataset):
     """Dataset class to load the Tabular dataset."""
 
-    def __init__(self, csv_file: str, covariates: list[str]) -> None:
+    def __init__(self, file_path: str, covariates: list[str]) -> None:
         """Constructor for the TabularDataset class.
 
         Args:
-            csv_file (str): Path to the CSV file containing the dataset.
+            file_path (str): Path to the file containing the dataset.
             covariatess (list[str]): List of covariates.
         """
         super().__init__()
-        self.data = pd.read_csv(csv_file)
+        self.data = load_data(file_path)
         self.covariates = covariates
 
         # Ensure covariate names exist in the dataset

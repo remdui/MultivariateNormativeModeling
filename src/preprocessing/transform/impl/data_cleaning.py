@@ -7,6 +7,8 @@ from torch import Tensor
 from torchvision.transforms.v2 import Transform  # type: ignore
 
 from entities.log_manager import LogManager
+from entities.properties import Properties
+from util.tensor_utils import shuffle_tensor
 
 
 class DataCleaningTransform(Transform):
@@ -21,6 +23,7 @@ class DataCleaningTransform(Transform):
         """
         super().__init__()
         self.logger = LogManager.get_logger(__name__)
+        self.properties = Properties.get_instance()
         self.drop_na = drop_na
         self.remove_duplicates = remove_duplicates
 
@@ -44,6 +47,10 @@ class DataCleaningTransform(Transform):
             data = torch.unique(data, dim=0)
             dropped_duplicate_count = initial_row_count - data.size(0)
             self.logger.info(f"Dropped {dropped_duplicate_count} duplicate rows.")
+
+            if self.properties.dataset.shuffle:
+                data = shuffle_tensor(data)
+
         return data
 
     def _transform(self, inpt: Any, params: dict[str, Any]) -> Any:

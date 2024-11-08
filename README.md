@@ -171,9 +171,10 @@ This project supports the following data types:
 - **Image data** in the following formats: `jpg`, `jpeg`, `png`, `bmp`, `tiff`.
   Images should be placed in a directory with the same name as the dataset file (e.g., `dataset/<image_name>.jpg`). If a test split is provided, the test split directory must be named `test` (e.g., `dataset/test/<image_name>.jpg`).
 
-The preprocessing pipeline is automatically applied to the datasets. Processed datasets are saved in the `data/processed` directory. The internal file format is `csv`.
+The preprocessing pipeline is automatically applied to the datasets. The configuration file contains settings for the preprocessing pipeline, such as split sizes, transformations, and shuffling.
+Processed datasets are saved in the `data/processed` directory.
 
-Manually processed datasets can be placed in the `data/processed` directory. Training splits should be named `<dataset_name>_train.csv` and test splits should be named `<dataset_name>_test.csv`.
+The internal file format is `hdf`, but can be changed to `csv` in the configuration file for debugging purposes (not recommended for large datasets). To view HDF files, use the `hdfview` tool, see [here](https://www.hdfgroup.org/download-hdfview/).
 
 To skip the preprocessing pipeline, use the `--skip-preprocessing` flag.
 

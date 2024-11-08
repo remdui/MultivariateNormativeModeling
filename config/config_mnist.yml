@@ -20,6 +20,7 @@ dataset:
   - '0' # '0' is the label column
   input_data: mnist.csv
   data_type: tabular
+  internal_file_format: hdf
   shuffle: true
   test_split: 0.0
   train_split: 0.9

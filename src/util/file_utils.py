@@ -2,7 +2,9 @@
 
 import json
 import os
-from typing import Literal
+from typing import Any, Literal
+
+import pandas as pd
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
@@ -91,6 +93,47 @@ def is_data_file(file_path: str) -> bool:
     return any(file_path.endswith(extension) for extension in valid_file_extensions)
 
 
+def save_data(data: pd.DataFrame, output_file_path: str) -> None:
+    """Save the data to a file.
+
+    HDF is the internal format used for data.
+    """
+    properties = Properties.get_instance()
+    file_format = properties.dataset.internal_file_format
+
+    if file_format == "csv":
+        data.to_csv(output_file_path, index=False)
+    elif file_format == "hdf":
+        # Convert column names to strings to avoid issues with integer column names
+        data.columns = data.columns.map(str)
+        data.to_hdf(
+            output_file_path,
+            key="df",
+            mode="w",
+            complevel=4,
+            complib="blosc",
+            format="fixed",
+            index=False,
+        )
+    else:
+        raise ValueError(f"Unsupported file format: {file_format}")
+
+
+def load_data(data_file_path: str) -> Any:
+    """Load the data from a file.
+
+    HDF is the internal format used for data.
+    """
+    properties = Properties.get_instance()
+    file_format = properties.dataset.internal_file_format
+
+    if file_format == "csv":
+        return pd.read_csv(data_file_path + ".csv")
+    if file_format == "hdf":
+        return pd.read_hdf(data_file_path, key="df")
+    raise ValueError(f"Unsupported file format: {file_format}")
+
+
 def is_image_folder(folder_path: str) -> bool:
     """Check if the provided path is a folder and check if the folder contains images in any of its child directories."""
     if not os.path.isdir(folder_path):
@@ -106,5 +149,17 @@ def is_image_folder(folder_path: str) -> bool:
 
 def get_processed_file_path(data_dir: str, input_data: str, dataset_type: str) -> str:
     """Get the processed file path based on the input data."""
+    properties = Properties.get_instance()
+    file_format = properties.dataset.internal_file_format
+
+    if file_format == "hdf":
+        file_extension = "h5"
+    elif file_format == "csv":
+        file_extension = "csv"
+    else:
+        raise ValueError(f"Unsupported file format: {file_format}")
+
     input_file_name, _ = input_data.split(".")
-    return os.path.join(data_dir, "processed", f"{input_file_name}_{dataset_type}.csv")
+    return os.path.join(
+        data_dir, "processed", f"{input_file_name}_{dataset_type}.{file_extension}"
+    )

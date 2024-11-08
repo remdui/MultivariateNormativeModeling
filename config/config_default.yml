@@ -21,6 +21,7 @@ dataset:
   - sex
   input_data: generated_data.rds
   data_type: tabular
+  internal_file_format: hdf
   shuffle: true
   test_split: 0.1
   train_split: 0.8

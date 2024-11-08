@@ -96,6 +96,7 @@ class DatasetConfig(BaseModel):
     covariates: list[str] = ["age", "sex"]
     input_data: str = "generated_data.rds"
     data_type: str = "tabular"
+    internal_file_format: str = "hdf"
     shuffle: bool = True
     test_split: float = 0.1
     train_split: float = 0.8
