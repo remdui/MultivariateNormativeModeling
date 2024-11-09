@@ -3,6 +3,7 @@
 import random
 
 import torch
+from torch import autocast
 from tqdm import tqdm
 
 from analysis.visualization.image import combine_images, tensor_to_image
@@ -59,13 +60,19 @@ class ValidateTask(AbstractTask):
                 data, _ = batch
                 data = data.to(self.device)
 
-                # Perform a forward pass
-                recon_batch, z_mean, z_logvar = self.model(data)
-
-                # Calculate loss for the batch
-                loss = self.loss(recon_batch, data, z_mean, z_logvar)
-                total_loss += loss.item()
-                total_samples += self.properties.train.batch_size
+                # If mixed precision is enabled, use autocast for automatic mixed precision
+                with autocast(
+                    enabled=self.properties.train.mixed_precision,
+                    device_type=self.device,
+                ):
+                    recon_batch, z_mean, z_logvar = self.model(data)  # Forward pass
+                    loss = self.loss(
+                        recon_batch, data, z_mean, z_logvar
+                    )  # Compute loss
+                    total_loss += loss.item()  # Accumulate loss
+                    total_samples += (
+                        self.properties.train.batch_size
+                    )  # Accumulate samples
 
             # Calculate average loss
             avg_loss = total_loss / total_samples
@@ -106,8 +113,14 @@ class ValidateTask(AbstractTask):
                 data, _ = self.test_dataloader.dataset[idx]  # Direct access to dataset
                 data = data.to(self.device)  # Add batch dimension
 
-                # Forward pass to get the reconstructed image
-                recon_data, _, _ = self.model(data)
+                # Apply autocast for mixed precision inference
+                with autocast(
+                    enabled=self.properties.train.mixed_precision,
+                    device_type=self.device,
+                ):
+                    recon_data, _, _ = self.model(
+                        data
+                    )  # Forward pass to get the reconstructed image
 
                 # Append original and reconstructed images
                 original_images.append(data.cpu())  # Remove batch dimension

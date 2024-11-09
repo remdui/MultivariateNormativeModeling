@@ -36,7 +36,7 @@ dataset:
       method: min-max
 train:
   batch_size: 32
-  epochs: 1
+  epochs: 20
   loss_function: bce_vae
   optimizer: adam
   mixed_precision: false
@@ -44,7 +44,7 @@ train:
   save_format: safetensors
   checkpoint:
     save_checkpoint: true
-    interval: 5
+    interval: 10
     use_checkpoint: false
     checkpoint: ''
   early_stopping:

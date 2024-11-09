@@ -1,7 +1,7 @@
 """Train the model using the configuration."""
 
 import torch
-from torch import Tensor
+from torch import GradScaler, Tensor, autocast
 from tqdm import tqdm
 
 from entities.log_manager import LogManager
@@ -27,6 +27,7 @@ class TrainTask(AbstractTask):
         self.__setup_optimizer()
         self.__setup_scheduler()
         self.__setup_regularization()
+        self.__setup_amp()
 
     def __setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
@@ -64,6 +65,10 @@ class TrainTask(AbstractTask):
     def __setup_regularization(self) -> None:
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
+
+    def __setup_amp(self) -> None:
+        """Initialize automatic mixed precision (AMP) for training."""
+        self.scaler = GradScaler()
 
     def run(self) -> TaskResult:
         """Train the model."""
@@ -146,23 +151,25 @@ class TrainTask(AbstractTask):
 
     def __train_step(self, batch: Tensor) -> float:
         """Perform a single training step."""
-        data, _ = batch
-        data = data.to(self.device)
+        data, _ = batch  # Unpack batch (features, covariates)
+        data = data.to(self.device)  # Move data to device
 
-        # Initialize gradients for the optimizer for this batch
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad()  # Zero gradients
 
-        # Forward pass
-        recon_batch, z_mean, z_logvar = self.model(data)
+        # Mixed precision training
+        with autocast(
+            enabled=self.properties.train.mixed_precision, device_type=self.device
+        ):  # Automatic mixed precision
+            recon_batch, z_mean, z_logvar = self.model(data)  # Forward pass
+            loss = self.loss(recon_batch, data, z_mean, z_logvar)  # Compute loss
 
-        # Compute loss
-        loss = self.loss(recon_batch, data, z_mean, z_logvar)
-
-        # Backward pass
-        loss.backward()
-
-        # Update weights
-        self.optimizer.step()
+        if self.properties.train.mixed_precision:
+            self.scaler.scale(loss).backward()  # Backward pass
+            self.scaler.step(self.optimizer)  # Update weights
+            self.scaler.update()  # Update scaler
+        else:
+            loss.backward()  # Backward pass
+            self.optimizer.step()  # Update weights
 
         return loss.item()
 
@@ -177,8 +184,14 @@ class TrainTask(AbstractTask):
                 data, _ = batch
                 data = data.to(self.device)
 
-                recon_batch, z_mean, z_logvar = self.model(data)
-                loss = self.loss(recon_batch, data, z_mean, z_logvar)
+                # Use autocast in validation for mixed precision
+                with autocast(
+                    enabled=self.properties.train.mixed_precision,
+                    device_type=self.device,
+                ):
+                    recon_batch, z_mean, z_logvar = self.model(data)
+                    loss = self.loss(recon_batch, data, z_mean, z_logvar)
+
                 total_val_loss += loss.item()
                 total_val_samples += data.size(0)
 
