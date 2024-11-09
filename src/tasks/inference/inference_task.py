@@ -12,14 +12,11 @@ class InferenceTask(AbstractTask):
         """Initialize the Inference Task class."""
         super().__init__(LogManager.get_logger(__name__))
         self.logger.info("Initializing Inference Task.")
+        self.__init_inference_task()
 
-    def get_task_name(self) -> str:
-        """Return the task name.
-
-        Returns:
-            str: The task name.
-        """
-        return "inference"
+    def __init_inference_task(self) -> None:
+        """Setup the inference task."""
+        self.task_name = "inference"
 
     def run(self) -> TaskResult:
         """Run the inference task."""

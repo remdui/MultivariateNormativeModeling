@@ -36,11 +36,12 @@ dataset:
       method: min-max
 train:
   batch_size: 32
-  epochs: 10
+  epochs: 1
   loss_function: bce_vae
   optimizer: adam
   mixed_precision: false
   save_model: true
+  save_format: safetensors
   checkpoint:
     save_checkpoint: true
     interval: 5
@@ -91,7 +92,7 @@ model:
     p: 0.2
     inplace: false
 validation:
-  model: 'vae_val_mnist_v1.pt'
+  model: 'vae_val_mnist_v1.safetensors'
   baseline_model: null
   data_representation: image
   metrics:

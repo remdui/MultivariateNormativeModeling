@@ -31,15 +31,14 @@ class AbstractTask(ABC):
         """Run the task."""
         raise NotImplementedError("Method run() must be implemented in subclass.")
 
-    @abstractmethod
     def get_task_name(self) -> str:
         """Return the task name."""
-        raise NotImplementedError(
-            "Method get_task_name() must be implemented in subclass."
-        )
+        return self.task_name
 
     def __setup_task(self) -> None:
         """Setup the components of a general task."""
+        # Task name
+        self.task_name = "unset"
 
         # Model save info
         self.model_save_dir = self.properties.system.models_dir

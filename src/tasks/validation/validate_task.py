@@ -24,6 +24,7 @@ class ValidateTask(AbstractTask):
 
     def __init_validation_task(self) -> None:
         """Setup the validation task."""
+        self.task_name = "validate"
 
         # Get the validation properties
         self.metrics = self.properties.validation.metrics
@@ -37,14 +38,6 @@ class ValidateTask(AbstractTask):
 
         # Load model state dictionary from model file
         self.model = load_model(self.model, self.model_path, self.device)
-
-    def get_task_name(self) -> str:
-        """Return the task name.
-
-        Returns:
-            str: The task name.
-        """
-        return "validate"
 
     def run(self) -> TaskResult:
         """Run the validation process.

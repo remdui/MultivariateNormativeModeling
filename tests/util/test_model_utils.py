@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from torch import nn
@@ -36,13 +36,37 @@ def fixture_torch_save(mocker):
     return mocker.patch("torch.save")
 
 
-def test_save_model_with_date(fixed_datetime, mocked_torch_save):
+@pytest.fixture(name="mocked_properties")
+def fixture_mocked_properties(mocker, tmp_path):
+    """Fixture to mock Properties.get_instance with specific configurations."""
+    # Create a mock instance of Properties
+    mock_properties_instance = MagicMock()
+    mock_properties_instance.train.save_format = "pt"
+
+    # Set up a temporary directory for log_dir and ensure it exists
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    mock_properties_instance.system.log_dir = str(log_dir)
+
+    # Patch Properties.get_instance to return the mock instance
+    mocker.patch(
+        "util.model_utils.Properties.get_instance",
+        return_value=mock_properties_instance,
+    )
+    return mock_properties_instance
+
+
+def test_save_model_with_date(fixed_datetime, mocked_torch_save, mocked_properties):
     """Test save_model with date."""
     model = MockModel()
     epoch = 1
     save_dir = "test_models"
     model_name = "test_vae_model"
     use_date = True
+
+    # Assert that the mocked properties are set correctly
+    assert mocked_properties.train.save_format == "pt"
+
     save_model(
         model=model,
         epoch=epoch,
@@ -59,12 +83,16 @@ def test_save_model_with_date(fixed_datetime, mocked_torch_save):
     mocked_torch_save.assert_called_once_with(saved_model, filename)
 
 
-def test_save_model_without_date(mocked_torch_save):
+def test_save_model_without_date(mocked_torch_save, mocked_properties):
     """Test save_model without date."""
     model = MockModel()
     epoch = 2
     save_dir = "test_models_no_date"
     model_name = "test_vae_model"
+
+    # Assert that the mocked properties are set correctly
+    assert mocked_properties.train.save_format == "pt"
+
     save_model(
         model=model,
         epoch=epoch,
@@ -85,7 +113,7 @@ def test_save_model_invalid_model():
         save_model(model=None, epoch=epoch)
 
 
-def test_save_model_directory_creation(mocked_torch_save, mocker):
+def test_save_model_directory_creation(mocked_torch_save, mocker, mocked_properties):
     """Test save_model with directory creation."""
     model = MockModel()
     epoch = 0
@@ -93,6 +121,9 @@ def test_save_model_directory_creation(mocked_torch_save, mocker):
 
     # Patch os.path.exists to return False, forcing directory creation
     mocker.patch("os.path.exists", return_value=False)
+
+    # Assert that the mocked properties are set correctly
+    assert mocked_properties.train.save_format == "pt"
 
     save_model(model=model, epoch=epoch, save_dir=save_dir)
 

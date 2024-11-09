@@ -4,6 +4,8 @@ import os
 from datetime import datetime
 
 import torch
+from safetensors.torch import load_model as st_load_model
+from safetensors.torch import save_model as st_save_model
 from torch import nn
 from torchview import draw_graph
 
@@ -51,18 +53,32 @@ def save_model(
         date_str = datetime.now().strftime("%Y%m%d")
         file_name += f"_{date_str}"
 
-    # Finalize file name with extension
-    file_name += ".pt"
+    properties = Properties.get_instance()
+    file_format = properties.train.save_format
 
-    # Save only state dict to reduce file size
-    torch.save(model.state_dict(), file_name)
+    if file_format == "pt":
+        file_name += ".pt"
+        torch.save(model.state_dict(), file_name)
+    elif file_format == "safetensors":
+        file_name += ".safetensors"
+        st_save_model(model, file_name)
+    else:
+        raise ValueError(f"Model file format not supported: {file_format}")
+
     logger.info(f"Model state saved to: {file_name}")
 
 
 def load_model(model: AbstractModel, model_path: str, device: str) -> AbstractModel:
     """Load a PyTorch state dict from a file into the model."""
     logger = LogManager.get_logger(__name__)
-    model.load_state_dict(torch.load(model_path, weights_only=True))
+
+    if model_path.endswith(".pt"):
+        model.load_state_dict(torch.load(model_path, weights_only=True))
+    if model_path.endswith(".safetensors"):
+        st_load_model(model, model_path)
+    else:
+        raise ValueError(f"Model file extension not supported: {model_path}")
+
     model.to(device)
     model.eval()
     logger.info(f"Model state loaded from: {model_path}")

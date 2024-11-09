@@ -30,6 +30,8 @@ matplotlib = "3.9.2" # plotting library
 pillow = "11.0.0" # image processing library
 torchvision ="0.20.1" # computer vision library
 tables = "3.10.1" # HDF5 file format library
+datasets = "3.1.0" # dataset library from huggingface
+safetensors = "0.4.5" # safe tensor operations
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.3.1" # linting

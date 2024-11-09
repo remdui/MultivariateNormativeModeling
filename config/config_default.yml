@@ -42,6 +42,7 @@ train:
   optimizer: adam
   mixed_precision: false
   save_model: true
+  save_format: safetensors
   checkpoint:
     save_checkpoint: true
     interval: 20

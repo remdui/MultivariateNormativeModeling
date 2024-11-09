@@ -190,6 +190,7 @@ class TrainConfig(BaseModel):
     optimizer: str = "adam"
     mixed_precision: bool = False
     save_model: bool = True
+    save_format: str = "safetensors"
 
     # Grouped configurations
     checkpoint: CheckpointConfig = Field(default_factory=CheckpointConfig)

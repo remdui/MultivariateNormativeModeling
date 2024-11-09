@@ -23,6 +23,7 @@ class TrainTask(AbstractTask):
 
     def __init_train_task(self) -> None:
         """Setup the train task."""
+        self.task_name = "train"
         self.__setup_optimizer()
         self.__setup_scheduler()
         self.__setup_regularization()
@@ -63,14 +64,6 @@ class TrainTask(AbstractTask):
     def __setup_regularization(self) -> None:
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
-
-    def get_task_name(self) -> str:
-        """Return the task name.
-
-        Returns:
-            str: The task name.
-        """
-        return "train"
 
     def run(self) -> TaskResult:
         """Train the model."""
