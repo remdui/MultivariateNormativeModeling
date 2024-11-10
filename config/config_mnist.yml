@@ -36,8 +36,7 @@ dataset:
       method: min-max
 train:
   batch_size: 32
-  epochs: 20
-  loss_function: bce_vae
+  epochs: 200
   mixed_precision: false
   gradient_clipping: false
   save_model: true
@@ -52,6 +51,78 @@ train:
     metric: loss
     min_delta: 0.0
     patience: 10
+  loss_function: bce_vae
+  loss_function_params:
+    bce_vae:
+      reduction: sum
+    mse_vae:
+      reduction: sum
+    l1:
+      reduction: sum
+    mse:
+      reduction: sum
+    cross_entropy:
+      ignore_index: -100
+      reduction: sum
+      label_smoothing: 0.0
+    ctc:
+      blank: 0
+      reduction: sum
+      zero_infinity: false
+    nll:
+      ignore_index: -100
+      reduction: sum
+    poisson_nll:
+      log_input: true
+      full: false
+      eps: 1.0e-06
+      reduction: sum
+    gaussian_nll:
+      full: false
+      eps: 1.0e-06
+      reduction: sum
+    kldiv:
+      reduction: sum
+      log_target: false
+    bce:
+      reduction: sum
+    bce_with_logits:
+      reduction: sum
+    margin_ranking:
+      margin: 0.0
+      reduction: sum
+    hinge_embedding:
+      margin: 1.0
+      reduction: sum
+    multi_label_margin:
+      reduction: sum
+    huber:
+      reduction: sum
+      delta: 1.0
+    smooth_l1:
+      reduction: sum
+      beta: 1.0
+    soft_margin:
+      reduction: sum
+    multi_label_soft_margin:
+      reduction: sum
+    cosine_embedding:
+      margin: 0.0
+      reduction: sum
+    multi_margin:
+      p: 1.0
+      margin: 1.0
+      reduction: sum
+    triplet_margin:
+      margin: 1.0
+      p: 2.0
+      eps: 1.0e-06
+      swap: false
+      reduction: sum
+    triplet_margin_with_distance:
+      margin: 1.0
+      swap: false
+      reduction: sum
   scheduler: plateau
   scheduler_params:
     default:
@@ -95,7 +166,7 @@ train:
     plateau:
       mode: min
       factor: 0.1
-      patience: 10
+      patience: 3
       threshold: 0.0001
       threshold_mode: rel
       cooldown: 0
@@ -241,12 +312,13 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 32
+      latent_dim: 8
       covariate_embedding: input_embedding
   hidden_layers:
-  - 1024
   - 512
   - 256
+  - 128
+  - 64
   activation_function: relu
   final_activation_function: sigmoid
   normalization_layer: batch_norm
@@ -257,8 +329,6 @@ model:
     momentum: 0.1
     affine: true
     track_running_stats: true
-  linear:
-    bias: true
   dropout:
     enabled: true
     p: 0.2

@@ -26,12 +26,6 @@ class BatchNormConfig(BaseModel):
     track_running_stats: bool = True
 
 
-class LinearConfig(BaseModel):
-    """Linear layer configuration."""
-
-    bias: bool = True
-
-
 class DropoutConfig(BaseModel):
     """Dropout configuration."""
 
@@ -146,7 +140,6 @@ class ModelConfig(BaseModel):
 
     # Layer-specific configurations
     batch_norm: BatchNormConfig = Field(default_factory=BatchNormConfig)
-    linear: LinearConfig = Field(default_factory=LinearConfig)
     dropout: DropoutConfig = Field(default_factory=DropoutConfig)
 
 
@@ -167,15 +160,115 @@ class TrainConfig(BaseModel):
     # General training settings
     batch_size: int = 32
     epochs: int = 20
-    loss_function: str = "bce_vae"
-    mixed_precision: bool = False
     gradient_clipping: bool = False
+    mixed_precision: bool = False
     save_model: bool = True
     save_format: str = "safetensors"
 
     # Grouped configurations
     checkpoint: CheckpointConfig = Field(default_factory=CheckpointConfig)
     early_stopping: EarlyStoppingConfig = Field(default_factory=EarlyStoppingConfig)
+
+    loss_function: str = "bce_vae"
+    loss_function_params: dict[str, Any] = Field(
+        default_factory=lambda: {
+            # Custom loss function implementations
+            "bce_vae": {
+                "reduction": "sum",
+            },
+            "mse_vae": {
+                "reduction": "sum",
+            },
+            # PyTorch loss functions
+            "l1": {
+                "reduction": "sum",
+            },
+            "mse": {
+                "reduction": "sum",
+            },
+            "cross_entropy": {
+                "ignore_index": -100,
+                "reduction": "sum",
+                "label_smoothing": 0.0,
+            },
+            "ctc": {
+                "blank": 0,
+                "reduction": "sum",
+                "zero_infinity": False,
+            },
+            "nll": {
+                "ignore_index": -100,
+                "reduction": "sum",
+            },
+            "poisson_nll": {
+                "log_input": True,
+                "full": False,
+                "eps": 1e-06,
+                "reduction": "sum",
+            },
+            "gaussian_nll": {
+                "full": False,
+                "eps": 1e-06,
+                "reduction": "sum",
+            },
+            "kldiv": {
+                "reduction": "sum",
+                "log_target": False,
+            },
+            "bce": {
+                "reduction": "sum",
+            },
+            "bce_with_logits": {
+                "reduction": "sum",
+            },
+            "margin_ranking": {
+                "margin": 0.0,
+                "reduction": "sum",
+            },
+            "hinge_embedding": {
+                "margin": 1.0,
+                "reduction": "sum",
+            },
+            "multi_label_margin": {
+                "reduction": "sum",
+            },
+            "huber": {
+                "reduction": "sum",
+                "delta": 1.0,
+            },
+            "smooth_l1": {
+                "reduction": "sum",
+                "beta": 1.0,
+            },
+            "soft_margin": {
+                "reduction": "sum",
+            },
+            "multi_label_soft_margin": {
+                "reduction": "sum",
+            },
+            "cosine_embedding": {
+                "margin": 0.0,
+                "reduction": "sum",
+            },
+            "multi_margin": {
+                "p": 1.0,
+                "margin": 1.0,
+                "reduction": "sum",
+            },
+            "triplet_margin": {
+                "margin": 1.0,
+                "p": 2.0,
+                "eps": 1e-06,
+                "swap": False,
+                "reduction": "sum",
+            },
+            "triplet_margin_with_distance": {
+                "margin": 1.0,
+                "swap": False,
+                "reduction": "sum",
+            },
+        }
+    )
 
     scheduler: str = "step"
     scheduler_params: dict[str, Any] = Field(

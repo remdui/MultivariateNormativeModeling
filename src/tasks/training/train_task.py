@@ -44,7 +44,7 @@ class TrainTask(AbstractTask):
             optimizer_name, self.model.parameters(), **optimizer_params
         )
         self.logger.info(
-            f"Initialized optimizer: {optimizer_name} with parameters: {self.optimizer.state_dict()}"
+            f"Initialized optimizer {optimizer_name} with parameters: {self.optimizer.state_dict()}"
         )
 
     def __setup_scheduler(self) -> None:
@@ -71,7 +71,7 @@ class TrainTask(AbstractTask):
         }
 
         self.logger.info(
-            f"Initialized scheduler: {scheduler_method} with parameters: {self.scheduler.state_dict()}"  # type: ignore
+            f"Initialized scheduler {scheduler_method} with parameters: {self.scheduler.state_dict()}"  # type: ignore
         )
         self.logger.info(f"Scheduler steps per batch: {self.scheduler_step_per_batch}")
 
@@ -86,6 +86,7 @@ class TrainTask(AbstractTask):
     def run(self) -> TaskResult:
         """Train the model."""
         epochs = self.properties.train.epochs
+        current_learning_rate = self.scheduler.get_last_lr()[0]
 
         # Initialize the training result
         results = TaskResult()
@@ -112,13 +113,16 @@ class TrainTask(AbstractTask):
             )
 
             if not self.scheduler_step_per_batch:
-                if self.properties.train.scheduler != "plateau":
-                    self.scheduler.step()
-                else:
+                if self.properties.train.scheduler == "plateau":
                     self.scheduler.step(avg_val_loss)  # type: ignore
-                self.logger.info(
-                    f"Scheduler adjusted the learning rate to: {self.scheduler.get_last_lr()}"
-                )
+                else:
+                    self.scheduler.step()
+
+                if current_learning_rate != self.scheduler.get_last_lr()[0]:
+                    current_learning_rate = self.scheduler.get_last_lr()[0]
+                    self.logger.info(
+                        f"Scheduler adjusted the learning rate to: {self.scheduler.get_last_lr()[0]}"
+                    )
 
             # Early stopping check
             if self.properties.train.early_stopping.enabled:
