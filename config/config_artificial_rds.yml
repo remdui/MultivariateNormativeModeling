@@ -37,10 +37,10 @@ dataset:
       method: min-max
 train:
   batch_size: 32
-  epochs: 10
+  epochs: 20
   loss_function: bce_vae
-  optimizer: adam
   mixed_precision: false
+  gradient_clipping: false
   save_model: true
   save_format: safetensors
   checkpoint:
@@ -53,17 +53,189 @@ train:
     metric: loss
     min_delta: 0.0
     patience: 10
-  regularization:
-    gradient_clipping: 5.0
-    weight_decay: 0.0001
-  scheduler:
-    learning_rate: 0.001
-    warmup_steps: 500
-    method: step
-    gamma: 0.1
-    step_size: 10
-    kl_annealing: true
-    kl_annealing_steps: 1000
+  scheduler: step
+  scheduler_params:
+    default:
+      last_epoch: -1
+    lambda:
+      lr_lambda: 'lambda epoch: 0.95 ** epoch'
+      last_epoch: -1
+    multiplicative:
+      lr_lambda: 'lambda epoch: 0.95'
+      last_epoch: -1
+    step:
+      step_size: 10
+      gamma: 0.1
+      last_epoch: -1
+    multistep:
+      milestones:
+      - 30
+      - 80
+      gamma: 0.1
+      last_epoch: -1
+    constant:
+      factor: 0.3333333333333333
+      total_iters: 5
+      last_epoch: -1
+    linear:
+      start_factor: 0.3333333333333333
+      end_factor: 1.0
+      total_iters: 5
+      last_epoch: -1
+    exponential:
+      gamma: 0.95
+      last_epoch: -1
+    polynomial:
+      total_iters: 5
+      power: 1.0
+      last_epoch: -1
+    cosineannealing:
+      T_max: 10
+      eta_min: 0.0
+      last_epoch: -1
+    plateau:
+      mode: min
+      factor: 0.1
+      patience: 10
+      threshold: 0.0001
+      threshold_mode: rel
+      cooldown: 0
+      min_lr: 0
+      eps: 1.0e-08
+    cyclic:
+      base_lr: 0.001
+      max_lr: 0.01
+      step_size_up: 2000
+      step_size_down: null
+      mode: triangular
+      gamma: 1.0
+      scale_fn: null
+      scale_mode: cycle
+      cycle_momentum: true
+      base_momentum: 0.8
+      max_momentum: 0.9
+      last_epoch: -1
+    onecycle:
+      max_lr: 0.1
+      total_steps: null
+      epochs: null
+      steps_per_epoch: null
+      pct_start: 0.3
+      anneal_strategy: cos
+      cycle_momentum: true
+      base_momentum: 0.85
+      max_momentum: 0.95
+      div_factor: 25.0
+      final_div_factor: 10000.0
+      three_phase: false
+      last_epoch: -1
+    cosineannealingwarmrestarts:
+      T_0: 10
+      T_mult: 2
+      eta_min: 0.0
+      last_epoch: -1
+  optimizer: adam
+  optimizer_params:
+    adam:
+      lr: 0.001
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0.0
+      amsgrad: false
+    adamw:
+      lr: 0.001
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0.01
+      amsgrad: false
+    sgd:
+      lr: 0.001
+      momentum: 0.0
+      dampening: 0.0
+      weight_decay: 0.0
+      nesterov: false
+    adadelta:
+      lr: 1.0
+      rho: 0.9
+      eps: 1.0e-06
+      weight_decay: 0
+    adafactor:
+      lr: 0.01
+      beta2_decay: -0.8
+      eps:
+        - null
+        - 0.001
+      d: 1.0
+      weight_decay: 0.0
+    adagrad:
+      lr: 0.01
+      lr_decay: 0
+      weight_decay: 0
+      initial_accumulator_value: 0
+      eps: 1.0e-10
+    sparse_adam:
+      lr: 0.001
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+    adamax:
+      lr: 0.002
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0
+    asgd:
+      lr: 0.01
+      lambd: 0.0001
+      alpha: 0.75
+      t0: 1000000.0
+      weight_decay: 0
+    lbfgs:
+      lr: 1
+      max_iter: 20
+      max_eval: null
+      tolerance_grad: 1.0e-07
+      tolerance_change: 1.0e-09
+      history_size: 100
+      line_search_fn: null
+    nadam:
+      lr: 0.002
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0
+      momentum_decay: 0.004
+      decoupled_weight_decay: false
+    radam:
+      lr: 0.001
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0
+      decoupled_weight_decay: false
+    rmsprop:
+      lr: 0.01
+      alpha: 0.99
+      eps: 1.0e-08
+      weight_decay: 0
+      momentum: 0
+      centered: false
+    rprop:
+      lr: 0.01
+      etas:
+        - 0.5
+        - 1.2
+      step_sizes:
+        - 1.0e-06
+        - 50
 model:
   architecture: vae
   components:

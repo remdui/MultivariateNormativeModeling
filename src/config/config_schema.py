@@ -49,18 +49,6 @@ class EarlyStoppingConfig(BaseModel):
     patience: int = 10
 
 
-class SchedulerConfig(BaseModel):
-    """Learning rate configuration."""
-
-    learning_rate: float = 0.001
-    warmup_steps: int = 500
-    method: str = "step"
-    gamma: float = 0.1
-    step_size: int = 10
-    kl_annealing: bool = True
-    kl_annealing_steps: int = 1000
-
-
 class CheckpointConfig(BaseModel):
     """Checkpoint configuration."""
 
@@ -68,13 +56,6 @@ class CheckpointConfig(BaseModel):
     interval: int = 20
     use_checkpoint: bool = False
     checkpoint: str = ""
-
-
-class RegularizationConfig(BaseModel):
-    """Regularization configuration."""
-
-    gradient_clipping: float = 5.0
-    weight_decay: float = 0.0001
 
 
 class ImageConfig(BaseModel):
@@ -185,18 +166,217 @@ class TrainConfig(BaseModel):
 
     # General training settings
     batch_size: int = 32
-    epochs: int = 100
+    epochs: int = 20
     loss_function: str = "bce_vae"
-    optimizer: str = "adam"
     mixed_precision: bool = False
+    gradient_clipping: bool = False
     save_model: bool = True
     save_format: str = "safetensors"
 
     # Grouped configurations
     checkpoint: CheckpointConfig = Field(default_factory=CheckpointConfig)
     early_stopping: EarlyStoppingConfig = Field(default_factory=EarlyStoppingConfig)
-    regularization: RegularizationConfig = Field(default_factory=RegularizationConfig)
-    scheduler: SchedulerConfig = Field(default_factory=SchedulerConfig)
+
+    scheduler: str = "step"
+    scheduler_params: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "default": {
+                "last_epoch": -1,
+            },
+            "lambda": {
+                "lr_lambda": "lambda epoch: 0.95 ** epoch",
+                "last_epoch": -1,
+            },
+            "multiplicative": {
+                "lr_lambda": "lambda epoch: 0.95",
+                "last_epoch": -1,
+            },
+            "step": {
+                "step_size": 10,
+                "gamma": 0.1,
+                "last_epoch": -1,
+            },
+            "multistep": {
+                "milestones": [30, 80],
+                "gamma": 0.1,
+                "last_epoch": -1,
+            },
+            "constant": {
+                "factor": 0.3333333333333333,
+                "total_iters": 5,
+                "last_epoch": -1,
+            },
+            "linear": {
+                "start_factor": 0.3333333333333333,
+                "end_factor": 1.0,
+                "total_iters": 5,
+                "last_epoch": -1,
+            },
+            "exponential": {
+                "gamma": 0.95,
+                "last_epoch": -1,
+            },
+            "polynomial": {
+                "total_iters": 5,
+                "power": 1.0,
+                "last_epoch": -1,
+            },
+            "cosineannealing": {
+                "T_max": 10,
+                "eta_min": 0.0,
+                "last_epoch": -1,
+            },
+            "plateau": {
+                "mode": "min",
+                "factor": 0.1,
+                "patience": 10,
+                "threshold": 0.0001,
+                "threshold_mode": "rel",
+                "cooldown": 0,
+                "min_lr": 0,
+                "eps": 1e-08,
+            },
+            "cyclic": {
+                "base_lr": 0.001,
+                "max_lr": 0.01,
+                "step_size_up": 2000,
+                "step_size_down": None,
+                "mode": "triangular",
+                "gamma": 1.0,
+                "scale_fn": None,
+                "scale_mode": "cycle",
+                "cycle_momentum": True,
+                "base_momentum": 0.8,
+                "max_momentum": 0.9,
+                "last_epoch": -1,
+            },
+            "onecycle": {
+                "max_lr": 0.1,
+                "total_steps": None,
+                "epochs": None,
+                "steps_per_epoch": None,
+                "pct_start": 0.3,
+                "anneal_strategy": "cos",
+                "cycle_momentum": True,
+                "base_momentum": 0.85,
+                "max_momentum": 0.95,
+                "div_factor": 25.0,
+                "final_div_factor": 10000.0,
+                "three_phase": False,
+                "last_epoch": -1,
+            },
+            "cosineannealingwarmrestarts": {
+                "T_0": 10,
+                "T_mult": 2,
+                "eta_min": 0.0,
+                "last_epoch": -1,
+            },
+        }
+    )
+
+    optimizer: str = "adam"
+    optimizer_params: dict[str, Any] = Field(
+        default_factory=lambda: {
+            # PyTorch optimizers supported for cuda
+            "adam": {
+                "lr": 0.001,
+                "betas": [0.9, 0.999],
+                "eps": 1e-8,
+                "weight_decay": 0.0,
+                "amsgrad": False,
+            },
+            "adamw": {
+                "lr": 0.001,
+                "betas": [0.9, 0.999],
+                "eps": 1e-8,
+                "weight_decay": 0.01,
+                "amsgrad": False,
+            },
+            "sgd": {
+                "lr": 0.001,
+                "momentum": 0.0,
+                "dampening": 0.0,
+                "weight_decay": 0.0,
+                "nesterov": False,
+            },
+            # PyTorch optimizers
+            "adadelta": {
+                "lr": 1.0,
+                "rho": 0.9,
+                "eps": 1e-06,
+                "weight_decay": 0,
+            },
+            "adafactor": {
+                "lr": 0.01,
+                "beta2_decay": -0.8,
+                "eps": [None, 0.001],
+                "d": 1.0,
+                "weight_decay": 0.0,
+            },
+            "adagrad": {
+                "lr": 0.01,
+                "lr_decay": 0,
+                "weight_decay": 0,
+                "initial_accumulator_value": 0,
+                "eps": 1e-10,
+            },
+            "sparse_adam": {
+                "lr": 0.001,
+                "betas": [0.9, 0.999],
+                "eps": 1e-8,
+            },
+            "adamax": {
+                "lr": 0.002,
+                "betas": [0.9, 0.999],
+                "eps": 1e-8,
+                "weight_decay": 0,
+            },
+            "asgd": {
+                "lr": 0.01,
+                "lambd": 0.0001,
+                "alpha": 0.75,
+                "t0": 1000000.0,
+                "weight_decay": 0,
+            },
+            "lbfgs": {
+                "lr": 1,
+                "max_iter": 20,
+                "max_eval": None,
+                "tolerance_grad": 1e-07,
+                "tolerance_change": 1e-09,
+                "history_size": 100,
+                "line_search_fn": None,
+            },
+            "nadam": {
+                "lr": 0.002,
+                "betas": [0.9, 0.999],
+                "eps": 1e-08,
+                "weight_decay": 0,
+                "momentum_decay": 0.004,
+                "decoupled_weight_decay": False,
+            },
+            "radam": {
+                "lr": 0.001,
+                "betas": [0.9, 0.999],
+                "eps": 1e-8,
+                "weight_decay": 0,
+                "decoupled_weight_decay": False,
+            },
+            "rmsprop": {
+                "lr": 0.01,
+                "alpha": 0.99,
+                "eps": 1e-08,
+                "weight_decay": 0,
+                "momentum": 0,
+                "centered": False,
+            },
+            "rprop": {
+                "lr": 0.01,
+                "etas": [0.5, 1.2],
+                "step_sizes": [1e-06, 50],
+            },
+        }
+    )
 
 
 class ValidationConfig(BaseModel):

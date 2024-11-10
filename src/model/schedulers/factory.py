@@ -16,8 +16,6 @@ SCHEDULER_MAPPING: dict[str, type[lr_scheduler.LRScheduler]] = {
     "exponential": lr_scheduler.ExponentialLR,
     "polynomial": lr_scheduler.PolynomialLR,
     "cosineannealing": lr_scheduler.CosineAnnealingLR,
-    "chained": lr_scheduler.ChainedScheduler,
-    "sequential": lr_scheduler.SequentialLR,
     "plateau": lr_scheduler.ReduceLROnPlateau,
     "cyclic": lr_scheduler.CyclicLR,
     "onecycle": lr_scheduler.OneCycleLR,

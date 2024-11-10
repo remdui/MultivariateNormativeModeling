@@ -31,36 +31,49 @@ class TrainTask(AbstractTask):
 
     def __setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
-        optimizer_params: dict = {}
-        self.optimizer = get_optimizer(
-            self.properties.train.optimizer,
-            self.model.parameters(),
-            float(self.properties.train.scheduler.learning_rate),
-            **optimizer_params,
+        # Retrieve the name of the optimizer (e.g., "adam")
+        optimizer_name = self.properties.train.optimizer
+
+        # Retrieve the parameters specific to the selected optimizer from optimizer_params
+        optimizer_params = self.properties.train.optimizer_params.get(
+            optimizer_name, {}
         )
-        self.logger.info(f"Initialized optimizer: {self.optimizer}")
+
+        # Initialize the optimizer with model parameters and the unpacked optimizer parameters
+        self.optimizer = get_optimizer(
+            optimizer_name, self.model.parameters(), **optimizer_params
+        )
+        self.logger.info(
+            f"Initialized optimizer: {optimizer_name} with parameters: {self.optimizer.state_dict()}"
+        )
 
     def __setup_scheduler(self) -> None:
         """Get the scheduler based on the configuration."""
-        scheduler_params = {
-            "step_size": self.properties.train.scheduler.step_size,
-            "gamma": self.properties.train.scheduler.gamma,
-        }
+        # Retrieve the scheduler method (e.g., "step")
+        scheduler_method = self.properties.train.scheduler
+
+        # Retrieve the parameters specific to the selected scheduler from scheduler_params
+        scheduler_params = self.properties.train.scheduler_params.get(
+            scheduler_method, {}
+        )
+
         self.scheduler = get_scheduler(
-            self.properties.train.scheduler.method.lower(),
+            self.properties.train.scheduler,
             self.optimizer,
             **scheduler_params,
         )
+
         # Determine if scheduler steps per batch
-        self.scheduler_step_per_batch = (
-            self.properties.train.scheduler.method.lower()
-            in {
-                "cyclic",
-                "onecycle",
-                "cosineannealingwarmrestarts",
-            }
+        self.scheduler_step_per_batch = self.properties.train.scheduler in {
+            "cyclic",
+            "onecycle",
+            "cosineannealingwarmrestarts",
+        }
+
+        self.logger.info(
+            f"Initialized scheduler: {scheduler_method} with parameters: {self.scheduler.state_dict()}"  # type: ignore
         )
-        self.logger.info(f"Initialized scheduler: {self.scheduler}")
+        self.logger.info(f"Scheduler steps per batch: {self.scheduler_step_per_batch}")
 
     def __setup_regularization(self) -> None:
         """TODO: Implement regularization setup."""
@@ -83,31 +96,11 @@ class TrainTask(AbstractTask):
 
         for epoch in range(epochs):
             self.model.train()
-            total_loss = 0.0
-            total_samples = 0
 
-            tqdm_loader = tqdm(
-                self.train_dataloader,
-                desc=f"Epoch {epoch+1}/{epochs}",
-            )
+            tqdm_loader = tqdm(self.train_dataloader, desc=f"Epoch {epoch+1}/{epochs}")
 
-            for batch in tqdm_loader:
-                batch_loss = self.__train_step(batch)
-                total_loss += batch_loss  # Batch loss is the summed loss over the batch
-                total_samples += (
-                    self.properties.train.batch_size
-                )  # increment total samples by batch size for correct average
+            avg_loss = self.__process_batch(tqdm_loader)
 
-                avg_loss = total_loss / total_samples
-                tqdm_loader.set_postfix(loss=f"{avg_loss:.4f}")
-
-                if self.scheduler_step_per_batch:
-                    self.scheduler.step()
-
-            if not self.scheduler_step_per_batch:
-                self.scheduler.step()
-
-            avg_loss = total_loss / total_samples
             self.logger.info(
                 f"Finished epoch {epoch + 1}: average training loss: {avg_loss:.4f}"
             )
@@ -117,6 +110,15 @@ class TrainTask(AbstractTask):
             self.logger.info(
                 f"Average validation loss after epoch {epoch + 1}: {avg_val_loss:.4f}"
             )
+
+            if not self.scheduler_step_per_batch:
+                if self.properties.train.scheduler != "plateau":
+                    self.scheduler.step()
+                else:
+                    self.scheduler.step(avg_val_loss)  # type: ignore
+                self.logger.info(
+                    f"Scheduler adjusted the learning rate to: {self.scheduler.get_last_lr()}"
+                )
 
             # Early stopping check
             if self.properties.train.early_stopping.enabled:
@@ -148,6 +150,28 @@ class TrainTask(AbstractTask):
 
         self.logger.info("Training completed.")
         return results
+
+    def __process_batch(self, tqdm_loader: tqdm) -> float:
+        """Process a batch of data."""
+        total_loss = 0.0
+        total_samples = 0
+
+        for batch in tqdm_loader:
+            batch_loss = self.__train_step(batch)
+            total_loss += batch_loss  # Batch loss is the summed loss over the batch
+            total_samples += (
+                self.properties.train.batch_size
+            )  # increment total samples by batch size for correct average
+
+            avg_loss = total_loss / total_samples
+            tqdm_loader.set_postfix(loss=f"{avg_loss:.4f}")
+
+            if self.scheduler_step_per_batch:
+                self.scheduler.step()
+
+        avg_loss = total_loss / total_samples
+
+        return avg_loss
 
     def __train_step(self, batch: Tensor) -> float:
         """Perform a single training step."""

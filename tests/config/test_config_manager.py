@@ -89,4 +89,4 @@ def test_no_command_line_args():
 
     # No overrides should have occurred
     assert config["general"]["debug"] is False
-    assert config["train"]["epochs"] == 100  # Verify a default value
+    assert config["train"]["epochs"] == 20  # Verify a default value
