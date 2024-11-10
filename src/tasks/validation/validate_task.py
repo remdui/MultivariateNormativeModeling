@@ -70,14 +70,12 @@ class ValidateTask(AbstractTask):
                         recon_batch, data, z_mean, z_logvar
                     )  # Compute loss
                     total_loss += loss.item()  # Accumulate loss
-                    total_samples += (
-                        self.properties.train.batch_size
-                    )  # Accumulate samples
+                    total_samples += data.size(0)  # Accumulate samples
 
-            # Calculate average loss
-            avg_loss = total_loss / total_samples
-            self.logger.info(f"Average validation loss: {avg_loss:.4f}")
-            results["average_loss"] = avg_loss
+        # Calculate average loss
+        avg_loss = total_loss / total_samples
+        self.logger.info(f"Average validation loss: {avg_loss:.4f}")
+        results["average_loss"] = avg_loss
 
         # Draw image samples if applicable
         if (

@@ -35,7 +35,7 @@ dataset:
     params:
       method: min-max
 train:
-  batch_size: 32
+  batch_size: 128
   epochs: 200
   mixed_precision: false
   gradient_clipping: false
@@ -312,13 +312,12 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 8
+      latent_dim: 16
       covariate_embedding: input_embedding
   hidden_layers:
   - 512
   - 256
   - 128
-  - 64
   activation_function: relu
   final_activation_function: sigmoid
   normalization_layer: batch_norm

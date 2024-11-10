@@ -161,12 +161,11 @@ class TrainTask(AbstractTask):
         total_samples = 0
 
         for batch in tqdm_loader:
-            batch_loss = self.__train_step(batch)
-            total_loss += batch_loss  # Batch loss is the summed loss over the batch
-            total_samples += (
-                self.properties.train.batch_size
-            )  # increment total samples by batch size for correct average
+            batch_loss, batch_size = self.__train_step(batch)
+            total_loss += batch_loss  # Accumulate the loss
+            total_samples += batch_size  # Accumulate the number of samples
 
+            # Update the progress bar and report the average loss
             avg_loss = total_loss / total_samples
             tqdm_loader.set_postfix(loss=f"{avg_loss:.4f}")
 
@@ -177,7 +176,7 @@ class TrainTask(AbstractTask):
 
         return avg_loss
 
-    def __train_step(self, batch: Tensor) -> float:
+    def __train_step(self, batch: Tensor) -> tuple[float, int]:
         """Perform a single training step."""
         data, _ = batch  # Unpack batch (features, covariates)
         data = data.to(self.device)  # Move data to device
@@ -199,7 +198,7 @@ class TrainTask(AbstractTask):
             loss.backward()  # Backward pass
             self.optimizer.step()  # Update weights
 
-        return loss.item()
+        return loss.item(), data.size(0)
 
     def __validate(self) -> float:
         """Validate the model on the validation set."""

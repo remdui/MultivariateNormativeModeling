@@ -16,7 +16,7 @@ class MSEVAELoss(_WeightedLoss):
         weight: Tensor | None = None,
         size_average: Any = None,
         reduce: Any = None,
-        reduction: str = "sum",
+        reduction: str = "mean",
     ) -> None:
         """Initialize the BCEVAELoss class."""
         super().__init__(weight, size_average, reduce, reduction)
@@ -37,4 +37,9 @@ class MSEVAELoss(_WeightedLoss):
         """
         MSE = F.mse_loss(recon_x, x, reduction=self.reduction)
         KLD = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
+
+        if self.reduction == "mean":
+            KLD = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp(), dim=1)
+            KLD = KLD.mean()
+
         return MSE + KLD
