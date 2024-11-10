@@ -6,9 +6,9 @@ from logging import Logger
 from data.factory import get_dataloader
 from entities.log_manager import LogManager
 from entities.properties import Properties
-from model.loss.factory import get_loss_function
 from model.models.abstract_model import AbstractModel
 from model.models.factory import get_model
+from optimization.loss.factory import get_loss_function
 from tasks.task_result import TaskResult
 
 

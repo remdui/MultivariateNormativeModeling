@@ -24,6 +24,7 @@ class TabularDataloader(AbstractDataloader):
         self.batch_size = self.properties.train.batch_size
         self.num_workers = self.properties.system.num_workers
         self.covariates = self.properties.dataset.covariates
+        self.pin_memory = self.properties.dataset.pin_memory
         self.shuffle = self.properties.dataset.shuffle
         self.train_split = self.properties.dataset.train_split
         self.val_split = self.properties.dataset.val_split
@@ -110,6 +111,7 @@ class TabularDataloader(AbstractDataloader):
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
+            pin_memory=self.pin_memory,
             shuffle=self.shuffle,
             num_workers=self.num_workers,
         )
@@ -129,6 +131,7 @@ class TabularDataloader(AbstractDataloader):
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
+            pin_memory=self.pin_memory,
             shuffle=False,
             num_workers=self.num_workers,
         )
@@ -148,6 +151,7 @@ class TabularDataloader(AbstractDataloader):
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
+            pin_memory=self.pin_memory,
             shuffle=False,
             num_workers=self.num_workers,
         )

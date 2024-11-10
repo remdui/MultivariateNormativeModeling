@@ -2,11 +2,11 @@
 
 from typing import Any
 
-from torch import nn
+from torch.nn import Dropout
 
 # Mapping for available regularizers
 REGULARIZER_MAPPING: dict[str, Any] = {
-    "dropout": lambda p=0.5: nn.Dropout(p),
+    "dropout": Dropout,
 }
 
 

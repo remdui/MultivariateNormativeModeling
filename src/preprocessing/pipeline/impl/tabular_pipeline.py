@@ -113,7 +113,6 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         test_size = dataset_size - train_val_size
 
         # Split the data
-        # TODO: Shuffle the data before splitting if enabled
         self.logger.info(
             f"Splitting dataset: {train_val_size} train/val, {test_size} test"
         )

@@ -71,7 +71,9 @@ class DatasetConfig(BaseModel):
     covariates: list[str] = ["age", "sex"]
     input_data: str = "generated_data.rds"
     data_type: str = "tabular"
+    image_type: str = "grayscale"
     internal_file_format: str = "hdf"
+    pin_memory: bool = True
     shuffle: bool = True
     test_split: float = 0.1
     train_split: float = 0.8
@@ -128,6 +130,31 @@ class ModelConfig(BaseModel):
                 "latent_dim": 32,
                 "covariate_embedding": "input_embedding",
             },
+            "cnn_vae": {  # Currently not implemented but added for future use
+                "encoder": "cnn",
+                "decoder": "cnn",
+                "latent_dim": 32,
+                "use_lazy_conv": True,
+                "conv_layers": {
+                    "num_layers": 2,
+                    "layer_config": [
+                        {
+                            "out_channels": 32,
+                            "kernel_size": 3,
+                            "stride": 1,
+                            "padding": 1,
+                            "pool_type": "",
+                        },
+                        {
+                            "out_channels": 64,
+                            "kernel_size": 3,
+                            "stride": 1,
+                            "padding": 1,
+                            "pool_type": "",
+                        },
+                    ],
+                },
+            },
         }
     )
 
@@ -136,7 +163,7 @@ class ModelConfig(BaseModel):
     activation_function: str = "relu"
     final_activation_function: str = "sigmoid"
     normalization_layer: str = "batch_norm"
-    weight_initialization: str = "xavier"
+    weight_initializer: str = "he_normal"
 
     # Layer-specific configurations
     batch_norm: BatchNormConfig = Field(default_factory=BatchNormConfig)

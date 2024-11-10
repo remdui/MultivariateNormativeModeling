@@ -5,8 +5,8 @@ from torch import GradScaler, Tensor, autocast
 from tqdm import tqdm
 
 from entities.log_manager import LogManager
-from model.optimizers.factory import get_optimizer
-from model.schedulers.factory import get_scheduler
+from optimization.optimizers.factory import get_optimizer
+from optimization.schedulers.factory import get_scheduler
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
 from util.model_utils import save_model
@@ -27,6 +27,7 @@ class TrainTask(AbstractTask):
         self.__setup_optimizer()
         self.__setup_scheduler()
         self.__setup_regularization()
+        self.__setup_weight_initialization()
         self.__setup_amp()
 
     def __setup_optimizer(self) -> None:
@@ -78,6 +79,9 @@ class TrainTask(AbstractTask):
     def __setup_regularization(self) -> None:
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
+
+    def __setup_weight_initialization(self) -> None:
+        """Weight initialization setup."""
 
     def __setup_amp(self) -> None:
         """Initialize automatic mixed precision (AMP) for training."""

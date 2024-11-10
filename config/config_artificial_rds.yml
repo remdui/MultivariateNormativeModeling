@@ -21,7 +21,9 @@ dataset:
   - sex
   input_data: generated_data.rds
   data_type: tabular
+  image_type: grayscale
   internal_file_format: hdf
+  pin_memory: true
   shuffle: true
   test_split: 0.1
   train_split: 0.8
@@ -315,6 +317,24 @@ model:
       decoder: mlp
       latent_dim: 16
       covariate_embedding: input_embedding
+    cnn_vae:
+      encoder: cnn
+      decoder: cnn
+      latent_dim: 32
+      use_lazy_conv: true
+      conv_layers:
+        num_layers: 2
+        layer_config:
+        - out_channels: 32
+          kernel_size: 3
+          stride: 1
+          padding: 1
+          pool_type: ''
+        - out_channels: 64
+          kernel_size: 3
+          stride: 1
+          padding: 1
+          pool_type: ''
   hidden_layers:
   - 512
   - 256
@@ -322,15 +342,13 @@ model:
   activation_function: relu
   final_activation_function: sigmoid
   normalization_layer: batch_norm
-  weight_initialization: xavier
+  weight_initialization: he_normal
   batch_norm:
     enabled: true
     eps: 1.0e-05
     momentum: 0.1
     affine: true
     track_running_stats: true
-  linear:
-    bias: true
   dropout:
     enabled: true
     p: 0.2
