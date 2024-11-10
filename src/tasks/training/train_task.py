@@ -5,6 +5,7 @@ from torch import GradScaler, Tensor, autocast
 from tqdm import tqdm
 
 from entities.log_manager import LogManager
+from model.layers.initialization.factory import initialize_weights
 from optimization.optimizers.factory import get_optimizer
 from optimization.schedulers.factory import get_scheduler
 from tasks.abstract_task import AbstractTask
@@ -27,8 +28,8 @@ class TrainTask(AbstractTask):
         self.__setup_optimizer()
         self.__setup_scheduler()
         self.__setup_regularization()
-        self.__setup_weight_initialization()
         self.__setup_amp()
+        self.__initialize_weights()
 
     def __setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
@@ -80,12 +81,23 @@ class TrainTask(AbstractTask):
         """TODO: Implement regularization setup."""
         self.logger.info("Initialized regularization: None")
 
-    def __setup_weight_initialization(self) -> None:
-        """Weight initialization setup."""
-
     def __setup_amp(self) -> None:
         """Initialize automatic mixed precision (AMP) for training."""
         self.scaler = GradScaler()
+
+    def __initialize_weights(self) -> None:
+        """Weight initialization of the model.
+
+        Weight initialization improves the convergence of the model during training.
+        See this paper for more details: https://arxiv.org/abs/1704.08863
+        He initialization is commonly used for ReLU activation functions, see https://arxiv.org/pdf/1502.01852
+        """
+        # Retrieve the weight initializer from the configuration
+        weight_initializer = self.properties.model.weight_initializer
+
+        # Initialize the model weights
+        initialize_weights(self.model, weight_initializer)
+        self.logger.info(f"Initialized weights using {weight_initializer}")
 
     def run(self) -> TaskResult:
         """Train the model."""
