@@ -2,7 +2,7 @@
 
 from torch import Tensor, nn
 
-from model.components.base_decoder import BaseDecoder
+from model.components.decoder.base_decoder import BaseDecoder
 
 
 class MLPDecoder(BaseDecoder):
@@ -16,7 +16,7 @@ class MLPDecoder(BaseDecoder):
         prev_dim = latent_dim
         for _, h_dim in enumerate(hidden_dims):
             layers.append(nn.Linear(prev_dim, h_dim))
-            layers.append(nn.ReLU())
+            layers.append(self.activation_function)
             prev_dim = h_dim
         self.model = nn.Sequential(*layers)
         self.final_layer = nn.Linear(prev_dim, output_dim)

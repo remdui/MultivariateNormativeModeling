@@ -2,7 +2,7 @@
 
 from torch import Tensor, nn
 
-from model.components.base_encoder import BaseEncoder
+from model.components.encoder.base_encoder import BaseEncoder
 
 
 class MLPEncoder(BaseEncoder):
@@ -14,7 +14,7 @@ class MLPEncoder(BaseEncoder):
         prev_dim = input_dim
         for _, h_dim in enumerate(hidden_dims):
             layers.append(nn.Linear(prev_dim, h_dim))
-            layers.append(nn.ReLU())
+            layers.append(self.activation_function)
             prev_dim = h_dim
         self.model = nn.Sequential(*layers)
         self.fc_z_mean = nn.Linear(prev_dim, latent_dim)

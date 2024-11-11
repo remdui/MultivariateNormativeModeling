@@ -2,10 +2,12 @@
 
 from typing import Any
 
-from torch import Tensor, nn
+from torch import Tensor
+
+from model.components.abstract_component import AbstractComponent
 
 
-class BaseDecoder(nn.Module):
+class BaseDecoder(AbstractComponent):
     """Base class for decoders."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

@@ -160,7 +160,6 @@ class ModelConfig(BaseModel):
 
     # Model components
     hidden_layers: list[int] = [1024, 512, 256]
-    activation_function: str = "relu"
     final_activation_function: str = "sigmoid"
     normalization_layer: str = "batch_norm"
     weight_initializer: str = "he_normal"
@@ -168,6 +167,54 @@ class ModelConfig(BaseModel):
     # Layer-specific configurations
     batch_norm: BatchNormConfig = Field(default_factory=BatchNormConfig)
     dropout: DropoutConfig = Field(default_factory=DropoutConfig)
+
+    activation_function: str = "relu"
+    activation_function_params: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "elu": {
+                "alpha": 1.0,
+            },
+            "hardshrink": {
+                "lambd": 0.5,
+            },
+            "hardtanh": {
+                "min_val": -1.0,
+                "max_val": 1.0,
+            },
+            "leakyrelu": {
+                "negative_slope": 0.01,
+            },
+            "prelu": {
+                "num_parameters": 1,
+                "init": 0.25,
+            },
+            "rrelu": {
+                "lower": 0.125,
+                "upper": 0.333,
+                "inplace": False,
+            },
+            "celu": {
+                "alpha": 1.0,
+            },
+            "gelu": {
+                "approximate": "none",
+            },
+            "softplus": {
+                "beta": 1.0,
+                "threshold": 20.0,
+            },
+            "softshrink": {
+                "lambd": 0.5,
+            },
+            "threshold": {
+                "threshold": 1.0,
+                "value": 0.0,
+            },
+            "glu": {
+                "dim": -1,
+            },
+        }
+    )
 
 
 class SystemConfig(BaseModel):
