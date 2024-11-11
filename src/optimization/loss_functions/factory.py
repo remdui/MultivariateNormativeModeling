@@ -27,8 +27,8 @@ from torch.nn import (
     TripletMarginWithDistanceLoss,
 )
 
-from optimization.loss.impl.BCEVAELoss import BCEVAELoss
-from optimization.loss.impl.MSEVAELoss import MSEVAELoss
+from optimization.loss_functions.impl.BCEVAELoss import BCEVAELoss
+from optimization.loss_functions.impl.MSEVAELoss import MSEVAELoss
 
 # Mapping for available loss functions
 LOSS_FUNCTION_MAPPING: dict[str, Any] = {

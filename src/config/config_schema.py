@@ -160,7 +160,6 @@ class ModelConfig(BaseModel):
 
     # Model components
     hidden_layers: list[int] = [1024, 512, 256]
-    final_activation_function: str = "sigmoid"
     normalization_layer: str = "batch_norm"
     weight_initializer: str = "he_normal"
 
@@ -169,8 +168,10 @@ class ModelConfig(BaseModel):
     dropout: DropoutConfig = Field(default_factory=DropoutConfig)
 
     activation_function: str = "relu"
+    final_activation_function: str = "sigmoid"
     activation_function_params: dict[str, Any] = Field(
         default_factory=lambda: {
+            # PyTorch activation functions (weighted sum, non-linearity)
             "elu": {
                 "alpha": 1.0,
             },
@@ -212,6 +213,21 @@ class ModelConfig(BaseModel):
             },
             "glu": {
                 "dim": -1,
+            },
+            # PyTorch activation functions (other)
+            "adaptivelogsoftmaxwithloss": {
+                "cutoffs": [10, 20, 30],
+                "div_value": 4.0,
+                "head_bias": False,
+            },
+            "logsoftmax": {
+                "dim": None,
+            },
+            "softmax": {
+                "dim": None,
+            },
+            "softmin": {
+                "dim": None,
             },
         }
     )

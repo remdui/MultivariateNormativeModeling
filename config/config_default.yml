@@ -339,7 +339,6 @@ model:
   - 1024
   - 512
   - 256
-  final_activation_function: sigmoid
   normalization_layer: batch_norm
   weight_initializer: he_normal
   batch_norm:
@@ -353,6 +352,7 @@ model:
     p: 0.2
     inplace: false
   activation_function: relu
+  final_activation_function: sigmoid
   activation_function_params:
     elu:
       alpha: 1.0
@@ -384,6 +384,19 @@ model:
       value: 0.0
     glu:
       dim: -1
+    adaptivelogsoftmaxwithloss:
+      cutoffs:
+      - 10
+      - 20
+      - 30
+      div_value: 4.0
+      head_bias: false
+    logsoftmax:
+      dim: null
+    softmax:
+      dim: null
+    softmin:
+      dim: null
 validation:
   model: ''
   baseline_model: null

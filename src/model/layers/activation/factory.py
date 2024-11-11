@@ -8,12 +8,14 @@ from torch.nn import (
     GELU,
     GLU,
     SELU,
+    AdaptiveLogSoftmaxWithLoss,
     Hardshrink,
     Hardsigmoid,
     Hardswish,
     Hardtanh,
     LeakyReLU,
     LogSigmoid,
+    LogSoftmax,
     Mish,
     Module,
     PReLU,
@@ -22,6 +24,9 @@ from torch.nn import (
     RReLU,
     Sigmoid,
     SiLU,
+    Softmax,
+    Softmax2d,
+    Softmin,
     Softplus,
     Softshrink,
     Softsign,
@@ -32,6 +37,7 @@ from torch.nn import (
 
 # Mapping for available activation functions
 ACTIVATION_FUNCTION_MAPPING: dict[str, Any] = {
+    # PyTorch activation functions (weighted sum, non-linearity)
     "elu": ELU,
     "gelu": GELU,
     "glu": GLU,
@@ -56,6 +62,12 @@ ACTIVATION_FUNCTION_MAPPING: dict[str, Any] = {
     "threshold": Threshold,
     "silu": SiLU,
     "mish": Mish,
+    # Pytorch activation functions (other)
+    "adaptivelogsoftmaxwithloss": AdaptiveLogSoftmaxWithLoss,
+    "softmax": Softmax,
+    "softmax2d": Softmax2d,
+    "softmin": Softmin,
+    "logsoftmax": LogSoftmax,
 }
 
 

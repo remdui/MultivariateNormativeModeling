@@ -16,6 +16,7 @@ class AbstractComponent(nn.Module):
         super().__init__()
         self.properties = Properties.get_instance()
         self.__initialize_activation_function()
+        self.__initialize_final_activation_function()
 
     def forward(self, x: Tensor) -> Any:
         """Forward pass of the encoder.
@@ -40,4 +41,22 @@ class AbstractComponent(nn.Module):
         # Initialize the activation function with the unpacked activation function parameters
         self.activation_function = get_activation_function(
             activation_function, **activation_function_params
+        )
+
+    def __initialize_final_activation_function(self) -> None:
+        """Initialize the final activation function."""
+
+        # Retrieve the activation function type from the model components
+        final_activation_function = self.properties.model.final_activation_function
+
+        # Retrieve the parameters specific to the selected activation function from activation_params
+        final_activation_function_params = (
+            self.properties.model.activation_function_params.get(
+                final_activation_function, {}
+            )
+        )
+
+        # Initialize the activation function with the unpacked activation function parameters
+        self.final_activation_function = get_activation_function(
+            final_activation_function, **final_activation_function_params
         )
