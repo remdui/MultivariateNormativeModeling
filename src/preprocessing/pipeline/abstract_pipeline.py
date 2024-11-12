@@ -24,15 +24,18 @@ class AbstractPreprocessingPipeline(ABC):
     def __init_transforms(self) -> None:
         """Initialize transforms based on configuration in properties."""
         for transform_config in self.properties.dataset.transforms:
-            transform_name = transform_config.name
-            transform_params = transform_config.params or {}
-            try:
-                transform_instance = get_transform(transform_name, **transform_params)
-                self.transforms.append(transform_instance)
-                self.logger.info(f"Added transform: {transform_name}")
-            except ValueError as e:
-                self.logger.error(str(e))
-                raise
+            if transform_config.type == "preprocessing":
+                transform_name = transform_config.name
+                transform_params = transform_config.params or {}
+                try:
+                    transform_instance = get_transform(
+                        transform_name, **transform_params
+                    )
+                    self.transforms.append(transform_instance)
+                    self.logger.info(f"Added transform: {transform_name}")
+                except ValueError as e:
+                    self.logger.error(str(e))
+                    raise
 
     def run(self) -> None:
         """Run the preprocessing pipeline for the specific data type."""

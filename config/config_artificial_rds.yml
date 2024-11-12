@@ -30,11 +30,19 @@ dataset:
   val_split: 0.2
   enable_transforms: true
   transforms:
+  - name: NoiseTransform
+    type: preprocessing
+    params:
+      mean: 0.0
+      std: 0.05
+      distribution: normal
   - name: DataCleaningTransform
+    type: preprocessing
     params:
       drop_na: true
       remove_duplicates: true
   - name: NormalizationTransform
+    type: preprocessing
     params:
       method: min-max
 train:
