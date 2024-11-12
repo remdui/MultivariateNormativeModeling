@@ -3,9 +3,11 @@
 from typing import Any
 
 from torch import Tensor, nn
+from torch.nn import Module
 
 from entities.properties import Properties
 from model.layers.activation.factory import get_activation_function
+from model.layers.normalization.factory import get_normalization_layer
 
 
 class AbstractComponent(nn.Module):
@@ -60,3 +62,26 @@ class AbstractComponent(nn.Module):
         self.final_activation_function = get_activation_function(
             final_activation_function, **final_activation_function_params
         )
+
+    def _get_normalization_layer(self, *args: Any) -> Module:
+        """Initialize the normalization layer.
+
+        Args:
+            *args: Additional arguments specific to the normalization layer.
+        """
+        # Retrieve the normalization layer type from the model components
+        normalization_layer_name = self.properties.model.normalization_layer
+
+        # Retrieve the parameters specific to the selected normalization layer from normalization_params
+        normalization_layer_params = (
+            self.properties.model.normalization_layer_params.get(
+                normalization_layer_name, {}
+            )
+        )
+
+        # Initialize the normalization layer with the unpacked normalization layer parameters
+        normalization_layer = get_normalization_layer(
+            normalization_layer_name, *args, **normalization_layer_params
+        )
+
+        return normalization_layer

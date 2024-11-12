@@ -317,24 +317,6 @@ model:
       decoder: mlp
       latent_dim: 16
       covariate_embedding: input_embedding
-    cnn_vae:
-      encoder: cnn
-      decoder: cnn
-      latent_dim: 32
-      use_lazy_conv: true
-      conv_layers:
-        num_layers: 2
-        layer_config:
-        - out_channels: 32
-          kernel_size: 3
-          stride: 1
-          padding: 1
-          pool_type: ''
-        - out_channels: 64
-          kernel_size: 3
-          stride: 1
-          padding: 1
-          pool_type: ''
   hidden_layers:
   - 512
   - 256

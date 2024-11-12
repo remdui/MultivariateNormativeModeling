@@ -3,13 +3,14 @@
 import random
 
 import torch
-from torch import autocast
+from torch import Tensor, autocast
 from tqdm import tqdm
 
 from analysis.visualization.image import combine_images, tensor_to_image
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
+from util.data_utils import sample_batch_from_indices
 from util.model_utils import load_model
 
 
@@ -102,27 +103,31 @@ class ValidateTask(AbstractTask):
         image_length = self.properties.validation.image.length
 
         # Retrieve data for the selected indices
-        original_images = []
-        reconstructed_images = []
+        original_images: list[Tensor] = []
+        reconstructed_images: list[Tensor] = []
 
         # Access specific samples by index
         with torch.no_grad():
-            for idx in tqdm(random_indices, desc="Image Sampling"):
-                data, _ = self.test_dataloader.dataset[idx]  # Direct access to dataset
-                data = data.to(self.device)  # Add batch dimension
+            data_batch = sample_batch_from_indices(
+                self.test_dataloader.dataset, random_indices, self.device
+            )
 
-                # Apply autocast for mixed precision inference
-                with autocast(
-                    enabled=self.properties.train.mixed_precision,
-                    device_type=self.device,
-                ):
-                    recon_data, _, _ = self.model(
-                        data
-                    )  # Forward pass to get the reconstructed image
+            # Apply autocast for mixed precision inference
+            with autocast(
+                enabled=self.properties.train.mixed_precision,
+                device_type=self.device,
+            ):
+                recon_batch, _, _ = self.model(
+                    data_batch
+                )  # Forward pass for the entire batch
 
-                # Append original and reconstructed images
-                original_images.append(data.cpu())  # Remove batch dimension
-                reconstructed_images.append(recon_data.cpu())  # Remove batch dimension
+            # Append original and reconstructed images
+            original_images.extend(
+                data_batch.cpu().unbind()
+            )  # Unbind to individual tensors
+            reconstructed_images.extend(
+                recon_batch.cpu().unbind()
+            )  # Unbind to individual tensors
 
         for idx in range(num_samples):
             # Convert to PIL images

@@ -16,16 +16,6 @@ class TransformConfig(BaseModel):
     params: dict[str, Any]
 
 
-class BatchNormConfig(BaseModel):
-    """Batch normalization configuration."""
-
-    enabled: bool = True
-    eps: float = 1e-5
-    momentum: float = 0.1
-    affine: bool = True
-    track_running_stats: bool = True
-
-
 class DropoutConfig(BaseModel):
     """Dropout configuration."""
 
@@ -130,42 +120,104 @@ class ModelConfig(BaseModel):
                 "latent_dim": 32,
                 "covariate_embedding": "input_embedding",
             },
-            "cnn_vae": {  # Currently not implemented but added for future use
-                "encoder": "cnn",
-                "decoder": "cnn",
-                "latent_dim": 32,
-                "use_lazy_conv": True,
-                "conv_layers": {
-                    "num_layers": 2,
-                    "layer_config": [
-                        {
-                            "out_channels": 32,
-                            "kernel_size": 3,
-                            "stride": 1,
-                            "padding": 1,
-                            "pool_type": "",
-                        },
-                        {
-                            "out_channels": 64,
-                            "kernel_size": 3,
-                            "stride": 1,
-                            "padding": 1,
-                            "pool_type": "",
-                        },
-                    ],
-                },
-            },
+            # "cnn_vae": {
+            #     "encoder": "cnn",
+            #     "decoder": "cnn",
+            #     "latent_dim": 32,
+            #     "conv_layers": {
+            #         "num_layers": 2,
+            #         "layer_config": [
+            #             {
+            #                 "out_channels": 32,
+            #                 "kernel_size": 3,
+            #                 "stride": 1,
+            #                 "padding": 1,
+            #                 "pool_type": "",
+            #             },
+            #             {
+            #                 "out_channels": 64,
+            #                 "kernel_size": 3,
+            #                 "stride": 1,
+            #                 "padding": 1,
+            #                 "pool_type": "",
+            #             },
+            #         ],
+            #     },
+            # },
         }
     )
 
     # Model components
     hidden_layers: list[int] = [1024, 512, 256]
-    normalization_layer: str = "batch_norm"
     weight_initializer: str = "he_normal"
 
     # Layer-specific configurations
-    batch_norm: BatchNormConfig = Field(default_factory=BatchNormConfig)
     dropout: DropoutConfig = Field(default_factory=DropoutConfig)
+
+    normalization_layer: str = "batchnorm1d"
+    normalization_layer_params: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "batchnorm1d": {
+                "eps": 1e-5,
+                "momentum": 0.1,
+                "affine": True,
+                "track_running_stats": True,
+            },
+            "batchnorm2d": {
+                "eps": 1e-5,
+                "momentum": 0.1,
+                "affine": True,
+                "track_running_stats": True,
+            },
+            "batchnorm3d": {
+                "eps": 1e-5,
+                "momentum": 0.1,
+                "affine": True,
+                "track_running_stats": True,
+            },
+            "groupnorm": {
+                "eps": 1e-5,
+                "affine": True,
+            },
+            "syncbatchnorm": {
+                "eps": 1e-5,
+                "momentum": 0.1,
+                "affine": True,
+                "track_running_stats": True,
+            },
+            "instancenorm1d": {
+                "eps": 1e-5,
+                "momentum": 0.1,
+                "affine": False,
+                "track_running_stats": False,
+            },
+            "instancenorm2d": {
+                "eps": 1e-5,
+                "momentum": 0.1,
+                "affine": False,
+                "track_running_stats": False,
+            },
+            "instancenorm3d": {
+                "eps": 1e-5,
+                "momentum": 0.1,
+                "affine": False,
+                "track_running_stats": False,
+            },
+            "layernorm": {
+                "eps": 1e-5,
+                "elementwise_affine": True,
+            },
+            "localresponsenorm": {
+                "alpha": 1e-4,
+                "beta": 0.75,
+                "k": 1.0,
+            },
+            "rmsnorm": {
+                "eps": 1e-8,
+                "elementwise_affine": True,
+            },
+        }
+    )
 
     activation_function: str = "relu"
     final_activation_function: str = "sigmoid"

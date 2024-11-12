@@ -14,6 +14,7 @@ class MLPEncoder(BaseEncoder):
         prev_dim = input_dim
         for _, h_dim in enumerate(hidden_dims):
             layers.append(nn.Linear(prev_dim, h_dim))
+            layers.append(self._get_normalization_layer(h_dim))
             layers.append(self.activation_function)
             prev_dim = h_dim
         self.model = nn.Sequential(*layers)

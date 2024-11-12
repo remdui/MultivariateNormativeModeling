@@ -317,40 +317,65 @@ model:
       decoder: mlp
       latent_dim: 32
       covariate_embedding: input_embedding
-    cnn_vae:
-      encoder: cnn
-      decoder: cnn
-      latent_dim: 32
-      use_lazy_conv: true
-      conv_layers:
-        num_layers: 2
-        layer_config:
-        - out_channels: 32
-          kernel_size: 3
-          stride: 1
-          padding: 1
-          pool_type: ''
-        - out_channels: 64
-          kernel_size: 3
-          stride: 1
-          padding: 1
-          pool_type: ''
   hidden_layers:
   - 1024
   - 512
   - 256
-  normalization_layer: batch_norm
   weight_initializer: he_normal
-  batch_norm:
-    enabled: true
-    eps: 1.0e-05
-    momentum: 0.1
-    affine: true
-    track_running_stats: true
   dropout:
     enabled: true
     p: 0.2
     inplace: false
+  normalization_layer: batchnorm1d
+  normalization_layer_params:
+    batchnorm1d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: true
+      track_running_stats: true
+    batchnorm2d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: true
+      track_running_stats: true
+    batchnorm3d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: true
+      track_running_stats: true
+    groupnorm:
+      eps: 1.0e-05
+      affine: true
+    syncbatchnorm:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: true
+      track_running_stats: true
+    instancenorm1d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: false
+      track_running_stats: false
+    instancenorm2d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: false
+      track_running_stats: false
+    instancenorm3d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: false
+      track_running_stats: false
+    layernorm:
+      eps: 1.0e-05
+      elementwise_affine: true
+    localresponsenorm:
+      alpha: 0.0001
+      beta: 0.75
+      k: 1.0
+    rmsnorm:
+      eps: 1.0e-08
+      elementwise_affine: true
   activation_function: relu
   final_activation_function: sigmoid
   activation_function_params:
