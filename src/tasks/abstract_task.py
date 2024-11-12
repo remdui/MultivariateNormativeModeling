@@ -81,6 +81,15 @@ class AbstractTask(ABC):
         self.model = model.to(self.device)
 
         # print model architecture and parameters
+        self.logger.info(
+            f"Activation function: {self.properties.model.activation_function} with parameters {self.properties.model.activation_function_params.get(self.model.properties.model.activation_function, {})}"
+        )
+        self.logger.info(
+            f"Final Activation function: {self.properties.model.final_activation_function} with parameters {self.properties.model.activation_function_params.get(self.model.properties.model.final_activation_function, {})}"
+        )
+        self.logger.info(
+            f"Normalization layer: {self.properties.model.normalization_layer} with parameters {self.properties.model.normalization_layer_params.get(self.model.properties.model.normalization_layer, {})}"
+        )
         self.logger.info(f"Initialized model: {self.model}")
         self.logger.info(
             f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}"

@@ -2,6 +2,7 @@
 
 import torch
 from torch import GradScaler, Tensor, autocast
+from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
 
 from entities.log_manager import LogManager
@@ -30,6 +31,7 @@ class TrainTask(AbstractTask):
         self.__setup_regularization()
         self.__setup_amp()
         self.__initialize_weights()
+        self.__report_enabled_optimizations()
 
     def __setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
@@ -208,10 +210,23 @@ class TrainTask(AbstractTask):
 
         if self.properties.train.mixed_precision:
             self.scaler.scale(loss).backward()  # Backward pass
+            if self.properties.train.gradient_clipping:
+                self.scaler.unscale_(
+                    self.optimizer
+                )  # Unscales the gradients, see: https://pytorch.org/docs/main/notes/amp_examples.html#gradient-clipping
+                clip_grad_norm_(
+                    self.model.parameters(),
+                    self.properties.train.gradient_clipping_value,
+                )
             self.scaler.step(self.optimizer)  # Update weights
             self.scaler.update()  # Update scaler
         else:
             loss.backward()  # Backward pass
+            if self.properties.train.gradient_clipping:
+                clip_grad_norm_(
+                    self.model.parameters(),
+                    self.properties.train.gradient_clipping_value,
+                )
             self.optimizer.step()  # Update weights
 
         return loss.item(), data.size(0)
@@ -267,3 +282,22 @@ class TrainTask(AbstractTask):
         if self.no_improvement_epochs >= self.properties.train.early_stopping.patience:
             return True
         return False
+
+    def __report_enabled_optimizations(self) -> None:
+        """Report the enabled optimizations."""
+        if self.properties.train.mixed_precision:
+            self.logger.info("Enabled mixed precision training.")
+        if self.properties.train.gradient_clipping:
+            self.logger.info(
+                f"Enabled gradient clipping with value: {self.properties.train.gradient_clipping_value}"
+            )
+        if self.properties.train.early_stopping.enabled:
+            self.logger.info(
+                f"Enabled early stopping with patience: {self.properties.train.early_stopping.patience}"
+            )
+        if self.properties.train.checkpoint.save_checkpoint:
+            self.logger.info(
+                f"Enabled model checkpointing every {self.properties.train.checkpoint.interval} epochs."
+            )
+        if self.properties.train.save_model:
+            self.logger.info("Enabled saving the final model.")

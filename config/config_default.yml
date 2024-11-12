@@ -48,7 +48,8 @@ dataset:
 train:
   batch_size: 32
   epochs: 20
-  gradient_clipping: false
+  gradient_clipping: true
+  gradient_clipping_value: 1.0
   mixed_precision: false
   save_model: true
   save_format: safetensors
