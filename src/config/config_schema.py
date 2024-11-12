@@ -310,6 +310,8 @@ class TrainConfig(BaseModel):
     # General training settings
     batch_size: int = 32
     epochs: int = 20
+    gradient_accumulation: bool = False
+    gradient_accumulation_steps: int = 10
     gradient_clipping: bool = True
     gradient_clipping_value: float = 1.0
     mixed_precision: bool = False

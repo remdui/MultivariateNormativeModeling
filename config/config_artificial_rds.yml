@@ -49,6 +49,8 @@ train:
   batch_size: 32
   epochs: 20
   mixed_precision: false
+  gradient_accumulation: false
+  gradient_accumulation_steps: 10
   gradient_clipping: true
   gradient_clipping_value: 1.0
   save_model: true

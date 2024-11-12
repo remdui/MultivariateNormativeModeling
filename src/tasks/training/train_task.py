@@ -1,5 +1,7 @@
 """Train the model using the configuration."""
 
+from typing import Any
+
 import torch
 from torch import GradScaler, Tensor, autocast
 from torch.nn.utils import clip_grad_norm_
@@ -178,8 +180,8 @@ class TrainTask(AbstractTask):
         total_loss = 0.0
         total_samples = 0
 
-        for batch in tqdm_loader:
-            batch_loss, batch_size = self.__train_step(batch)
+        for step, batch in enumerate(tqdm_loader):
+            batch_loss, batch_size = self.__train_step(batch, step)
             total_loss += batch_loss  # Accumulate the loss
             total_samples += batch_size  # Accumulate the number of samples
 
@@ -194,49 +196,99 @@ class TrainTask(AbstractTask):
 
         return avg_loss
 
-    def __train_step(self, batch: Tensor) -> tuple[float, int]:
+    def __train_step(self, batch: Any, step: int) -> tuple[float, int]:
         """Perform a single training step."""
         data, _ = batch  # Unpack batch (features, covariates)
         data = data.to(self.device)  # Move data to device
 
-        self.optimizer.zero_grad()  # Zero gradients
-
-        # Mixed precision training
+        # Mixed precision training support with autocast
         with autocast(
             enabled=self.properties.train.mixed_precision, device_type=self.device
-        ):  # Automatic mixed precision
+        ):
             recon_batch, z_mean, z_logvar = self.model(data)  # Forward pass
             loss = self.loss(recon_batch, data, z_mean, z_logvar)  # Compute loss
 
+        # Store original loss value before further processing
+        loss_value = loss.item()
+
+        # Account for gradient accumulation by dividing the loss by the accumulation steps
+        if self.properties.train.gradient_accumulation:
+            loss = loss / self.properties.train.gradient_accumulation_steps
+
+        # Backpropagation with mixed precision support
         if self.properties.train.mixed_precision:
-            self.scaler.scale(loss).backward()  # Backward pass
-            if self.properties.train.gradient_clipping:
-                self.scaler.unscale_(
-                    self.optimizer
-                )  # Unscales the gradients, see: https://pytorch.org/docs/main/notes/amp_examples.html#gradient-clipping
-                clip_grad_norm_(
-                    self.model.parameters(),
-                    self.properties.train.gradient_clipping_value,
-                )
+            self.__backpropagate_with_mixed_precision(loss, step)
+        # Normal backpropagation without mixed precision
+        else:
+            self.__backpropagate(loss, step)
+
+        return loss_value, data.size(0)
+
+    def __backpropagate_with_mixed_precision(self, loss: Tensor, step: int) -> None:
+        """Backpropagate the loss through the model with mixed precision support.
+
+        Args:
+            loss (Tensor): The loss value.
+            step (int): The current step
+        """
+        self.scaler.scale(loss).backward()  # type: ignore
+
+        # Gradient clipping
+        if self.properties.train.gradient_clipping:
+            # Unscales the gradients, see: https://pytorch.org/docs/main/notes/amp_examples.html#gradient-clipping
+            self.scaler.unscale_(self.optimizer)
+            clip_grad_norm_(
+                self.model.parameters(),
+                self.properties.train.gradient_clipping_value,
+            )
+
+        # Account for gradient accumulation
+        if self.properties.train.gradient_accumulation:
+            if (step + 1) % self.properties.train.gradient_accumulation_steps == 0 or (
+                step + 1
+            ) == len(self.train_dataloader):
+                self.scaler.step(self.optimizer)  # Update weights
+                self.scaler.update()  # Update scaler
+                self.optimizer.zero_grad()  # Reset gradients
+        else:
             self.scaler.step(self.optimizer)  # Update weights
             self.scaler.update()  # Update scaler
-        else:
-            loss.backward()  # Backward pass
-            if self.properties.train.gradient_clipping:
-                clip_grad_norm_(
-                    self.model.parameters(),
-                    self.properties.train.gradient_clipping_value,
-                )
-            self.optimizer.step()  # Update weights
+            self.optimizer.zero_grad()  # Reset gradients
 
-        return loss.item(), data.size(0)
+    def __backpropagate(self, loss: Tensor, step: int) -> None:
+        """Backpropagate the loss through the model.
+
+        Args:
+            loss (Tensor): The loss value.
+            step (int): The current step
+        """
+        loss.backward()  # type: ignore
+
+        # Gradient clipping
+        if self.properties.train.gradient_clipping:
+            clip_grad_norm_(
+                self.model.parameters(),
+                self.properties.train.gradient_clipping_value,
+            )
+
+        # Account for gradient accumulation
+        if self.properties.train.gradient_accumulation:
+            if (step + 1) % self.properties.train.gradient_accumulation_steps == 0 or (
+                step + 1
+            ) == len(self.train_dataloader):
+                self.optimizer.step()  # Update weights
+                self.optimizer.zero_grad()  # Reset gradients
+        else:
+            self.optimizer.step()  # Update weights
+            self.optimizer.zero_grad()  # Reset gradients
 
     def __validate(self) -> float:
         """Validate the model on the validation set."""
-        self.model.eval()
+        self.model.eval()  # Set model to evaluation mode
         total_val_loss = 0.0
         total_val_samples = 0
 
+        # Disable gradient computation in validation
         with torch.no_grad():
             for batch in self.val_dataloader:
                 data, _ = batch
@@ -287,6 +339,10 @@ class TrainTask(AbstractTask):
         """Report the enabled optimizations."""
         if self.properties.train.mixed_precision:
             self.logger.info("Enabled mixed precision training.")
+        if self.properties.train.gradient_accumulation:
+            self.logger.info(
+                f"Enabled gradient accumulation with steps: {self.properties.train.gradient_accumulation_steps}"
+            )
         if self.properties.train.gradient_clipping:
             self.logger.info(
                 f"Enabled gradient clipping with value: {self.properties.train.gradient_clipping_value}"
