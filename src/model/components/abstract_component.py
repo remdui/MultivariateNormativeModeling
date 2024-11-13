@@ -8,6 +8,7 @@ from torch.nn import Module
 from entities.properties import Properties
 from model.layers.activation.factory import get_activation_function
 from model.layers.normalization.factory import get_normalization_layer
+from optimization.regularizers.factory import get_regularizer
 
 
 class AbstractComponent(nn.Module):
@@ -69,7 +70,9 @@ class AbstractComponent(nn.Module):
 
         # Initialize the dropout layer if specified in the model components
         if self.properties.model.dropout:
-            self.dropout = nn.Dropout(self.properties.model.dropout_rate)
+            self.dropout = get_regularizer(
+                "dropout", p=self.properties.model.dropout_rate
+            )
 
     def _get_normalization_layer(self, *args: Any) -> Module:
         """Initialize the normalization layer.

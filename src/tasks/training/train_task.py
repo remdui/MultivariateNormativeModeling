@@ -10,6 +10,7 @@ from tqdm import tqdm
 from entities.log_manager import LogManager
 from model.layers.initialization.factory import initialize_weights
 from optimization.optimizers.factory import get_optimizer
+from optimization.regularizers.early_stopping import EarlyStopping
 from optimization.schedulers.factory import get_scheduler
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
@@ -30,7 +31,6 @@ class TrainTask(AbstractTask):
         self.task_name = "train"
         self.__setup_optimizer()
         self.__setup_scheduler()
-        self.__setup_regularization()
         self.__setup_amp()
         self.__initialize_weights()
         self.__initialize_early_stopping()
@@ -40,9 +40,8 @@ class TrainTask(AbstractTask):
         """Reinitialize the training task."""
         self.__setup_optimizer()
         self.__setup_scheduler()
-        self.__setup_regularization()
         self.__initialize_weights()
-        self.__initialize_early_stopping()
+        self.early_stopping.reset()
 
     def __setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
@@ -90,10 +89,6 @@ class TrainTask(AbstractTask):
         )
         self.logger.info(f"Scheduler steps per batch: {self.scheduler_step_per_batch}")
 
-    def __setup_regularization(self) -> None:
-        """TODO: Implement regularization setup."""
-        self.logger.info("Initialized regularization: None")
-
     def __setup_amp(self) -> None:
         """Initialize automatic mixed precision (AMP) for training."""
         self.scaler = GradScaler()
@@ -114,8 +109,7 @@ class TrainTask(AbstractTask):
 
     def __initialize_early_stopping(self) -> None:
         """Initialize early stopping."""
-        self.best_val_loss = float("inf")
-        self.no_improvement_epochs = 0
+        self.early_stopping = EarlyStopping()
 
     def run(self) -> TaskResult:
         """Train the model."""
@@ -238,7 +232,7 @@ class TrainTask(AbstractTask):
 
             # Early stopping check
             if self.properties.train.early_stopping.enabled:
-                if self.__early_stopping_check(avg_val_loss):
+                if self.early_stopping.stop_condition_met(avg_val_loss):
                     self.logger.info("Early stopping triggered.")
                     break
 
@@ -390,28 +384,6 @@ class TrainTask(AbstractTask):
 
         avg_val_loss = total_val_loss / total_val_samples
         return avg_val_loss
-
-    def __early_stopping_check(self, val_loss: float) -> bool:
-        """Check if early stopping criteria are met.
-
-        Args:
-            val_loss (float): Current validation loss.
-
-        Returns:
-            bool: True if training should stop, False otherwise.
-        """
-        if (
-            val_loss
-            < self.best_val_loss - self.properties.train.early_stopping.min_delta
-        ):
-            self.best_val_loss = val_loss
-            self.no_improvement_epochs = 0
-        else:
-            self.no_improvement_epochs += 1
-
-        if self.no_improvement_epochs >= self.properties.train.early_stopping.patience:
-            return True
-        return False
 
     def __report_enabled_optimizations(self) -> None:
         """Report the enabled optimizations."""

@@ -75,7 +75,7 @@ class ValidateTask(AbstractTask):
 
         # Calculate average loss
         avg_loss = total_loss / total_samples
-        self.logger.info(f"Average validation loss: {avg_loss:.4f}")
+        self.logger.info(f"Average test loss: {avg_loss:.4f}")
         results["average_loss"] = avg_loss
 
         # Draw image samples if applicable
