@@ -4,6 +4,7 @@ import os
 
 import pandas as pd
 import torch
+from sklearn.model_selection import train_test_split  # type: ignore
 
 from entities.log_manager import LogManager
 from preprocessing.converter.impl.csv_converter import CSVConverter
@@ -49,7 +50,7 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
             self.__load_and_convert_data(self.test_input_path, self.test_output_path)
             self.__apply_transforms(self.test_output_path)
         else:
-            self.__split_test_data()
+            self.__split_train_test()
 
     def __load_and_convert_data(self, input_path: str, output_path: str) -> None:
         """Load and convert data if necessary, then save to the processed path."""
@@ -93,11 +94,13 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
                 f"Preprocessing steps applied to data and saved to {data_path}"
             )
 
-    def __split_test_data(self) -> None:
+    def __split_train_test(self) -> None:
         """Split data into training/validation and test sets if test split is defined."""
         self.logger.info("Splitting data into training/validation and test sets")
 
+        # Get properties for data splitting
         test_split = self.properties.dataset.test_split
+        seed = self.properties.general.seed
 
         if test_split <= 0:
             self.logger.info("Test split not required; skipping data splitting.")
@@ -106,18 +109,17 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         # Load the data
         data = load_data(self.train_output_path)
 
-        # Calculate the sizes of the training/validation and test sets
-        train_val_split = 1 - test_split
-        dataset_size = len(data)
-        train_val_size = int(train_val_split * dataset_size)
-        test_size = dataset_size - train_val_size
-
-        # Split the data
-        self.logger.info(
-            f"Splitting dataset: {train_val_size} train/val, {test_size} test"
+        # Generate random split indices
+        train_val_data, test_data = train_test_split(
+            data,
+            test_size=test_split,
+            random_state=seed,
+            shuffle=True,
         )
-        train_val_data = data.iloc[:train_val_size]
-        test_data = data.iloc[train_val_size:]
+
+        self.logger.info(
+            f"Splitting dataset: {len(train_val_data)} train/val, {len(test_data)} test"
+        )
 
         # Save the splitted data
         save_data(train_val_data, self.train_output_path)

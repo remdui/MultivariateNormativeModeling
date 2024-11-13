@@ -59,23 +59,18 @@ class TabularDataloader(AbstractDataloader):
         self.test_dataset = self.__load__dataset(self.test_data_path)
 
         # Get and log dataset sizes
-        train_dataset_size = len(train_dataset)
-        train_dataset_features = train_dataset.get_num_features()
         self.logger.info(
-            f"Train dataset: {train_dataset_size} samples, {train_dataset_features} features"
+            f"Train dataset: {len(train_dataset)} samples, {train_dataset.get_num_features()} features"
+        )
+        self.logger.info(
+            f"Test dataset: {len(self.test_dataset)} samples, {self.test_dataset.get_num_features()} features"
         )
 
-        test_dataset_size = len(self.test_dataset)
-        test_dataset_features = self.test_dataset.get_num_features()
-        self.logger.info(
-            f"Test dataset: {test_dataset_size} samples, {test_dataset_features} features"
-        )
-
+        # Split the training dataset into training and validation sets according to the configuration
         if self.properties.train.cross_validation:
             self.train_dataset = train_dataset
-            self.val_dataset = None
         else:
-            self.__split_train_val(train_dataset, train_dataset_size)
+            self.__split_train_val(train_dataset)
 
     def __load__dataset(self, file_path: str) -> TabularDataset:
         """Load the dataset from the provided file path."""
@@ -225,25 +220,19 @@ class TabularDataloader(AbstractDataloader):
             for train_idx, val_idx in splitter.split(self.train_dataset):
                 self.train_val_indices.append((train_idx, val_idx))
 
-    def __split_train_val(self, train_dataset: Any, train_dataset_size: int) -> None:
+    def __split_train_val(self, train_dataset: Any) -> None:
         """Split the training dataset into training and validation sets.
 
         Args:
             train_dataset (Any): The training dataset.
-            train_dataset_size (int): The size of the training dataset.
         """
-        # Calculate split sizes
-        train_size = int(self.train_split * train_dataset_size)
-        val_size = int(self.val_split * train_dataset_size)
-        self.logger.info(
-            f"Splitting train dataset: {train_size} train samples, {val_size} validation samples"
-        )
-
         # Split the dataset into training and validation sets
         self.train_dataset, self.val_dataset = random_split(  # type: ignore
             train_dataset,
-            [train_size, val_size],
+            [self.train_split, self.val_split],
             generator=torch.Generator().manual_seed(self.seed),
         )
 
-        self.logger.info("Dataset split successfully into train and validation sets.")
+        self.logger.info(
+            f"Splitting train dataset: {len(self.train_dataset)} train samples, {len(self.val_dataset)} validation samples"
+        )
