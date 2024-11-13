@@ -336,10 +336,8 @@ model:
   - 256
   - 128
   weight_initialization: he_normal
-  dropout:
-    enabled: true
-    p: 0.2
-    inplace: false
+  dropout: false
+  dropout_rate: 0.2
   normalization_layer: batchnorm1d
   normalization_layer_params:
     batchnorm1d:

@@ -19,6 +19,7 @@ class AbstractComponent(nn.Module):
         self.properties = Properties.get_instance()
         self.__initialize_activation_function()
         self.__initialize_final_activation_function()
+        self.__initialize_regularization()
 
     def forward(self, x: Tensor) -> Any:
         """Forward pass of the encoder.
@@ -62,6 +63,13 @@ class AbstractComponent(nn.Module):
         self.final_activation_function = get_activation_function(
             final_activation_function, **final_activation_function_params
         )
+
+    def __initialize_regularization(self) -> None:
+        """Initialize the regularization methods."""
+
+        # Initialize the dropout layer if specified in the model components
+        if self.properties.model.dropout:
+            self.dropout = nn.Dropout(self.properties.model.dropout_rate)
 
     def _get_normalization_layer(self, *args: Any) -> Module:
         """Initialize the normalization layer.

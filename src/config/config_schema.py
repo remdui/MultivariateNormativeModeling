@@ -17,14 +17,6 @@ class TransformConfig(BaseModel):
     params: dict[str, Any]
 
 
-class DropoutConfig(BaseModel):
-    """Dropout configuration."""
-
-    enabled: bool = True
-    p: float = 0.2
-    inplace: bool = False
-
-
 class EarlyStoppingConfig(BaseModel):
     """Early stopping configuration."""
 
@@ -160,7 +152,8 @@ class ModelConfig(BaseModel):
     weight_initializer: str = "he_normal"
 
     # Layer-specific configurations
-    dropout: DropoutConfig = Field(default_factory=DropoutConfig)
+    dropout: bool = False
+    dropout_rate: float = 0.2
 
     normalization_layer: str = "batchnorm1d"
     normalization_layer_params: dict[str, Any] = Field(
