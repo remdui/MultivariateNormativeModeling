@@ -6,6 +6,7 @@ import psutil
 import torch
 
 from entities.log_manager import LogManager
+from entities.properties import Properties
 
 
 def log_system_info() -> None:
@@ -65,3 +66,19 @@ def log_system_info() -> None:
 
     # Log the combined system information
     logger.debug(system_info)
+
+
+def gpu_supported_by_triton_compiler() -> bool:
+    """Check if the GPU supports CUDA compilation."""
+    logger = LogManager.get_logger(__name__)
+    properties = Properties.get_instance()
+    if torch.cuda.is_available() and properties.system.device == "cuda":
+        device_cap = torch.cuda.get_device_capability()
+        if device_cap in ((7, 0), (8, 0), (9, 0)):
+            logger.info("CUDA compilation is supported.")
+            return True
+        logger.warning(
+            "CUDA compilation is not supported. "
+            "Please use NVIDIA V100, A100, or H100 GPUs."
+        )
+    return False

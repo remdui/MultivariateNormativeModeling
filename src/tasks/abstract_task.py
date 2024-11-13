@@ -3,6 +3,8 @@
 from abc import ABC, abstractmethod
 from logging import Logger
 
+import torch
+
 from data.factory import get_dataloader
 from entities.log_manager import LogManager
 from entities.properties import Properties
@@ -10,6 +12,7 @@ from model.models.abstract_model import AbstractModel
 from model.models.factory import get_model
 from optimization.loss_functions.factory import get_loss_function
 from tasks.task_result import TaskResult
+from util.system_utils import gpu_supported_by_triton_compiler
 
 
 class AbstractTask(ABC):
@@ -80,7 +83,15 @@ class AbstractTask(ABC):
         model = get_model(
             self.properties.model.architecture, self.input_dim, self.output_dim
         )
-        self.model = model.to(self.device)
+        model = model.to(self.device)
+
+        if gpu_supported_by_triton_compiler():
+            self.logger.info(
+                "GPU is supported by the Triton compiler, enabling model compilation."
+            )
+            self.model = torch.compile(model)  # type: ignore
+        else:
+            self.model = model
 
         # print model architecture and parameters
         self.logger.info(
