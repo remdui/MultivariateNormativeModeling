@@ -5,6 +5,7 @@ import os
 import yaml
 
 from config.config_schema import (
+    DataAnalysisConfig,
     DatasetConfig,
     GeneralConfig,
     MetaConfig,
@@ -41,6 +42,7 @@ def create_default_config() -> None:
         "general": extract_config(GeneralConfig),
         "meta": extract_config(MetaConfig),
         "dataset": extract_config(DatasetConfig),
+        "data_analysis": extract_config(DataAnalysisConfig),
         "train": extract_config(TrainConfig),
         "model": extract_config(ModelConfig),
         "validation": extract_config(ValidationConfig),

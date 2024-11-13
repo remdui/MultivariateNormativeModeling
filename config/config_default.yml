@@ -45,6 +45,51 @@ dataset:
     type: preprocessing
     params:
       method: min-max
+data_analysis:
+  data_analysis: true
+  dimensionality_reduction:
+    pca: true
+    pca_settings:
+      components: 2
+    tsne: true
+    tsne_settings:
+      components: 2
+      perplexity: 30.0
+    umap: true
+    umap_settings:
+      components: 2
+      neighbors: 15
+  latent_space_analysis:
+    latent_space_analysis: true
+    latent_space_visualization: true
+    disentanglement_analysis: true
+    sensitivity_analysis: true
+    variance_analysis: true
+  reconstruction_analysis:
+    reconstruction_analysis: true
+    reconstruction_error_plot: true
+    reconstruction_metrics:
+    - mse
+    - mae
+  data_exploration:
+    data_exploration: true
+    data_exploration_phases:
+      raw_input: false
+      processed_input: true
+      output: true
+    distribution_plots: true
+    correlation_matrix: true
+    normality_test: true
+    normality_test_method: shapiro
+    normality_threshold: 0.05
+    outlier_detection: true
+    outlier_detection_method: z-score
+    outlier_threshold: 3.0
+    summary_statistics: true
+  visualization:
+    distribution_visualization_method: histogram
+    save_visualizations: true
+    show_visualizations: false
 train:
   batch_size: 32
   cross_validation: false

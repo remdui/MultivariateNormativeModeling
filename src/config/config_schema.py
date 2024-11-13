@@ -9,6 +9,79 @@ from pydantic import BaseModel, Field, model_validator
 ###################################################################
 # Sub-configurations used in the main configuration schema
 ###################################################################
+class DimensionalityReductionConfig(BaseModel):
+    """Dimensionality reduction configuration."""
+
+    pca: bool = True  # Enable PCA
+    pca_settings: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "components": 2,  # Number of components for PCA
+        }
+    )
+    tsne: bool = True  # Enable t-SNE
+    tsne_settings: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "components": 2,  # Number of components for t-SNE
+            "perplexity": 30.0,  # Perplexity parameter for t-SNE
+        }
+    )
+    umap: bool = True  # Enable UMAP
+    umap_settings: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "components": 2,  # Number of components for UMAP
+            "neighbors": 15,  # Number of neighbors for UMAP
+        }
+    )
+
+
+class LatentSpaceAnalysisConfig(BaseModel):
+    """Latent space analysis configuration."""
+
+    latent_space_analysis: bool = True  # Toggle latent space analysis
+    latent_space_visualization: bool = True  # Toggle latent space visualization
+    disentanglement_analysis: bool = True  # Toggle disentanglement analysis
+    sensitivity_analysis: bool = True  # Toggle sensitivity analysis
+    variance_analysis: bool = True  # Toggle variance analysis
+
+
+class ReconstructionAnalysisConfig(BaseModel):
+    """Reconstruction analysis configuration."""
+
+    reconstruction_analysis: bool = True
+    reconstruction_error_plot: bool = True
+    reconstruction_metrics: list[str] = ["mse", "mae"]
+
+
+class DataExplorationConfig(BaseModel):
+    """Data exploration configuration."""
+
+    data_exploration: bool = True
+    data_exploration_phases: dict[str, bool] = Field(
+        default_factory=lambda: {
+            "raw_input": False,
+            "processed_input": True,
+            "output": True,
+        }
+    )
+    distribution_plots: bool = True
+    correlation_matrix: bool = True
+    normality_test: bool = True
+    normality_test_method: str = "shapiro"
+    normality_threshold: float = 0.05
+    outlier_detection: bool = True
+    outlier_detection_method: str = "z-score"
+    outlier_threshold: float = 3.0
+    summary_statistics: bool = True
+
+
+class VisualizationConfig(BaseModel):
+    """Visualization configuration."""
+
+    distribution_visualization_method: str = "histogram"
+    save_visualizations: bool = True
+    show_visualizations: bool = False
+
+
 class TransformConfig(BaseModel):
     """Transform configuration type."""
 
@@ -48,6 +121,25 @@ class ImageConfig(BaseModel):
 ###################################################################
 # Main configuration schema
 ###################################################################
+class DataAnalysisConfig(BaseModel):
+    """Data analysis configuration."""
+
+    data_analysis: bool = True
+    dimensionality_reduction: DimensionalityReductionConfig = Field(
+        default_factory=DimensionalityReductionConfig
+    )
+    latent_space_analysis: LatentSpaceAnalysisConfig = Field(
+        default_factory=LatentSpaceAnalysisConfig
+    )
+    reconstruction_analysis: ReconstructionAnalysisConfig = Field(
+        default_factory=ReconstructionAnalysisConfig
+    )
+    data_exploration: DataExplorationConfig = Field(
+        default_factory=DataExplorationConfig
+    )
+    visualization: VisualizationConfig = Field(default_factory=VisualizationConfig)
+
+
 class DatasetConfig(BaseModel):
     """Dataset configuration."""
 
@@ -637,6 +729,7 @@ class ValidationConfig(BaseModel):
 class ConfigSchema(BaseModel):
     """Configuration schema (following pydantic model validation)."""
 
+    data_analysis: DataAnalysisConfig = Field(default_factory=DataAnalysisConfig)
     dataset: DatasetConfig = Field(default_factory=DatasetConfig)
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     meta: MetaConfig = Field(default_factory=MetaConfig)

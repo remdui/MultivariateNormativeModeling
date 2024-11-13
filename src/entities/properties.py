@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from config.config_schema import (
     ConfigSchema,
+    DataAnalysisConfig,
     DatasetConfig,
     GeneralConfig,
     MetaConfig,
@@ -25,6 +26,7 @@ class Properties:
     _instance = None
 
     # Define the properties for each section. This is necessary for the IDE to provide autocompletion.
+    data_analysis: DataAnalysisConfig
     dataset: DatasetConfig
     general: GeneralConfig
     meta: MetaConfig
