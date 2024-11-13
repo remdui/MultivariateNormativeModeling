@@ -31,3 +31,16 @@ class AbstractDataloader(ABC):
         Returns:
             DataLoader: DataLoader for test data.
         """
+
+    @abstractmethod
+    def fold_dataloader(self, fold: int) -> tuple[DataLoader, DataLoader]:
+        """Get the DataLoader for the training and validation data for a given fold.
+
+        This is used for cross-validation methods.
+
+        Args:
+            fold (int): Fold number.
+
+        Returns:
+            tuple[DataLoader, DataLoader]: DataLoader for training and validation data.
+        """

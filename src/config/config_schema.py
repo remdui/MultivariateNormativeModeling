@@ -309,6 +309,8 @@ class TrainConfig(BaseModel):
 
     # General training settings
     batch_size: int = 32
+    cross_validation: bool = False
+    cross_validation_folds: int = 5
     epochs: int = 20
     gradient_accumulation: bool = False
     gradient_accumulation_steps: int = 10

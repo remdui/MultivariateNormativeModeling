@@ -19,3 +19,7 @@ class Image2DDataLoader(AbstractDataloader):
     def test_dataloader(self) -> DataLoader:
         """Get the DataLoader for the test dataset."""
         raise NotImplementedError
+
+    def fold_dataloader(self, fold: int) -> tuple[DataLoader, DataLoader]:
+        """Get the DataLoader for the training and validation data for a given fold."""
+        raise NotImplementedError

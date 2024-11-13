@@ -33,7 +33,16 @@ class TrainTask(AbstractTask):
         self.__setup_regularization()
         self.__setup_amp()
         self.__initialize_weights()
+        self.__initialize_early_stopping()
         self.__report_enabled_optimizations()
+
+    def __reinitialize_train_task(self) -> None:
+        """Reinitialize the training task."""
+        self.__setup_optimizer()
+        self.__setup_scheduler()
+        self.__setup_regularization()
+        self.__initialize_weights()
+        self.__initialize_early_stopping()
 
     def __setup_optimizer(self) -> None:
         """Get the optimizer based on the configuration."""
@@ -103,65 +112,25 @@ class TrainTask(AbstractTask):
         initialize_weights(self.model, weight_initializer)
         self.logger.info(f"Initialized weights using {weight_initializer}")
 
+    def __initialize_early_stopping(self) -> None:
+        """Initialize early stopping."""
+        self.best_val_loss = float("inf")
+        self.no_improvement_epochs = 0
+
     def run(self) -> TaskResult:
         """Train the model."""
-        epochs = self.properties.train.epochs
-        current_learning_rate = self.scheduler.get_last_lr()[0]
-
         # Initialize the training result
         results = TaskResult()
+        epochs = self.properties.train.epochs
 
         self.logger.info(
             f"Training model: {self.model_name} for {epochs} epochs with batch size {self.batch_size} using device {self.device}"
         )
 
-        for epoch in range(epochs):
-            self.model.train()
-
-            tqdm_loader = tqdm(self.train_dataloader, desc=f"Epoch {epoch+1}/{epochs}")
-
-            avg_loss = self.__process_batch(tqdm_loader)
-
-            self.logger.info(
-                f"Finished epoch {epoch + 1}: average training loss: {avg_loss:.4f}"
-            )
-
-            # Validation loop
-            avg_val_loss = self.__validate()
-            self.logger.info(
-                f"Average validation loss after epoch {epoch + 1}: {avg_val_loss:.4f}"
-            )
-
-            if not self.scheduler_step_per_batch:
-                if self.properties.train.scheduler == "plateau":
-                    self.scheduler.step(avg_val_loss)  # type: ignore
-                else:
-                    self.scheduler.step()
-
-                if current_learning_rate != self.scheduler.get_last_lr()[0]:
-                    current_learning_rate = self.scheduler.get_last_lr()[0]
-                    self.logger.info(
-                        f"Scheduler adjusted the learning rate to: {self.scheduler.get_last_lr()[0]}"
-                    )
-
-            # Early stopping check
-            if self.properties.train.early_stopping.enabled:
-                if self.__early_stopping_check(avg_val_loss):
-                    self.logger.info("Early stopping triggered.")
-                    break
-
-            if (
-                self.properties.train.checkpoint.save_checkpoint
-                and (epoch + 1) % self.properties.train.checkpoint.interval == 0
-            ):
-                save_model(
-                    model=self.model,
-                    epoch=epoch + 1,
-                    save_dir=self.model_save_dir,
-                    model_name=self.model_name,
-                    use_date=False,
-                    save_as_checkpoint=True,
-                )
+        if self.properties.train.cross_validation:
+            self.__run_cross_validation_training(epochs, results)
+        else:
+            self.__run_training(epochs, results)
 
         # Save the final model
         if self.properties.train.save_model:
@@ -175,13 +144,127 @@ class TrainTask(AbstractTask):
         self.logger.info("Training completed.")
         return results
 
-    def __process_batch(self, tqdm_loader: tqdm) -> float:
+    def __run_cross_validation_training(
+        self, epochs: int, results: TaskResult
+    ) -> TaskResult:
+        """Run cross-validation training.
+
+        Args:
+            epochs (int): Number of epochs to train.
+            results (TaskResult): TaskResult object to store the results.
+
+        Returns:
+            TaskResult: TaskResult object with the training results.
+        """
+        for fold in range(self.properties.train.cross_validation_folds):
+            self.logger.info(
+                f"Starting fold {fold + 1} of {self.properties.train.cross_validation_folds}"
+            )
+
+            # Get the training and validation dataloaders for the current fold
+            train_dataloader, val_dataloader = self.dataloader.fold_dataloader(fold)
+
+            # Overwrite the dataloaders for the current fold
+            self.train_dataloader = train_dataloader
+            self.val_dataloader = val_dataloader
+
+            # Reinitialize the training task if not the first fold
+            if fold > 0:
+                self.__reinitialize_train_task()
+
+            # Run the training loop
+            self.__run_training(epochs, results, fold + 1)
+
+        return results
+
+    def __run_training(
+        self, epochs: int, results: TaskResult, fold: int | None = None
+    ) -> TaskResult:
+        """Run the training loop.
+
+        Args:
+            epochs (int): Number of epochs to train.
+            results (TaskResult): TaskResult object to store the results.
+            fold (int | None): The fold number if using cross-validation, None otherwise.
+
+        Returns:
+            TaskResult: TaskResult object with the training results.
+        """
+        current_learning_rate = self.scheduler.get_last_lr()[0]
+
+        for epoch in range(epochs):
+            self.model.train()  # Set model to training mode
+
+            # Process the training data for the current epoch
+            tqdm_loader = tqdm(
+                self.train_dataloader, desc=f"Epoch {epoch + 1}/{epochs}"
+            )
+            avg_loss = self.__train_epoch(tqdm_loader)
+            self.logger.info(
+                f"Average training loss after epoch {epoch + 1}: {avg_loss:.4f}"
+            )
+
+            # Validation loop
+            avg_val_loss = self.__validate()
+            self.logger.info(
+                f"Average validation loss after epoch {epoch + 1}: {avg_val_loss:.4f}"
+            )
+
+            # Store the results in the TaskResult
+            if fold is not None:
+                results[f"reconstruction_loss_fold_{fold}"] = {
+                    "train_loss": avg_loss,
+                    "val_loss": avg_val_loss,
+                }
+            else:
+                results["reconstruction_loss"] = {
+                    "train_loss": avg_loss,
+                    "val_loss": avg_val_loss,
+                }
+
+            # Step the scheduler if not using per-batch steps
+            if not self.scheduler_step_per_batch:
+                if self.properties.train.scheduler == "plateau":
+                    self.scheduler.step(avg_val_loss)  # type: ignore
+                else:
+                    self.scheduler.step()
+
+                # Update and log the learning rate if it has changed
+                if current_learning_rate != self.scheduler.get_last_lr()[0]:
+                    current_learning_rate = self.scheduler.get_last_lr()[0]
+                    self.logger.info(
+                        f"Scheduler adjusted the learning rate to: {self.scheduler.get_last_lr()[0]}"
+                    )
+
+            # Early stopping check
+            if self.properties.train.early_stopping.enabled:
+                if self.__early_stopping_check(avg_val_loss):
+                    self.logger.info("Early stopping triggered.")
+                    break
+
+            # Save model checkpoint if checkpointing is enabled and interval is reached
+            if (
+                self.properties.train.checkpoint.save_checkpoint
+                and (epoch + 1) % self.properties.train.checkpoint.interval == 0
+            ):
+                save_model(
+                    model=self.model,
+                    epoch=epoch + 1,
+                    save_dir=self.model_save_dir,
+                    model_name=self.model_name,
+                    use_date=False,
+                    save_as_checkpoint=True,
+                )
+
+        return results
+
+    def __train_epoch(self, tqdm_loader: tqdm) -> float:
         """Process a batch of data."""
         total_loss = 0.0
         total_samples = 0
 
         for step, batch in enumerate(tqdm_loader):
-            batch_loss, batch_size = self.__train_step(batch, step)
+            batch_loss, batch_size = self.__train_batch(batch, step)
             total_loss += batch_loss  # Accumulate the loss
             total_samples += batch_size  # Accumulate the number of samples
 
@@ -196,7 +279,7 @@ class TrainTask(AbstractTask):
 
         return avg_loss
 
-    def __train_step(self, batch: Any, step: int) -> tuple[float, int]:
+    def __train_batch(self, batch: Any, step: int) -> tuple[float, int]:
         """Perform a single training step."""
         data, _ = batch  # Unpack batch (features, covariates)
         data = data.to(self.device)  # Move data to device
@@ -317,11 +400,6 @@ class TrainTask(AbstractTask):
         Returns:
             bool: True if training should stop, False otherwise.
         """
-        if not hasattr(self, "best_val_loss"):
-            self.best_val_loss = val_loss
-            self.no_improvement_epochs = 0
-            return False
-
         if (
             val_loss
             < self.best_val_loss - self.properties.train.early_stopping.min_delta
@@ -337,6 +415,10 @@ class TrainTask(AbstractTask):
 
     def __report_enabled_optimizations(self) -> None:
         """Report the enabled optimizations."""
+        if self.properties.train.cross_validation:
+            self.logger.info(
+                f"Enabled cross-validation with {self.properties.train.cross_validation_folds} folds."
+            )
         if self.properties.train.mixed_precision:
             self.logger.info("Enabled mixed precision training.")
         if self.properties.train.gradient_accumulation:

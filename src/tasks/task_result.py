@@ -3,6 +3,7 @@
 from typing import Any
 
 from entities.log_manager import LogManager
+from util.math_utils import round_nested
 
 
 class TaskResult:
@@ -19,7 +20,7 @@ class TaskResult:
 
         # Round all the values to 2 decimal places
         for key, value in self.__result_data.items():
-            self.__result_data[key] = round(value, 2)
+            self.__result_data[key] = round_nested(value, 2)
 
     def validate_results(self) -> None:
         """Validate the result data."""

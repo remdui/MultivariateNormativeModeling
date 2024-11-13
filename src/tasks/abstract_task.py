@@ -58,13 +58,15 @@ class AbstractTask(ABC):
 
     def __initialize_dataloader(self) -> None:
         """Initialize the data loader."""
-        dataloader = get_dataloader(self.properties.dataset.data_type)
+        self.dataloader = get_dataloader(self.properties.dataset.data_type)
 
-        self.train_dataloader = dataloader.train_dataloader()
-        self.val_dataloader = dataloader.val_dataloader()
-        self.test_dataloader = dataloader.test_dataloader()
+        self.train_dataloader = self.dataloader.train_dataloader()
+        self.test_dataloader = self.dataloader.test_dataloader()
 
-        self.logger.info(f"Initialized Dataloader: {dataloader}")
+        if not self.properties.train.cross_validation:
+            self.val_dataloader = self.dataloader.val_dataloader()
+
+        self.logger.info(f"Initialized Dataloader: {self.dataloader}")
 
     def __initialize_dimensions(self) -> None:
         """Initialize the input and output dimensions."""
