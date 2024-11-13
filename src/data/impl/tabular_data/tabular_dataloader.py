@@ -3,7 +3,7 @@
 from typing import Any
 
 import torch
-from sklearn.model_selection import KFold  # type: ignore
+from sklearn.model_selection import GroupKFold, KFold, StratifiedKFold  # type: ignore
 from torch.utils.data import DataLoader, Subset, random_split
 
 from data.abstract_dataloader import AbstractDataloader
@@ -199,17 +199,30 @@ class TabularDataloader(AbstractDataloader):
     def __initialize_cross_validation(self) -> None:
         """Initialize the cross-validation folds if enabled."""
         if self.properties.train.cross_validation:
+            cross_validation_method = self.properties.train.cross_validation_method
+            num_folds = self.properties.train.cross_validation_folds
             self.logger.info(
-                f"Cross-validation enabled: splitting training data into {self.properties.train.cross_validation_folds} folds."
+                f"Cross-validation enabled: splitting training data into {num_folds} folds using {cross_validation_method}"
             )
-            self.kfold = KFold(
-                n_splits=self.properties.train.cross_validation_folds,
-                shuffle=True,
-                random_state=self.seed,
-            )
+            if cross_validation_method == "kfold":
+                splitter = KFold(
+                    n_splits=num_folds, shuffle=True, random_state=self.seed
+                )
+            elif cross_validation_method == "stratifiedkfold":
+                splitter = StratifiedKFold(
+                    n_splits=num_folds, shuffle=True, random_state=self.seed
+                )
+            elif cross_validation_method == "groupkfold":
+                splitter = GroupKFold(n_splits=num_folds)
+
+            else:
+                raise ValueError(
+                    f"Invalid cross-validation method: {cross_validation_method}"
+                )
+
             # Store the indices of the training and validation sets for each fold
             self.train_val_indices = []
-            for train_idx, val_idx in self.kfold.split(self.train_dataset):
+            for train_idx, val_idx in splitter.split(self.train_dataset):
                 self.train_val_indices.append((train_idx, val_idx))
 
     def __split_train_val(self, train_dataset: Any, train_dataset_size: int) -> None:

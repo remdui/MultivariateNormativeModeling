@@ -48,6 +48,7 @@ train:
   batch_size: 256
   cross_validation: false
   cross_validation_folds: 5
+  cross_validation_method: kfold
   epochs: 100
   mixed_precision: false
   gradient_accumulation: false

@@ -311,6 +311,7 @@ class TrainConfig(BaseModel):
     batch_size: int = 32
     cross_validation: bool = False
     cross_validation_folds: int = 5
+    cross_validation_method: str = "kfold"
     epochs: int = 20
     gradient_accumulation: bool = False
     gradient_accumulation_steps: int = 10
