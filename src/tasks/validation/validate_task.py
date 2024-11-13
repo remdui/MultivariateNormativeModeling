@@ -6,7 +6,7 @@ import torch
 from torch import Tensor, autocast
 from tqdm import tqdm
 
-from analysis.visualization.image import combine_images, tensor_to_image
+from analysis.tools.visualization.image import combine_images, tensor_to_image
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
@@ -147,6 +147,6 @@ class ValidateTask(AbstractTask):
 
             # Save images
             if self.properties.validation.image.save_image_samples:
-                output_file_path = f"{self.properties.system.output_dir}/{self.model_name}_image_sample_{idx + 1}.png"
+                output_file_path = f"{self.properties.system.output_dir}/reconstructions/{self.model_name}_image_sample_{idx + 1}.png"
                 combined_image.save(output_file_path)
                 self.logger.info(f"Sample {idx + 1} saved to {output_file_path}")

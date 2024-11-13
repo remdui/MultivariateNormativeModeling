@@ -45,7 +45,6 @@ dataset:
     params:
       method: min-max
 data_analysis:
-  data_analysis: true
   dimensionality_reduction:
     pca: true
     pca_settings:
@@ -71,8 +70,7 @@ data_analysis:
     - mse
     - mae
   data_exploration:
-    data_exploration: true
-    data_exploration_phases:
+    phases:
       raw_input: false
       processed_input: true
       output: true

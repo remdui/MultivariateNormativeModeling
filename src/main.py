@@ -14,7 +14,7 @@ from tasks.validation.validate_task import ValidateTask
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
 from util.file_utils import create_storage_directories, write_results_to_file
-from util.model_utils import visualize_model
+from util.model_utils import visualize_model_arch
 from util.system_utils import log_system_info
 
 # Task selection and execution
@@ -127,7 +127,7 @@ def run_task(task_class: type) -> None:
         # If the task is train, visualize the model
         if task_name == "train":
             model = task_instance.get_model()
-            visualize_model(model, task_instance.get_input_size())
+            visualize_model_arch(model, task_instance.get_input_size())
 
     except Exception as e:
         logger.error(f"Task {task_name} failed: {e}", exc_info=True)
@@ -156,8 +156,8 @@ def main() -> None:
         logger = LogManager.get_logger(__name__)
         log_application_info(args)
 
+        # Preprocessing pipeline
         preprocessing_runtime = 0.0
-
         if not args.skip_preprocessing:
             start_time_preprocessing = time.time()
             apply_preprocessing()
@@ -165,8 +165,8 @@ def main() -> None:
         else:
             logger.info("Skipping preprocessing pipeline.")
 
+        # Run the selected task
         task = TASK_MAP.get(args.mode)
-
         if task:
             logger.info(f"Starting {args.mode} process...")
             run_task(task)
@@ -174,11 +174,11 @@ def main() -> None:
             logger.error(f"Unimplemented mode specified: {args.mode}")
             return
 
+        # Report runtime information
         if preprocessing_runtime > 0:
             logger.info(
                 f"Preprocessing completed in {preprocessing_runtime:.2f} seconds."
             )
-
         total_runtime = time.time() - start_time
         logger.info(f"Application completed in {total_runtime:.2f} seconds.")
 

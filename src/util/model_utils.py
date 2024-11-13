@@ -85,13 +85,13 @@ def load_model(model: AbstractModel, model_path: str, device: str) -> AbstractMo
     return model
 
 
-def visualize_model(model: nn.Module, input_size: int) -> None:
+def visualize_model_arch(model: nn.Module, input_size: int) -> None:
     """Visualize the model architecture."""
     logger = LogManager.get_logger(__name__)
 
     properties = Properties.get_instance()
     batch_size = properties.train.batch_size
-    output_dir = properties.system.output_dir
+    output_dir = properties.system.output_dir + "/model_arch"
     model_name = properties.model_name
 
     file_name = f"{model_name}_model_arch"

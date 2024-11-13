@@ -29,7 +29,7 @@ def write_results_to_file(
     model_name = properties.model_name
 
     # Define the filename
-    filename = f"{output_dir}/{model_name}_{task}_{output_identifier}.json"
+    filename = f"{output_dir}/metrics/{model_name}_{task}_{output_identifier}.json"
 
     # Convert TaskResult data to a dictionary
     result_data = task_result.get_data()
@@ -42,38 +42,37 @@ def write_results_to_file(
 
 
 def create_storage_directories() -> None:
-    """Create directories for storing logs and models if they do not exist.
+    """Create directories for storing logs, models, and outputs if they do not exist.
 
-    Data directory is not created here as it is required to be created by the user.
+    Data directory is required to be created by the user.
     """
-    # Get logger
+    # Get logger and properties
     logger = LogManager.get_logger(__name__)
-
-    # Get file paths from properties
     properties = Properties.get_instance()
-    log_dir = properties.system.log_dir
-    models_dir = properties.system.models_dir
-    output_dir = properties.system.output_dir
 
-    # Create log directory if it does not exist
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-        logger.info(f"Created log directory: {log_dir}")
+    # Define the main directories and their respective subdirectories
+    directories = {
+        properties.system.log_dir: [],
+        properties.system.models_dir: ["checkpoints"],
+        properties.system.output_dir: [
+            "reconstructions",
+            "visualizations",
+            "model_arch",
+            "metrics",
+        ],
+    }
 
-    # Create models directory if it does not exist
-    if not os.path.exists(models_dir):
-        os.makedirs(models_dir)
-        logger.info(f"Created models directory: {models_dir}")
+    # Create each main directory and its subdirectories as needed
+    for main_dir, sub_dirs in directories.items():
+        if not os.path.exists(main_dir):
+            os.makedirs(main_dir)
+            logger.info(f"Created directory: {main_dir}")
 
-        # Create checkpoints subdirectory
-        checkpoints_dir = os.path.join(models_dir, "checkpoints")
-        os.makedirs(checkpoints_dir)
-        logger.info(f"Created checkpoints directory: {checkpoints_dir}")
-
-    # Create output directory if it does not exist
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-        logger.info(f"Created output directory: {output_dir}")
+        for sub_dir in sub_dirs:
+            sub_dir_path = os.path.join(main_dir, sub_dir)
+            if not os.path.exists(sub_dir_path):
+                os.makedirs(sub_dir_path)
+                logger.info(f"Created subdirectory: {sub_dir_path}")
 
 
 def is_data_file(file_path: str) -> bool:

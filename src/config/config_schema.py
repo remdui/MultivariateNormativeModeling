@@ -55,8 +55,7 @@ class ReconstructionAnalysisConfig(BaseModel):
 class DataExplorationConfig(BaseModel):
     """Data exploration configuration."""
 
-    data_exploration: bool = True
-    data_exploration_phases: dict[str, bool] = Field(
+    phases: dict[str, bool] = Field(
         default_factory=lambda: {
             "raw_input": False,
             "processed_input": True,
@@ -124,7 +123,6 @@ class ImageConfig(BaseModel):
 class DataAnalysisConfig(BaseModel):
     """Data analysis configuration."""
 
-    data_analysis: bool = True
     dimensionality_reduction: DimensionalityReductionConfig = Field(
         default_factory=DimensionalityReductionConfig
     )
