@@ -18,7 +18,7 @@ def data_tensors_fixture():
 def test_rmse_per_sample(data_tensors):
     """Test RMSE per sample."""
     original, reconstructed = data_tensors
-    rmse = compute_rmse(original, reconstructed, rmse_type="sample")
+    rmse = compute_rmse(original, reconstructed, metric_type="sample")
     # Expected RMSE per sample: [sqrt((0.2^2 + 0.2^2)/2), sqrt((0.1^2 + 0.1^2)/2)] = [0.2, 0.1]
     expected_rmse = Tensor([0.2, 0.1])
     assert torch.allclose(rmse, expected_rmse), f"Expected {expected_rmse}, got {rmse}"
@@ -27,7 +27,7 @@ def test_rmse_per_sample(data_tensors):
 def test_rmse_per_feature(data_tensors):
     """Test RMSE per feature."""
     original, reconstructed = data_tensors
-    rmse = compute_rmse(original, reconstructed, rmse_type="feature")
+    rmse = compute_rmse(original, reconstructed, metric_type="feature")
     # Expected RMSE per feature: [sqrt((0.2^2 + 0.1^2)/2), sqrt((0.2^2 + 0.1^2)/2)] = [0.158113883, 0.158113883]
     expected_rmse = Tensor([0.158113883, 0.158113883])
     assert torch.allclose(rmse, expected_rmse), f"Expected {expected_rmse}, got {rmse}"
@@ -36,7 +36,7 @@ def test_rmse_per_feature(data_tensors):
 def test_rmse_total(data_tensors):
     """Test total RMSE."""
     original, reconstructed = data_tensors
-    rmse = compute_rmse(original, reconstructed, rmse_type="total")
+    rmse = compute_rmse(original, reconstructed, metric_type="total")
     # Expected total RMSE: sqrt((0.2^2 + 0.2^2 + 0.1^2 + 0.1^2) / 4) = 0.158113883
     expected_rmse = Tensor([0.158113883])
     assert torch.allclose(rmse, expected_rmse), f"Expected {expected_rmse}, got {rmse}"
@@ -46,7 +46,7 @@ def test_invalid_rmse_type(data_tensors):
     """Test invalid RMSE type."""
     original, reconstructed = data_tensors
     with pytest.raises(ValueError, match="Invalid rmse_type: invalid. Choose from"):
-        compute_rmse(original, reconstructed, rmse_type="invalid")
+        compute_rmse(original, reconstructed, metric_type="invalid")
 
 
 def test_shape_mismatch():

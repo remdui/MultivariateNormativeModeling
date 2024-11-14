@@ -7,14 +7,14 @@ from torch import Tensor
 def compute_mae(
     original: Tensor,
     reconstructed: Tensor,
-    mae_type: str = "total",
+    metric_type: str = "total",
 ) -> Tensor:
     """Compute Mean Absolute Error (MAE) for different types.
 
     Args:
         original (Tensor): Original data tensor (num_samples, num_features).
         reconstructed (Tensor): Reconstructed data tensor (num_samples, num_features).
-        mae_type (str): Type of MAE to compute. Options are 'sample', 'feature', 'total', 'covariate'.
+        metric_type (str): Type of MAE to compute. Options are 'sample', 'feature', 'total', 'covariate'.
 
     Returns:
         Tensor: Computed MAE based on the specified type.
@@ -26,23 +26,23 @@ def compute_mae(
     absolute_error = torch.abs(original - reconstructed)
 
     # MAE per sample
-    if mae_type == "sample":
+    if metric_type == "sample":
         # Average over features for each sample
         mae = absolute_error.mean(dim=1)
 
     # MAE per feature
-    elif mae_type == "feature":
+    elif metric_type == "feature":
         # Average over samples for each feature
         mae = absolute_error.mean(dim=0)
 
     # MAE total
-    elif mae_type == "total":
+    elif metric_type == "total":
         # Average over all samples and features
         mae = absolute_error.mean()
 
     else:
         raise ValueError(
-            f"Invalid mae_type: {mae_type}. Choose from 'sample', 'feature', 'total', 'covariate'."
+            f"Invalid mae_type: {metric_type}. Choose from 'sample', 'feature', 'total', 'covariate'."
         )
 
     return mae

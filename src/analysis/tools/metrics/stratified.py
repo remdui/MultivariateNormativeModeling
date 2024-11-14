@@ -7,7 +7,7 @@ import torch
 
 
 def compute_stratified_metric(
-    metric_fn: Callable[[torch.Tensor, torch.Tensor, str], torch.Tensor],
+    metric_fn: Callable[..., torch.Tensor],
     original_data: torch.Tensor,
     reconstructed_data: torch.Tensor,
     covariate_data: torch.Tensor,
@@ -74,5 +74,7 @@ def compute_stratified_metric(
             "Filtering resulted in an empty dataset. Adjust covariate values."
         )
 
-    # Compute and return the metric on the filtered data
-    return metric_fn(filtered_original, filtered_reconstructed, metric_type)
+    # Check if the metric function supports the metric_type argument
+    if "metric_type" in metric_fn.__code__.co_varnames:
+        return metric_fn(filtered_original, filtered_reconstructed, metric_type)
+    return metric_fn(filtered_original, filtered_reconstructed)
