@@ -42,35 +42,11 @@ def test_mse_total(data_tensors):
     assert torch.allclose(mse, expected_mse), f"Expected {expected_mse}, got {mse}"
 
 
-def test_mse_per_covariate(data_tensors):
-    """Test MSE per covariate."""
-    original, reconstructed = data_tensors
-    covariate_indices = [0]  # Only consider the 1st feature
-    mse = compute_mse(
-        original,
-        reconstructed,
-        covariate_indices=covariate_indices,
-        mse_type="covariate",
-    )
-    # Expected MSE for covariate (first feature): [(0.2^2 + 0.1^2) / 2] = [0.025]
-    expected_mse = Tensor([0.025])
-    assert torch.allclose(mse, expected_mse), f"Expected {expected_mse}, got {mse}"
-
-
 def test_invalid_mse_type(data_tensors):
     """Test invalid MSE type."""
     original, reconstructed = data_tensors
     with pytest.raises(ValueError, match="Invalid mse_type: invalid. Choose from"):
         compute_mse(original, reconstructed, mse_type="invalid")
-
-
-def test_covariate_indices_required(data_tensors):
-    """Test that covariate indices are required for 'covariate' MSE."""
-    original, reconstructed = data_tensors
-    with pytest.raises(
-        ValueError, match="Covariate indices must be provided for 'covariate' MSE"
-    ):
-        compute_mse(original, reconstructed, mse_type="covariate")
 
 
 def test_shape_mismatch():

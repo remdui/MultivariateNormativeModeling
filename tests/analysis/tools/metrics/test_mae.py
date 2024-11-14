@@ -42,35 +42,11 @@ def test_mae_total(data_tensors):
     assert torch.allclose(mae, expected_mae), f"Expected {expected_mae}, got {mae}"
 
 
-def test_mae_per_covariate(data_tensors):
-    """Test MAE per covariate."""
-    original, reconstructed = data_tensors
-    covariate_indices = [0]  # Only consider the 1st feature
-    mae = compute_mae(
-        original,
-        reconstructed,
-        covariate_indices=covariate_indices,
-        mae_type="covariate",
-    )
-    # Expected MAE for covariate (first feature): [(|1.0 - 1.2| + |3.0 - 3.1|) / 2] = [0.15]
-    expected_mae = Tensor([0.15])
-    assert torch.allclose(mae, expected_mae), f"Expected {expected_mae}, got {mae}"
-
-
 def test_invalid_mae_type(data_tensors):
     """Test invalid MAE type."""
     original, reconstructed = data_tensors
     with pytest.raises(ValueError, match="Invalid mae_type: invalid. Choose from"):
         compute_mae(original, reconstructed, mae_type="invalid")
-
-
-def test_covariate_indices_required(data_tensors):
-    """Test that covariate indices are required for 'covariate' MAE."""
-    original, reconstructed = data_tensors
-    with pytest.raises(
-        ValueError, match="Covariate indices must be provided for 'covariate' MAE"
-    ):
-        compute_mae(original, reconstructed, mae_type="covariate")
 
 
 def test_shape_mismatch():

@@ -7,7 +7,6 @@ from torch import Tensor
 def compute_mae(
     original: Tensor,
     reconstructed: Tensor,
-    covariate_indices: list[int] | None = None,
     mae_type: str = "total",
 ) -> Tensor:
     """Compute Mean Absolute Error (MAE) for different types.
@@ -15,7 +14,6 @@ def compute_mae(
     Args:
         original (Tensor): Original data tensor (num_samples, num_features).
         reconstructed (Tensor): Reconstructed data tensor (num_samples, num_features).
-        covariate_indices (Optional[list[int]]): Indices of covariate features for 'covariate' MAE type.
         mae_type (str): Type of MAE to compute. Options are 'sample', 'feature', 'total', 'covariate'.
 
     Returns:
@@ -41,13 +39,6 @@ def compute_mae(
     elif mae_type == "total":
         # Average over all samples and features
         mae = absolute_error.mean()
-
-    # MAE per covariate
-    elif mae_type == "covariate":
-        if covariate_indices is None:
-            raise ValueError("Covariate indices must be provided for 'covariate' MAE.")
-        # Filter absolute error for covariate features and average over samples
-        mae = absolute_error[:, covariate_indices].mean(dim=0)
 
     else:
         raise ValueError(

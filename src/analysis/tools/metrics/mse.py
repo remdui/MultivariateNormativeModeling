@@ -6,7 +6,6 @@ from torch import Tensor
 def compute_mse(
     original: Tensor,
     reconstructed: Tensor,
-    covariate_indices: list[int] | None = None,
     mse_type: str = "total",
 ) -> Tensor:
     """Compute Mean Squared Error (MSE) for different types.
@@ -14,7 +13,6 @@ def compute_mse(
     Args:
         original (Tensor): Original data tensor (num_samples, num_features).
         reconstructed (Tensor): Reconstructed data tensor (num_samples, num_features).
-        covariate_indices (Optional[list[int]]): Indices of covariate features for 'covariate' MSE type.
         mse_type (str): Type of MSE to compute. Options are 'sample', 'feature', 'total', 'covariate'.
 
     Returns:
@@ -41,16 +39,9 @@ def compute_mse(
         # Average over all samples and features
         mse = squared_error.mean()
 
-    # MSE per covariate
-    elif mse_type == "covariate":
-        if covariate_indices is None:
-            raise ValueError("Covariate indices must be provided for 'covariate' MSE.")
-        # Filter squared error for covariate features and average over samples
-        mse = squared_error[:, covariate_indices].mean(dim=0)
-
     else:
         raise ValueError(
-            f"Invalid mse_type: {mse_type}. Choose from 'sample', 'feature', 'total', 'covariate'."
+            f"Invalid mse_type: {mse_type}. Choose from 'sample', 'feature', 'total'."
         )
 
     return mse
