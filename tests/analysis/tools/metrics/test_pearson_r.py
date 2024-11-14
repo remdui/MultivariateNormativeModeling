@@ -3,9 +3,7 @@
 import pytest
 import torch
 
-from analysis.tools.metrics.pearson_r import (
-    compute_pearson_r,  # Adjust import path as needed
-)
+from analysis.tools.metrics.pearson_r import compute_pearson_r
 
 
 @pytest.fixture(name="data_tensors")
