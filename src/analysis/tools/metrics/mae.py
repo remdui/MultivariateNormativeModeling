@@ -11,6 +11,10 @@ def compute_mae(
 ) -> Tensor:
     """Compute Mean Absolute Error (MAE) for different types.
 
+    MAE assesses the average absolute difference between original and reconstructed values, providing an interpretable measure of error that is less sensitive to large outliers compared to MSE
+
+    Equation: MAE = 1/n * Σ |original - reconstructed|
+
     Args:
         original (Tensor): Original data tensor (num_samples, num_features).
         reconstructed (Tensor): Reconstructed data tensor (num_samples, num_features).

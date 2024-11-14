@@ -7,6 +7,11 @@ from torch import Tensor
 def compute_evs(original: Tensor, reconstructed: Tensor) -> Tensor:
     """Compute the Explained Variance Score (EVS) per feature.
 
+    EVS measures how much of the variance in each feature is captured by the reconstruction, indicating the model's effectiveness in preserving variability without focusing on the direction of errors
+    Note: Similar to R², but does not penalize for the direction of errors
+
+    Equation: EVS = 1 - Var(residuals) / Var(original)
+
     Args:
         original (Tensor): Original data tensor (num_samples, num_features).
         reconstructed (Tensor): Reconstructed data tensor (num_samples, num_features).

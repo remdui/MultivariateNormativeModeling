@@ -10,6 +10,9 @@ def compute_mse(
 ) -> Tensor:
     """Compute Mean Squared Error (MSE) for different types.
 
+    MSE is used to measure the average squared difference between original and reconstructed values, helping to quantify the overall reconstruction error magnitude
+
+    Equation: MSE = 1/n * Σ (original - reconstructed)²
     Args:
         original (Tensor): Original data tensor (num_samples, num_features).
         reconstructed (Tensor): Reconstructed data tensor (num_samples, num_features).

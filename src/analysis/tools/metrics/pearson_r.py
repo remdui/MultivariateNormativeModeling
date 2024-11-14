@@ -7,6 +7,10 @@ from torch import Tensor
 def compute_pearson_r(original: Tensor, reconstructed: Tensor) -> Tensor:
     """Compute Pearson’s r (correlation) per feature.
 
+    Pearson’s r measures the linear correlation between original and reconstructed values per feature, assessing the consistency of the trend or pattern
+
+    Equation: Pearson's r = Cov(X, Y) / (σ_X * σ_Y)
+
     Args:
         original (Tensor): Original data tensor (num_samples, num_features).
         reconstructed (Tensor): Reconstructed data tensor (num_samples, num_features).

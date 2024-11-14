@@ -11,6 +11,10 @@ def compute_rmse(
 ) -> Tensor:
     """Compute Root Mean Squared Error (RMSE) for different types.
 
+    MSE provides the square root of the average squared differences, combining sensitivity to large errors with interpretability on the same scale as the original data
+
+    Equation: RMSE = sqrt(1/n * Σ (original - reconstructed)²)
+
     Args:
         original (Tensor): Original data tensor (num_samples, num_features).
         reconstructed (Tensor): Reconstructed data tensor (num_samples, num_features).

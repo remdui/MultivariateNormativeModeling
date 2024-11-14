@@ -7,6 +7,10 @@ from torch import Tensor
 def compute_r2_score(original: Tensor, reconstructed: Tensor) -> Tensor:
     """Compute the R² Score per feature.
 
+    R² quantifies the proportion of variance in the original data that is captured by the reconstruction, providing a measure of explained variability.
+
+    Equation: R² = 1 - Var(residuals) / Var(original)
+
     Args:
         original (Tensor): Original data tensor (num_samples, num_features).
         reconstructed (Tensor): Reconstructed data tensor (num_samples, num_features).
