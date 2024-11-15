@@ -1,18 +1,17 @@
 """Functions to evaluate the correlation between reconstruction error and covariates."""
 
+from collections.abc import Callable
+
 import torch
 
-from analysis.metrics.mae import compute_mae
 from analysis.metrics.pearson_r import compute_pearson_r
-from analysis.metrics.rmse import compute_rmse
 
 
 def evaluate_covariates_correlation(
     original: torch.Tensor,
     reconstructed: torch.Tensor,
     covariates: torch.Tensor,
-    metric: str = "rmse",
-    correlation_type: str = "pearson",
+    metric_fn: Callable[..., torch.Tensor],
 ) -> torch.Tensor:
     """
     Analyze the correlation between reconstruction error and multiple covariates.
@@ -21,8 +20,8 @@ def evaluate_covariates_correlation(
         original (torch.Tensor): Original data tensor (num_samples, num_features).
         reconstructed (torch.Tensor): Reconstructed data tensor (num_samples, num_features).
         covariates (torch.Tensor): Covariate values (num_samples, num_covariates).
-        metric (str): Metric to compute reconstruction error. Options: 'rmse', 'mae'.
-        correlation_type (str): Type of correlation to compute. Options: 'pearson', 'spearman'.
+        metric_fn (callable): Function to compute reconstruction error. Must accept
+                              'metric_type' as a keyword argument and support 'sample'.
 
     Returns:
         torch.Tensor: Tensor of correlation values for each covariate.
@@ -32,29 +31,18 @@ def evaluate_covariates_correlation(
     if covariates.shape[0] != original.shape[0]:
         raise ValueError("Number of covariates must match the number of samples.")
 
-    # Compute reconstruction error
-    if metric == "rmse":
-        reconstruction_error = compute_rmse(
-            original, reconstructed, metric_type="sample"
-        )
-    elif metric == "mae":
-        reconstruction_error = compute_mae(
-            original, reconstructed, metric_type="sample"
-        )
-    else:
-        raise ValueError(f"Unsupported metric: {metric}. Choose 'rmse' or 'mae'.")
+    # Verify the metric function supports the `metric_type` argument
+    if "metric_type" not in metric_fn.__code__.co_varnames:
+        raise ValueError("The provided metric function does not support 'metric_type'.")
 
-    # Compute correlations for each covariate
+    # Compute reconstruction error using the provided metric function with 'metric_type=sample'
+    reconstruction_error = metric_fn(original, reconstructed, metric_type="sample")
+
+    # Compute correlations for each covariate using Pearson correlation
     correlations = []
     for cov_idx in range(covariates.shape[1]):
         covariate = covariates[:, cov_idx]
-        if correlation_type == "pearson":
-            corr = compute_pearson_r(reconstruction_error, covariate)
-        else:
-            raise ValueError(
-                f"Unsupported correlation_type: {correlation_type}. Choose 'pearson' or 'spearman'."
-            )
-
+        corr = compute_pearson_r(reconstruction_error, covariate)
         correlations.append(corr)
 
     # Convert correlations to a tensor

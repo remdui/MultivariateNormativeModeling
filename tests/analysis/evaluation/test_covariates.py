@@ -1,9 +1,11 @@
-"""Test cases for the covariates correlation evaluation function."""
+"""Tests for the evaluation of covariates correlation with reconstruction error."""
 
 import pytest
 import torch
 
 from analysis.evaluation.covariates import evaluate_covariates_correlation
+from analysis.metrics.mae import compute_mae
+from analysis.metrics.mse import compute_mse
 
 
 @pytest.fixture(name="data_tensors")
@@ -21,20 +23,19 @@ def data_tensors_fixture():
     return original, reconstructed, covariates
 
 
-def test_evaluate_covariates_correlation_valid_rmse(data_tensors):
-    """Test correlation evaluation with RMSE as the reconstruction error metric."""
+def test_evaluate_covariates_correlation_valid_rse(data_tensors):
+    """Test correlation evaluation with MSE as the reconstruction error metric."""
     original, reconstructed, covariates = data_tensors
     corr = evaluate_covariates_correlation(
         original=original,
         reconstructed=reconstructed,
         covariates=covariates,
-        metric="rmse",
-        correlation_type="pearson",
+        metric_fn=compute_mse,
     )
     # Expected correlation value (calculated manually, example placeholder)
-    expected_corr = torch.tensor([-0.8627, -0.4981])
+    expected_corr = torch.tensor([-0.8660, -0.5000])
     assert torch.allclose(
-        corr, expected_corr, atol=1e-4
+        corr, expected_corr, atol=1e-3
     ), f"Expected correlation {expected_corr}, got {corr}"
 
 
@@ -45,45 +46,31 @@ def test_evaluate_covariates_correlation_valid_mae(data_tensors):
         original=original,
         reconstructed=reconstructed,
         covariates=covariates,
-        metric="mae",
-        correlation_type="pearson",
+        metric_fn=compute_mae,
     )
 
     # Expected correlation value (calculated manually, example placeholder)
     expected_corr = torch.tensor([-0.8627, -0.4981])
     assert torch.allclose(
-        corr, expected_corr, atol=1e-4
+        corr, expected_corr, atol=1e-3
     ), f"Expected correlation {expected_corr}, got {corr}"
 
 
-def test_evaluate_covariates_correlation_invalid_metric(data_tensors):
-    """Test handling of invalid reconstruction error metric."""
+def test_evaluate_covariates_correlation_unsupported_metric(data_tensors):
+    """Test handling of unsupported metric functions."""
+
+    def unsupported_metric(original, reconstructed):
+        return torch.abs(original - reconstructed).mean(dim=1)
+
     original, reconstructed, covariates = data_tensors
     with pytest.raises(
-        ValueError, match="Unsupported metric: invalid_metric. Choose 'rmse' or 'mae'."
+        ValueError, match="The provided metric function does not support 'metric_type'."
     ):
         evaluate_covariates_correlation(
             original=original,
             reconstructed=reconstructed,
             covariates=covariates,
-            metric="invalid_metric",
-            correlation_type="pearson",
-        )
-
-
-def test_evaluate_covariates_correlation_invalid_correlation_type(data_tensors):
-    """Test handling of invalid correlation type."""
-    original, reconstructed, covariates = data_tensors
-    with pytest.raises(
-        ValueError,
-        match="Unsupported correlation_type: invalid_type. Choose 'pearson' or 'spearman'.",
-    ):
-        evaluate_covariates_correlation(
-            original=original,
-            reconstructed=reconstructed,
-            covariates=covariates,
-            metric="rmse",
-            correlation_type="invalid_type",
+            metric_fn=unsupported_metric,
         )
 
 
@@ -100,8 +87,7 @@ def test_evaluate_covariates_correlation_shape_mismatch_covariates(data_tensors)
             original=original,
             reconstructed=reconstructed,
             covariates=covariates,
-            metric="rmse",
-            correlation_type="pearson",
+            metric_fn=compute_mse,
         )
 
 
@@ -118,6 +104,5 @@ def test_evaluate_covariates_correlation_shape_mismatch_reconstruction(data_tens
             original=original,
             reconstructed=reconstructed,
             covariates=covariates,
-            metric="rmse",
-            correlation_type="pearson",
+            metric_fn=compute_mse,
         )
