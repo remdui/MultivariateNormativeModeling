@@ -2,18 +2,18 @@
 
 from typing import Any
 
-from analysis.abstract_data_analysis import AbstractDataAnalysis
-from analysis.impl.tabular_data_analysis import TabularDataAnalysis
+from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
+from analysis.engine.impl.tabular_analysis_engine import TabularAnalysisEngine
 
 # Mapping for available data analysis types
-ANALYSIS_MAPPING: dict[str, type[AbstractDataAnalysis]] = {
-    "tabular": TabularDataAnalysis,
+ANALYSIS_MAPPING: dict[str, type[AbstractAnalysisEngine]] = {
+    "tabular": TabularAnalysisEngine,
 }
 
 
 def create_data_analysis(
     data_type: str, *args: Any, **kwargs: Any
-) -> AbstractDataAnalysis:
+) -> AbstractAnalysisEngine:
     """Factory function to create the appropriate data analysis instance.
 
     Args:

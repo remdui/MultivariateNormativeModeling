@@ -8,7 +8,7 @@ from entities.log_manager import LogManager
 from entities.properties import Properties
 
 
-class AbstractDataExploration(ABC):
+class AbstractDataExplorer(ABC):
     """Class to perform data exploration."""
 
     def __init__(

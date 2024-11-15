@@ -4,12 +4,12 @@ from abc import ABC, abstractmethod
 from logging import Logger
 from typing import Any
 
-from analysis.exploration.exploration_phase import DataExplorationPhase
+from analysis.explorer.exploration_phase import DataExplorationPhase
 from entities.log_manager import LogManager
 from entities.properties import Properties
 
 
-class AbstractDataAnalysis(ABC):
+class AbstractAnalysisEngine(ABC):
     """Class to perform data analysis."""
 
     def __init__(self, logger: Logger = LogManager.get_logger(__name__)) -> None:

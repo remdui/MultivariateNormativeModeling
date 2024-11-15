@@ -5,12 +5,6 @@ import torch
 
 from analysis.metrics.mehalanobis import compute_mahalanobis_distance
 
-# Set random seed and deterministic settings
-torch.manual_seed(42)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-torch.set_num_threads(1)
-
 
 @pytest.fixture(name="data_tensors")
 def data_tensors_fixture():

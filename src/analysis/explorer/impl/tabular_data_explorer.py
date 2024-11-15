@@ -2,11 +2,11 @@
 
 from typing import Any
 
-from analysis.exploration.abstract_data_exploration import AbstractDataExploration
+from analysis.explorer.abstract_data_explorer import AbstractDataExplorer
 from entities.log_manager import LogManager
 
 
-class TabularDataExploration(AbstractDataExploration):
+class TabularDataExplorer(AbstractDataExplorer):
     """Class to perform data exploration."""
 
     def __init__(self, data: Any) -> None:
@@ -16,7 +16,7 @@ class TabularDataExploration(AbstractDataExploration):
 
     def run(self) -> None:
         """Run the data exploration pipeline."""
-        self.logger.info("Starting Data Exploration.")
+        self.logger.info("Starting Data Explorer.")
 
         self.logger.info(f"Number of samples: {self.data.get_num_samples()}")
         self.logger.info(f"Number of features: {self.data.get_num_features()}")

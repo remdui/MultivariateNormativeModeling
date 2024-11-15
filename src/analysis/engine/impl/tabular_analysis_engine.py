@@ -2,13 +2,13 @@
 
 from typing import Any
 
-from analysis.abstract_data_analysis import AbstractDataAnalysis
-from analysis.exploration.exploration_phase import DataExplorationPhase
-from analysis.exploration.impl.tabular_data_exploration import TabularDataExploration
+from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
+from analysis.explorer.exploration_phase import DataExplorationPhase
+from analysis.explorer.impl.tabular_data_explorer import TabularDataExplorer
 from entities.log_manager import LogManager
 
 
-class TabularDataAnalysis(AbstractDataAnalysis):
+class TabularAnalysisEngine(AbstractAnalysisEngine):
     """Class to perform data analysis for tabular data."""
 
     def __init__(self) -> None:
@@ -23,7 +23,7 @@ class TabularDataAnalysis(AbstractDataAnalysis):
         phase_config = self.data_exploration_module.phases.get(str(phase))
 
         if phase_config:
-            TabularDataExploration(data).run()
+            TabularDataExplorer(data).run()
         else:
             self.logger.warning(
                 f"Data Exploration phase {phase.name} is not configured or disabled."
