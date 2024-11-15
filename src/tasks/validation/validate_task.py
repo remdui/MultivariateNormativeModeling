@@ -6,7 +6,7 @@ import torch
 from torch import Tensor, autocast
 from tqdm import tqdm
 
-from analysis.tools.visualization.image import combine_images, tensor_to_image
+from analysis.visualization.image import combine_images, tensor_to_image
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult

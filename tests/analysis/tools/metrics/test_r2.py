@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from analysis.tools.metrics.r2 import compute_r2_score
+from analysis.metrics.r2 import compute_r2_score
 
 
 @pytest.fixture(name="data_tensors")

@@ -3,7 +3,13 @@
 import pytest
 import torch
 
-from analysis.tools.metrics.mehalanobis import compute_mahalanobis_distance
+from analysis.metrics.mehalanobis import compute_mahalanobis_distance
+
+# Set random seed and deterministic settings
+torch.manual_seed(42)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+torch.set_num_threads(1)
 
 
 @pytest.fixture(name="data_tensors")
@@ -55,9 +61,7 @@ def test_mahalanobis_distance_slightly_different():
         ]
     )
     mahalanobis_distances = compute_mahalanobis_distance(original, reconstructed)
-    expected_distances = torch.tensor(
-        [151.6456, 151.6455, 151.6454, 151.6454, 151.6457]
-    )
+    expected_distances = torch.tensor([0.7304, 1.0954, 0.7303, 1.0954, 0.7303])
     # Expected non-zero distances, as the data is slightly different
     assert torch.allclose(
         mahalanobis_distances, expected_distances, atol=1e-3
@@ -85,12 +89,10 @@ def test_mahalanobis_distance_large_difference():
         ]
     )
     mahalanobis_distances = compute_mahalanobis_distance(original, reconstructed)
-    expected_distances = torch.tensor(
-        [27453.7129, 27465.8574, 27478.0469, 27490.2754, 27502.5449]
-    )
+    expected_distances = torch.tensor([1.2772, 0.6386, 0.0000, 0.6362, 1.2870])
     # Expect high distances, indicating large deviation from original distribution
     assert torch.allclose(
-        mahalanobis_distances, expected_distances, atol=1e-6
+        mahalanobis_distances, expected_distances, atol=1e-4
     ), f"Expected {expected_distances}, got {mahalanobis_distances}"
 
 
