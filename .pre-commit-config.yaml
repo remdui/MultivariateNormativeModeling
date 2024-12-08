@@ -94,7 +94,7 @@ repos:
         language: system
         types: [ python ]
         require_serial: true
-        args: [-bB, -mB, -aA]
+        args: [-bB, -mB, -aA, ./src]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
