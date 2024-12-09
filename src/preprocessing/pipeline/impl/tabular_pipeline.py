@@ -52,6 +52,9 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         else:
             self.__split_train_test()
 
+        # Remove skipped columns from the processed data
+        self.__remove_skipped_columns()
+
     def __load_and_convert_data(self, input_path: str, output_path: str) -> None:
         """Load and convert data if necessary, then save to the processed path."""
         self.logger.info(f"Loading and converting input data: {input_path}")
@@ -95,27 +98,72 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
             )
 
     def __split_train_test(self) -> None:
-        """Split data into training/validation and test sets if test split is defined."""
+        """Split data into training/validation and test sets without data leakage.
+
+        across groups defined by row_data_leakage_columns.
+        """
         self.logger.info("Splitting data into training/validation and test sets")
 
-        # Get properties for data splitting
         test_split = self.properties.dataset.test_split
         seed = self.properties.general.seed
+        group_cols = self.properties.dataset.row_data_leakage_columns
 
         if test_split <= 0:
             self.logger.info("Test split not required; skipping data splitting.")
             return
 
-        # Load the data
+        # Load the processed training data
         data = load_data(self.train_output_path)
 
-        # Generate random split indices
-        train_val_data, test_data = train_test_split(
-            data,
-            test_size=test_split,
-            random_state=seed,
-            shuffle=True,
-        )
+        if group_cols:
+            self.logger.info(
+                f"Ensuring no data leakage by grouping on columns: {group_cols}"
+            )
+
+            # Create a single group identifier by combining the specified group columns
+            data["__group_id__"] = data[group_cols].astype(str).agg("-".join, axis=1)
+
+            # Extract unique groups
+            unique_groups = data["__group_id__"].unique()
+
+            # Determine the number of groups to place in the test set
+            n_test_groups = int(len(unique_groups) * test_split)
+
+            # Shuffle groups with a fixed seed for reproducibility
+            unique_groups = (
+                pd.Series(unique_groups).sample(frac=1, random_state=seed).values
+            )
+
+            # Split groups into test and train/val sets
+            test_groups = set(unique_groups[:n_test_groups])
+            train_val_groups = set(unique_groups[n_test_groups:])
+
+            # Verify no overlap of groups between train/val and test
+            overlap = train_val_groups.intersection(test_groups)
+            if overlap:
+                self.logger.warning(
+                    f"Overlap detected in group IDs between train/val and test sets: {overlap}"
+                )
+            else:
+                self.logger.info(
+                    "No overlap detected in group IDs between train/val and test sets."
+                )
+
+            # Split data based on groups
+            train_val_data = data[data["__group_id__"].isin(train_val_groups)].drop(
+                "__group_id__", axis=1
+            )
+            test_data = data[data["__group_id__"].isin(test_groups)].drop(
+                "__group_id__", axis=1
+            )
+        else:
+            # If no grouping column specified, do a normal split
+            train_val_data, test_data = train_test_split(
+                data,
+                test_size=test_split,
+                random_state=seed,
+                shuffle=True,
+            )
 
         self.logger.info(
             f"Splitting dataset: {len(train_val_data)} train/val, {len(test_data)} test"
@@ -127,3 +175,24 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         self.logger.info(
             f"Data splits saved to {self.train_output_path} and {self.test_output_path}"
         )
+
+    def __remove_skipped_columns(self) -> None:
+        """Remove skipped columns from the processed data."""
+        skipped_columns = self.properties.dataset.skipped_columns
+        if skipped_columns:
+            self.logger.info(f"Removing skipped columns: {skipped_columns}")
+
+            # Load the processed training data and test data
+            train_data = load_data(self.train_output_path)
+            test_data = load_data(self.test_output_path)
+
+            # Remove skipped columns
+            train_data.drop(columns=skipped_columns, inplace=True)
+            test_data.drop(columns=skipped_columns, inplace=True)
+
+            # Save the modified data
+            save_data(train_data, self.train_output_path)
+            save_data(test_data, self.test_output_path)
+            self.logger.info(
+                f"Skipped columns removed from data and saved to {self.train_output_path} and {self.test_output_path}"
+            )

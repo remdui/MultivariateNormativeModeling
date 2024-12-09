@@ -16,9 +16,16 @@ meta:
   name: vae_basic
   version: 1
 dataset:
+  skipped_columns:
+  - id
+  - subject_id
+  row_data_leakage_columns:
+  - subject_id
   covariates:
   - age
   - sex
+  targets:
+  - target
   input_data: generated_data.rds
   data_type: tabular
   image_type: grayscale
@@ -117,6 +124,10 @@ train:
       reduction: sum
     mse_vae:
       reduction: sum
+      beta_start: 0.0
+      beta_end: 1.0
+      kl_anneal_start: 0
+      kl_anneal_end: 0
     l1:
       reduction: sum
     mse:
@@ -247,9 +258,6 @@ train:
       last_epoch: -1
     onecycle:
       max_lr: 0.1
-      total_steps: null
-      epochs: null
-      steps_per_epoch: null
       pct_start: 0.3
       anneal_strategy: cos
       cycle_momentum: true

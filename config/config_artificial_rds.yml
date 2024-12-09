@@ -16,6 +16,8 @@ meta:
   name: vae_basic
   version: 1
 dataset:
+  skipped_columns: []
+  row_data_leakage_columns: []
   covariates:
   - age
   - sex

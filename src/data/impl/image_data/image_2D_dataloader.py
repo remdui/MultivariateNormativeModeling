@@ -23,3 +23,15 @@ class Image2DDataLoader(AbstractDataloader):
     def fold_dataloader(self, fold: int) -> tuple[DataLoader, DataLoader]:
         """Get the DataLoader for the training and validation data for a given fold."""
         raise NotImplementedError
+
+    def get_feature_names(self) -> list[str]:
+        """Get the names of the features in the dataset."""
+        raise NotImplementedError
+
+    def get_covariate_names(self) -> list[str]:
+        """Get the names of the covariates in the dataset."""
+        raise NotImplementedError
+
+    def get_target_names(self) -> list[str]:
+        """Get the names of the targets in the dataset."""
+        raise NotImplementedError

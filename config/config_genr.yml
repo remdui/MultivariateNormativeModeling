@@ -8,97 +8,91 @@ system:
 general:
   debug: true
   log_level: INFO
-  seed: 42
+  seed: 1
   verbose: true
 meta:
   config_version: 2
   description: Variational Autoencoder for GenR Normative Modeling
   name: vae_genr_no_embedding
-  version: 1
+  version: 4
 dataset:
-  covariates:
-  - age
-  - sex
-  input_data: generated_data.rds
+  skipped_columns:
+  - row_id
+  - idc
+  - wave
+  row_data_leakage_columns:
+    - idc
+  covariates: []
+  targets: []
+  input_data: gen_r_aparc.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf
   pin_memory: true
   shuffle: true
-  test_split: 0.1
-  train_split: 0.8
-  val_split: 0.2
+  test_split: 0.05
+  train_split: 0.95
+  val_split: 0.05
   enable_transforms: true
   transforms:
-  - name: NoiseTransform
-    type: preprocessing
-    params:
-      mean: 0.0
-      std: 0.05
-      distribution: normal
-  - name: DataCleaningTransform
-    type: preprocessing
-    params:
-      drop_na: true
-      remove_duplicates: true
   - name: NormalizationTransform
     type: preprocessing
     params:
-      method: min-max
+      method: z-score
 data_analysis:
   dimensionality_reduction:
-    pca: true
+    pca: false
     pca_settings:
       components: 2
-    tsne: true
+    tsne: false
     tsne_settings:
       components: 2
       perplexity: 30.0
-    umap: true
+    umap: false
     umap_settings:
       components: 2
       neighbors: 15
   latent_space_analysis:
-    latent_space_analysis: true
-    latent_space_visualization: true
-    disentanglement_analysis: true
-    sensitivity_analysis: true
-    variance_analysis: true
+    latent_space_analysis: false
+    latent_space_visualization: false
+    disentanglement_analysis: false
+    sensitivity_analysis: false
+    variance_analysis: false
   reconstruction_analysis:
-    reconstruction_analysis: true
-    reconstruction_error_plot: true
+    reconstruction_analysis: false
+    reconstruction_error_plot: false
     reconstruction_metrics:
     - mse
     - mae
   data_exploration:
     phases:
       raw_input: false
-      processed_input: true
-      output: true
-    distribution_plots: true
-    correlation_matrix: true
-    normality_test: true
+      processed_input: false
+      output: false
+    distribution_plots: false
+    correlation_matrix: false
+    normality_test: false
     normality_test_method: shapiro
     normality_threshold: 0.05
-    outlier_detection: true
+    outlier_detection: false
     outlier_detection_method: z-score
     outlier_threshold: 3.0
-    summary_statistics: true
+    summary_statistics: false
   visualization:
     distribution_visualization_method: histogram
-    save_visualizations: true
+    save_visualizations: false
     show_visualizations: false
 train:
   batch_size: 128
   cross_validation: false
-  cross_validation_folds: 5
+  cross_validation_folds: 10
   cross_validation_method: kfold
-  epochs: 100
+  epochs: 200
   mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
-  gradient_clipping: true
-  gradient_clipping_value: 1.0
+  gradient_clipping: false
+  gradient_clipping_value: 5.0
   save_model: true
   save_format: safetensors
   checkpoint:
@@ -110,13 +104,17 @@ train:
     enabled: true
     metric: loss
     min_delta: 0.0
-    patience: 10
-  loss_function: bce_vae
+    patience: 50
+  loss_function: mse_vae
   loss_function_params:
     bce_vae:
       reduction: sum
     mse_vae:
       reduction: sum
+      beta_start: 0.0
+      beta_end: 1.0
+      kl_anneal_start: 0
+      kl_anneal_end: 50
     l1:
       reduction: sum
     mse:
@@ -226,7 +224,7 @@ train:
     plateau:
       mode: min
       factor: 0.1
-      patience: 3
+      patience: 10
       threshold: 0.0001
       threshold_mode: rel
       cooldown: 0
@@ -247,9 +245,6 @@ train:
       last_epoch: -1
     onecycle:
       max_lr: 0.1
-      total_steps: null
-      epochs: null
-      steps_per_epoch: null
       pct_start: 0.3
       anneal_strategy: cos
       cycle_momentum: true
@@ -280,7 +275,7 @@ train:
         - 0.9
         - 0.999
       eps: 1.0e-08
-      weight_decay: 0.01
+      weight_decay: 0.0001
       amsgrad: false
     sgd:
       lr: 0.001
@@ -372,12 +367,12 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 16
+      latent_dim: 32
       covariate_embedding: input_embedding
   hidden_layers:
-  - 512
   - 256
   - 128
+  - 64
   weight_initialization: he_normal
   dropout: false
   dropout_rate: 0.2
@@ -478,7 +473,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: 'vae_basic_v1.safetensors'
+  model: 'vae_genr_no_embedding_v4.safetensors'
   baseline_model: null
   data_representation: tabular
   metrics:

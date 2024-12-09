@@ -16,6 +16,8 @@ meta:
   name: vae_val_mnist
   version: 1
 dataset:
+  skipped_columns: []
+  row_data_leakage_columns: []
   covariates:
   - '0' # '0' is the label column
   input_data: mnist.csv

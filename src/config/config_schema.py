@@ -141,7 +141,10 @@ class DataAnalysisConfig(BaseModel):
 class DatasetConfig(BaseModel):
     """Dataset configuration."""
 
+    skipped_columns: list[str] = ["id", "subject_id"]
+    row_data_leakage_columns: list[str] = ["subject_id"]
     covariates: list[str] = ["age", "sex"]
+    targets: list[str] = ["target"]
     input_data: str = "generated_data.rds"
     data_type: str = "tabular"
     image_type: str = "grayscale"
@@ -417,6 +420,10 @@ class TrainConfig(BaseModel):
             },
             "mse_vae": {
                 "reduction": "sum",
+                "beta_start": 0.0,
+                "beta_end": 1.0,
+                "kl_anneal_start": 0,
+                "kl_anneal_end": 0,
             },
             # PyTorch loss functions
             "l1": {
@@ -584,9 +591,6 @@ class TrainConfig(BaseModel):
             },
             "onecycle": {
                 "max_lr": 0.1,
-                "total_steps": None,
-                "epochs": None,
-                "steps_per_epoch": None,
                 "pct_start": 0.3,
                 "anneal_strategy": "cos",
                 "cycle_momentum": True,

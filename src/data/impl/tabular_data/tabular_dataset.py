@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 
 from data.abstract_dataset import AbstractDataset
+from entities.log_manager import LogManager
 from util.file_utils import load_data
 
 
@@ -18,6 +19,9 @@ class TabularDataset(AbstractDataset):
             covariatess (list[str]): List of covariates.
         """
         super().__init__()
+        self.logger = LogManager.get_logger(__name__)
+
+        self.logger.debug(f"Loading dataset from: {file_path}")
         self.data = load_data(file_path)
         self.covariates = covariates
 
@@ -30,6 +34,10 @@ class TabularDataset(AbstractDataset):
 
         # Identify feature columns (excluding covariates)
         self.features = [col for col in self.data.columns if col not in covariates]
+
+        # If debug mode is enabled, log the dataset details
+        self.logger.debug(f"Features: {self.features}")
+        self.logger.debug(f"Covariates: {self.covariates}")
 
     def __len__(self) -> int:
         """Returns the length of the dataset.

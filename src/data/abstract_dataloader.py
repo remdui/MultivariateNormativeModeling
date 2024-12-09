@@ -44,3 +44,27 @@ class AbstractDataloader(ABC):
         Returns:
             tuple[DataLoader, DataLoader]: DataLoader for training and validation data.
         """
+
+    @abstractmethod
+    def get_feature_names(self) -> list[str]:
+        """Get the names of the features in the dataset.
+
+        Returns:
+            list[str]: List of feature names.
+        """
+
+    @abstractmethod
+    def get_covariate_names(self) -> list[str]:
+        """Get the names of the covariates in the dataset.
+
+        Returns:
+            list[str]: List of covariate names.
+        """
+
+    @abstractmethod
+    def get_target_names(self) -> list[str]:
+        """Get the names of the targets in the dataset.
+
+        Returns:
+            list[str]: List of target
+        """

@@ -15,7 +15,6 @@ INITIALIZATION_MAPPING: dict[str, Any] = {
     "orthogonal": init.orthogonal_,
     "uniform": init.uniform_,
     "normal": init.normal_,
-    "": lambda w: None,  # Empty string option for no initialization
 }
 
 
@@ -44,6 +43,9 @@ def initialize_weights(model: nn.Module, initializer_name: str) -> None:
         model (nn.Module): The model whose weights need initialization.
         initializer_name (str): The type of weight initializer.
     """
+    if initializer_name == "":
+        return
+
     initializer = get_weight_initializer(initializer_name)
 
     def init_layer(layer: nn.Module) -> None:

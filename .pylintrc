@@ -110,6 +110,7 @@ disable=
     import-error,
     logging-fstring-interpolation,
     no-member,
+    duplicate-code,
 
 
 [REPORTS]

@@ -84,10 +84,15 @@ class LogManager:
     ) -> Handler:
         """Create a file handler."""
         file_handler = RotatingFileHandler(
-            log_file, maxBytes=10 * 1024 * 1024, backupCount=5
+            log_file, maxBytes=10 * 1024 * 1024, backupCount=100
         )
         file_handler.setLevel(logging.NOTSET if verbose else log_level)
         file_handler.setFormatter(formatter)
+
+        # If the log file already exists, rotate it right now
+        if os.path.exists(log_file):
+            file_handler.doRollover()
+
         return file_handler
 
     @staticmethod

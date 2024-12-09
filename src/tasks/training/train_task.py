@@ -71,6 +71,10 @@ class TrainTask(AbstractTask):
             scheduler_method, {}
         )
 
+        # TODO: Better integrate these settings for onecycle and cyclic schedulers
+        # scheduler_params["steps_per_epoch"] = len(self.train_dataloader)
+        # scheduler_params["epochs"] = self.properties.train.epochs
+
         self.scheduler = get_scheduler(
             self.properties.train.scheduler,
             self.optimizer,
@@ -100,11 +104,17 @@ class TrainTask(AbstractTask):
         See this paper for more details: https://arxiv.org/abs/1704.08863
         He initialization is commonly used for ReLU activation functions, see https://arxiv.org/pdf/1502.01852
         """
+        # Reset the model parameters
+        for layer in self.model.children():
+            if hasattr(layer, "reset_parameters"):
+                layer.reset_parameters()
+
         # Retrieve the weight initializer from the configuration
         weight_initializer = self.properties.model.weight_initializer
 
         # Initialize the model weights
         initialize_weights(self.model, weight_initializer)
+
         self.logger.info(f"Initialized weights using {weight_initializer}")
 
     def __initialize_early_stopping(self) -> None:
@@ -187,6 +197,7 @@ class TrainTask(AbstractTask):
         current_learning_rate = self.scheduler.get_last_lr()[0]
 
         for epoch in range(epochs):
+            self.epoch = epoch
             self.model.train()  # Set model to training mode
 
             # Process the training data for the current epoch
@@ -283,7 +294,9 @@ class TrainTask(AbstractTask):
             enabled=self.properties.train.mixed_precision, device_type=self.device
         ):
             recon_batch, z_mean, z_logvar = self.model(data)  # Forward pass
-            loss = self.loss(recon_batch, data, z_mean, z_logvar)  # Compute loss
+            loss = self.loss(
+                recon_batch, data, z_mean, z_logvar, current_epoch=self.epoch
+            )  # Compute loss
 
         # Store original loss value before further processing
         loss_value = loss.item()

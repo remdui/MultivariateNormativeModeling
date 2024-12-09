@@ -27,6 +27,7 @@ class TabularDataloader(AbstractDataloader):
         self.batch_size = self.properties.train.batch_size
         self.num_workers = self.properties.system.num_workers
         self.covariates = self.properties.dataset.covariates
+        self.targets = self.properties.dataset.targets
         self.pin_memory = self.properties.dataset.pin_memory
         self.shuffle = self.properties.dataset.shuffle
         self.train_split = self.properties.dataset.train_split
@@ -66,6 +67,10 @@ class TabularDataloader(AbstractDataloader):
             f"Test dataset: {len(self.test_dataset)} samples, {self.test_dataset.get_num_features()} features"
         )
 
+        # If debugging, display the first few rows of the dataset
+        self.logger.debug(f"Train dataset: {train_dataset.data.head()}")
+        self.logger.debug(f"Test dataset: {self.test_dataset.data.head()}")
+
         # Split the training dataset into training and validation sets according to the configuration
         if self.properties.train.cross_validation:
             self.train_dataset = train_dataset
@@ -82,6 +87,8 @@ class TabularDataloader(AbstractDataloader):
         except Exception as e:
             self.logger.exception("Failed to initialize the tabular dataset.")
             raise e
+
+        self.features = dataset.features
 
         return dataset
 
@@ -236,3 +243,15 @@ class TabularDataloader(AbstractDataloader):
         self.logger.info(
             f"Splitting train dataset: {len(self.train_dataset)} train samples, {len(self.val_dataset)} validation samples"
         )
+
+    def get_feature_names(self) -> list[str]:
+        """Get the names of the features in the dataset."""
+        return self.features
+
+    def get_covariate_names(self) -> list[str]:
+        """Get the names of the covariates in the dataset."""
+        return self.covariates
+
+    def get_target_names(self) -> list[str]:
+        """Get the names of the targets in the dataset."""
+        return self.targets
