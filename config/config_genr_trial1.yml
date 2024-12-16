@@ -23,14 +23,14 @@ dataset:
   row_data_leakage_columns: []
   covariates: []
   targets: []
-  input_data: gen_r_aparc_vol.rds
+  input_data: gen_r_aparc.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf
   pin_memory: true
   shuffle: true
-  test_split: 0.05
-  train_split: 0.9
+  test_split: 0.1
+  train_split: 0.90
   val_split: 0.1
   enable_transforms: true
   transforms:
@@ -82,28 +82,28 @@ data_analysis:
     save_visualizations: false
     show_visualizations: false
 train:
-  batch_size: 2048
+  batch_size: 128
   cross_validation: false
-  cross_validation_folds: 10
+  cross_validation_folds: 4
   cross_validation_method: kfold
   epochs: 500
-  mixed_precision: true
+  mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
   gradient_clipping: true
-  gradient_clipping_value: 1.0
+  gradient_clipping_value: 5.0
   save_model: true
   save_format: safetensors
   checkpoint:
     save_checkpoint: true
-    interval: 20
+    interval: 50
     use_checkpoint: false
     checkpoint: ''
   early_stopping:
     enabled: true
     metric: loss
     min_delta: 0.0
-    patience: 100
+    patience: 50
   loss_function: mse_vae
   loss_function_params:
     bce_vae:
@@ -230,7 +230,7 @@ train:
       min_lr: 0
       eps: 1.0e-08
     cyclic:
-      base_lr: 0.0001
+      base_lr: 0.001
       max_lr: 0.01
       step_size_up: 2000
       step_size_down: null
@@ -238,7 +238,7 @@ train:
       gamma: 1.0
       scale_fn: null
       scale_mode: cycle
-      cycle_momentum: false # does only work with SGD and other optimizers that have momentum
+      cycle_momentum: true
       base_momentum: 0.8
       max_momentum: 0.9
       last_epoch: -1
@@ -274,7 +274,7 @@ train:
         - 0.9
         - 0.999
       eps: 1.0e-08
-      weight_decay: 0.0001
+      weight_decay: 0.001
       amsgrad: false
     sgd:
       lr: 0.001
@@ -366,12 +366,13 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 16
+      latent_dim: 32
       covariate_embedding: input_embedding
   hidden_layers:
-  - 64
-  - 32
-  weight_initializer: lecun
+  - 512
+  - 256
+  - 128
+  weight_initialization: he_normal
   dropout: false
   dropout_rate: 0.2
   normalization_layer: batchnorm1d
@@ -424,7 +425,7 @@ model:
     rmsnorm:
       eps: 1.0e-08
       elementwise_affine: true
-  activation_function: silu
+  activation_function: relu
   final_activation_function: sigmoid
   activation_function_params:
     elu:
@@ -471,7 +472,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: 'vae_genr_no_embedding_v5_best.safetensors'
+  model: 'vae_genr_no_embedding_v5.safetensors'
   baseline_model: null
   data_representation: tabular
   metrics:

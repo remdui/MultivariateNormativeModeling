@@ -12,6 +12,8 @@ INITIALIZATION_MAPPING: dict[str, Any] = {
     "xavier_normal": init.xavier_normal_,
     "he_uniform": lambda w: init.kaiming_uniform_(w, nonlinearity="relu"),
     "he_normal": lambda w: init.kaiming_normal_(w, nonlinearity="relu"),
+    "glorot_uniform": init.xavier_uniform_,
+    "glorot_normal": init.xavier_normal_,
     "orthogonal": init.orthogonal_,
     "uniform": init.uniform_,
     "normal": init.normal_,
@@ -43,7 +45,12 @@ def initialize_weights(model: nn.Module, initializer_name: str) -> None:
         model (nn.Module): The model whose weights need initialization.
         initializer_name (str): The type of weight initializer.
     """
+
     if initializer_name == "":
+        return
+
+    # Lecun initialization is the default method in pytorch
+    if initializer_name == "lecun":
         return
 
     initializer = get_weight_initializer(initializer_name)

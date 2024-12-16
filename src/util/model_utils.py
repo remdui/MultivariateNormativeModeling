@@ -12,6 +12,7 @@ from torchview import draw_graph
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from model.models.abstract_model import AbstractModel
+from util.system_utils import gpu_supported_by_triton_compiler
 
 
 def save_model(
@@ -95,6 +96,11 @@ def visualize_model_arch(model: nn.Module, input_size: int) -> None:
     model_name = properties.model_name
 
     file_name = f"{model_name}_model_arch"
+
+    # Check if the GPU supports CUDA compilation, torchview does not support JIT for all GPUs
+    if gpu_supported_by_triton_compiler():
+        logger.warning("Visualizing model architecture is not supported for this GPU.")
+        return
 
     # Draw the model architecture and save to output directory
     draw_graph(

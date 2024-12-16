@@ -73,6 +73,8 @@ class AbstractComponent(nn.Module):
             self.dropout = get_regularizer(
                 "dropout", p=self.properties.model.dropout_rate
             )
+        else:
+            self.dropout = None
 
     def _get_normalization_layer(self, *args: Any) -> Module:
         """Initialize the normalization layer.

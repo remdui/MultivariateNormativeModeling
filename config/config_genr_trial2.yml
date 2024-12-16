@@ -23,7 +23,7 @@ dataset:
   row_data_leakage_columns: []
   covariates: []
   targets: []
-  input_data: gen_r_aparc_vol.rds
+  input_data: gen_r_aparc.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf
@@ -82,16 +82,16 @@ data_analysis:
     save_visualizations: false
     show_visualizations: false
 train:
-  batch_size: 2048
+  batch_size: 512
   cross_validation: false
   cross_validation_folds: 10
   cross_validation_method: kfold
   epochs: 500
-  mixed_precision: true
+  mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
   gradient_clipping: true
-  gradient_clipping_value: 1.0
+  gradient_clipping_value: 5.0
   save_model: true
   save_format: safetensors
   checkpoint:
@@ -366,15 +366,15 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 16
+      latent_dim: 32
       covariate_embedding: input_embedding
   hidden_layers:
+  - 128
   - 64
-  - 32
   weight_initializer: lecun
   dropout: false
   dropout_rate: 0.2
-  normalization_layer: batchnorm1d
+  normalization_layer: layernorm
   normalization_layer_params:
     batchnorm1d:
       eps: 1.0e-05

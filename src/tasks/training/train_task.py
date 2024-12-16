@@ -195,73 +195,132 @@ class TrainTask(AbstractTask):
             TaskResult: TaskResult object with the training results.
         """
         current_learning_rate = self.scheduler.get_last_lr()[0]
+        best_val_loss = float("inf")  # Initialize with infinity
 
         for epoch in range(epochs):
             self.epoch = epoch
             self.model.train()  # Set model to training mode
 
             # Process the training data for the current epoch
-            tqdm_loader = tqdm(
-                self.train_dataloader, desc=f"Epoch {epoch + 1}/{epochs}"
-            )
-            avg_loss = self.__train_epoch(tqdm_loader)
-            self.logger.info(
-                f"Average training loss after epoch {epoch + 1}: {avg_loss:.4f}"
-            )
+            avg_loss = self.__process_training_epoch(epoch, epochs)
+            avg_val_loss = self.__process_validation_epoch(epoch)
 
-            # Validation loop
-            avg_val_loss = self.__validate()
-            self.logger.info(
-                f"Average validation loss after epoch {epoch + 1}: {avg_val_loss:.4f}"
-            )
+            # Update best model if validation loss improves
+            best_val_loss = self.__update_best_model(avg_val_loss, best_val_loss)
 
             # Store the results in the TaskResult
-            if fold is not None:
-                results[f"reconstruction_loss_fold_{fold}"] = {
-                    "train_loss": avg_loss,
-                    "val_loss": avg_val_loss,
-                }
-            else:
-                results["reconstruction_loss"] = {
-                    "train_loss": avg_loss,
-                    "val_loss": avg_val_loss,
-                }
+            self.__store_results(results, fold, avg_loss, avg_val_loss)
 
             # Step the scheduler if not using per-batch steps
-            if not self.scheduler_step_per_batch:
-                if self.properties.train.scheduler == "plateau":
-                    self.scheduler.step(avg_val_loss)  # type: ignore
-                else:
-                    self.scheduler.step()
-
-                # Update and log the learning rate if it has changed
-                if current_learning_rate != self.scheduler.get_last_lr()[0]:
-                    current_learning_rate = self.scheduler.get_last_lr()[0]
-                    self.logger.info(
-                        f"Scheduler adjusted the learning rate to: {self.scheduler.get_last_lr()[0]}"
-                    )
+            current_learning_rate = self.__step_scheduler(
+                current_learning_rate, avg_val_loss
+            )
 
             # Early stopping check
-            if self.properties.train.early_stopping.enabled:
-                if self.early_stopping.stop_condition_met(avg_val_loss):
-                    self.logger.info("Early stopping triggered.")
-                    break
+            if self.__check_early_stopping(avg_val_loss):
+                break
 
             # Save model checkpoint if checkpointing is enabled and interval is reached
-            if (
-                self.properties.train.checkpoint.save_checkpoint
-                and (epoch + 1) % self.properties.train.checkpoint.interval == 0
-            ):
-                save_model(
-                    model=self.model,
-                    epoch=epoch + 1,
-                    save_dir=self.model_save_dir,
-                    model_name=self.model_name,
-                    use_date=False,
-                    save_as_checkpoint=True,
-                )
+            self.__save_checkpoint(epoch)
 
         return results
+
+    def __process_training_epoch(self, epoch: int, epochs: int) -> float:
+        """Process the training data for the current epoch."""
+        tqdm_loader = tqdm(self.train_dataloader, desc=f"Epoch {epoch + 1}/{epochs}")
+        avg_loss = self.__train_epoch(tqdm_loader)
+        self.logger.info(
+            f"Average training loss after epoch {epoch + 1}: {avg_loss:.4f}"
+        )
+        return avg_loss
+
+    def __process_validation_epoch(self, epoch: int) -> float:
+        """Process the validation data for the current epoch."""
+        avg_val_loss = self.__validate()
+        self.logger.info(
+            f"Average validation loss after epoch {epoch + 1}: {avg_val_loss:.4f}"
+        )
+        return avg_val_loss
+
+    def __update_best_model(self, avg_val_loss: float, best_val_loss: float) -> float:
+        """Update the best model if validation loss improves."""
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            save_model(
+                model=self.model,
+                save_dir=self.model_save_dir,
+                model_name=f"{self.model_name}_best",
+                use_date=False,
+            )
+            self.logger.info(
+                f"New best model saved with validation loss: {best_val_loss:.4f}"
+            )
+        return best_val_loss
+
+    def __store_results(
+        self,
+        results: TaskResult,
+        fold: int | None,
+        avg_loss: float,
+        avg_val_loss: float,
+    ) -> None:
+        """Store the results in the TaskResult."""
+        self.logger.info(
+            f"Saving results for fold {fold}."
+            if fold is not None
+            else "Saving results."
+        )
+        if fold is not None:
+            results[f"reconstruction_loss_fold_{fold}"] = {
+                "train_loss": avg_loss,
+                "val_loss": avg_val_loss,
+            }
+        else:
+            results["reconstruction_loss"] = {
+                "train_loss": avg_loss,
+                "val_loss": avg_val_loss,
+            }
+
+    def __step_scheduler(
+        self, current_learning_rate: float, avg_val_loss: float
+    ) -> float:
+        """Step the scheduler if not using per-batch steps."""
+        if not self.scheduler_step_per_batch:
+            if self.properties.train.scheduler == "plateau":
+                self.scheduler.step(avg_val_loss)  # type: ignore
+            else:
+                self.scheduler.step()
+
+            # Update and log the learning rate if it has changed
+            if current_learning_rate != self.scheduler.get_last_lr()[0]:
+                current_learning_rate = self.scheduler.get_last_lr()[0]
+                self.logger.info(
+                    f"Scheduler adjusted the learning rate to: {self.scheduler.get_last_lr()[0]}"
+                )
+        return current_learning_rate
+
+    def __check_early_stopping(self, avg_val_loss: float) -> bool:
+        """Check if early stopping condition is met."""
+        if self.properties.train.early_stopping.enabled:
+            if self.early_stopping.stop_condition_met(avg_val_loss):
+                self.logger.info("Early stopping triggered.")
+                return True
+        return False
+
+    def __save_checkpoint(self, epoch: int) -> None:
+        """Save model checkpoint if checkpointing is enabled and interval is reached."""
+        if (
+            self.properties.train.checkpoint.save_checkpoint
+            and (epoch + 1) % self.properties.train.checkpoint.interval == 0
+        ):
+            save_model(
+                model=self.model,
+                epoch=epoch + 1,
+                save_dir=self.model_save_dir,
+                model_name=self.model_name,
+                use_date=False,
+                save_as_checkpoint=True,
+            )
 
     def __train_epoch(self, tqdm_loader: tqdm) -> float:
         """Process a batch of data."""
