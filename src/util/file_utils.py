@@ -114,6 +114,32 @@ def create_experiment_directory(task: str) -> str:
     return experiment_path
 
 
+def save_zip_folder(folder_path: str, dest_dir: str, zip_name: str) -> None:
+    """
+    Zip the contents of the specified folder into a zip file.
+
+    Args:
+        folder_path (str): The path to the folder to be zipped.
+        dest_dir (str): The directory where the zip file should be saved.
+        zip_name (str): The base name for the zip file (without extension).
+    """
+    logger = LogManager.get_logger(__name__)
+
+    if not os.path.isdir(folder_path):
+        logger.warning(f"Folder {folder_path} does not exist. Cannot zip.")
+        return
+
+    # Create the zip file
+    archive_path = shutil.make_archive(
+        base_name=os.path.join(dest_dir, zip_name),
+        format="zip",
+        root_dir=os.path.dirname(folder_path),
+        base_dir=os.path.basename(folder_path),
+    )
+
+    logger.info(f"Zipped folder '{folder_path}' to '{archive_path}'.")
+
+
 def create_storage_directories() -> None:
     """Create directories for storing logs, models, and outputs if they do not exist.
 
