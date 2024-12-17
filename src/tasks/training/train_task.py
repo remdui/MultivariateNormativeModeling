@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import optuna
 import torch
 from torch import GradScaler, Tensor, autocast
 from torch.nn.utils import clip_grad_norm_
@@ -20,11 +21,12 @@ from util.model_utils import save_model
 class TrainTask(AbstractTask):
     """Trainer class to train the model."""
 
-    def __init__(self) -> None:
+    def __init__(self, trial: optuna.Trial | None = None) -> None:
         """Initialize the Trainer class."""
         super().__init__(LogManager.get_logger(__name__))
         self.logger.info("Initializing TrainTask.")
         self.__init_train_task()
+        self.trial = trial
 
     def __init_train_task(self) -> None:
         """Setup the train task."""
@@ -205,6 +207,16 @@ class TrainTask(AbstractTask):
             avg_loss = self.__process_training_epoch(epoch, epochs)
             avg_val_loss = self.__process_validation_epoch(epoch)
 
+            # If using Optuna, report the intermediate result
+            if self.trial is not None:
+                self.trial.report(avg_val_loss, step=epoch)
+                # If the trial should be pruned, raise an exception
+                if self.trial.should_prune():
+                    self.logger.info(
+                        f"Trial {self.trial.number} pruned at epoch {epoch + 1} with val_loss={avg_val_loss:.4f}"
+                    )
+                    raise optuna.TrialPruned()
+
             # Update best model if validation loss improves
             best_val_loss = self.__update_best_model(avg_val_loss, best_val_loss)
 
@@ -265,11 +277,6 @@ class TrainTask(AbstractTask):
         avg_val_loss: float,
     ) -> None:
         """Store the results in the TaskResult."""
-        self.logger.info(
-            f"Saving results for fold {fold}."
-            if fold is not None
-            else "Saving results."
-        )
         if fold is not None:
             results[f"reconstruction_loss_fold_{fold}"] = {
                 "train_loss": avg_loss,

@@ -90,21 +90,39 @@ def load_and_process_files(file_list, wave_mapping, is_aseg=False):
     return combined_data
 
 
-def combine_hemisphere_columns(df):
-    """Combine the left and right hemisphere columns."""
-    hemisphere_prefixes = ["lh_", "rh_"]
-    combined_columns = {}
-    for prefix in hemisphere_prefixes:
-        for col in [c[len(prefix) :] for c in df.columns if c.startswith(prefix)]:
-            combined_columns[col] = (
-                df[[f"lh_{col}", f"rh_{col}"]].mean(axis=1).astype(np.float64)
-            )
-    drop_cols = [f"lh_{col}" for col in combined_columns] + [
-        f"rh_{col}" for col in combined_columns
+def identify_hemisphere_columns(df):
+    """Identify hemisphere-related columns and other columns."""
+    hemisphere_columns = [
+        col for col in df.columns if col.startswith("lh_") or col.startswith("rh_")
     ]
-    df = df.drop(columns=drop_cols, errors="ignore")
-    combined_df = pd.DataFrame(combined_columns, index=df.index)
-    return pd.concat([df, combined_df], axis=1)
+    other_columns = [col for col in df.columns if col not in hemisphere_columns]
+    return hemisphere_columns, other_columns
+
+
+def combine_hemisphere_pairs(df, hemisphere_columns):
+    """Combine left and right hemisphere columns into single averaged columns."""
+    combined_columns = {}
+    # Extract the base name from columns that have 'lh_'
+    lh_base_names = {
+        c[len("lh_") :]: f"lh_{c[len('lh_'): ]}"
+        for c in hemisphere_columns
+        if c.startswith("lh_")
+    }
+
+    for base_name, lh_col in lh_base_names.items():
+        rh_col = f"rh_{base_name}"
+        if lh_col in df.columns and rh_col in df.columns:
+            combined_columns[base_name] = (
+                df[[lh_col, rh_col]].mean(axis=1).astype(np.float64)
+            )
+    return pd.DataFrame(combined_columns, index=df.index)
+
+
+def combine_hemisphere_columns(df):
+    """Combine the left and right hemisphere columns into averaged columns."""
+    hemisphere_columns, other_columns = identify_hemisphere_columns(df)
+    combined_df = combine_hemisphere_pairs(df, hemisphere_columns)
+    return pd.concat([df[other_columns], combined_df], axis=1)
 
 
 def save_dataframe(df, file_path, description):
@@ -116,56 +134,78 @@ def save_dataframe(df, file_path, description):
     )
 
 
-def process_and_save_subsets(df, output_dir, prefix, covariates):
-    """Process and save subsets of the data."""
-    subsets = {
-        "surfarea": [col for col in df.columns if "surfarea" in col.lower()],
-        "vol": [col for col in df.columns if "vol" in col.lower()],
-        "thickavg": [col for col in df.columns if "thickavg" in col.lower()],
-    }
+def process_subset_and_save(data, covariates, output_dir, prefix, name):
+    """Combine hemisphere columns, merge with covariates, and save both lh/rh and combined data."""
+    combined_data = combine_hemisphere_columns(data)
+    merged_data = covariates.merge(data, on=["idc", "wave"], how="inner")
+    combined_merged_data = covariates.merge(
+        combined_data, on=["idc", "wave"], how="inner"
+    )
 
-    # Process individual subsets
-    for subset_name, subset_cols in subsets.items():
-        subset_data = df[["idc", "wave"] + subset_cols].dropna()
-        combined_data = combine_hemisphere_columns(subset_data)
-        merged_data = covariates.merge(subset_data, on=["idc", "wave"], how="inner")
-        combined_merged_data = covariates.merge(
-            combined_data, on=["idc", "wave"], how="inner"
-        )
+    # Save results
+    save_dataframe(
+        merged_data,
+        os.path.join(output_dir, f"{prefix}_{name}_lh_rh.rds"),
+        f"{prefix} {name} (lh/rh)",
+    )
+    save_dataframe(
+        combined_merged_data,
+        os.path.join(output_dir, f"{prefix}_{name}.rds"),
+        f"{prefix} {name} (combined)",
+    )
 
-        save_dataframe(
-            merged_data,
-            os.path.join(output_dir, f"{prefix}_{subset_name}_lh_rh.rds"),
-            f"{prefix} {subset_name} (lh/rh)",
-        )
-        save_dataframe(
-            combined_merged_data,
-            os.path.join(output_dir, f"{prefix}_{subset_name}.rds"),
-            f"{prefix} {subset_name} (combined)",
-        )
 
-    # Process pair combinations of subsets
+def process_subset_pair(covariates, df, other_features, output_dir, prefix, subsets):
+    """Process and save the data for each pair of subsets."""
     subset_names = list(subsets.keys())
     for pair in combinations(subset_names, 2):
         pair_name = "_and_".join(pair)
         pair_columns = list(set(subsets[pair[0]] + subsets[pair[1]]))
-        pair_data = df[["idc", "wave"] + pair_columns].dropna()
-        combined_pair_data = combine_hemisphere_columns(pair_data)
-        merged_pair_data = covariates.merge(pair_data, on=["idc", "wave"], how="inner")
-        combined_merged_pair_data = covariates.merge(
-            combined_pair_data, on=["idc", "wave"], how="inner"
+        pair_features = pair_columns + other_features
+        pair_data = df[pair_features].dropna()
+
+        # Reuse the helper function
+        process_subset_and_save(pair_data, covariates, output_dir, prefix, pair_name)
+
+
+def process_subset_single(covariates, df, other_features, output_dir, prefix, subsets):
+    """Process and save the data for each subset."""
+    for subset_name, subset_cols in subsets.items():
+        # Keep only the features for the current subset
+        subset_features = subset_cols + other_features
+        subset_data = df[subset_features].dropna()
+
+        # Reuse the helper function
+        process_subset_and_save(
+            subset_data, covariates, output_dir, prefix, subset_name
         )
 
-        save_dataframe(
-            merged_pair_data,
-            os.path.join(output_dir, f"{prefix}_{pair_name}_lh_rh.rds"),
-            f"{prefix} {pair_name} (lh/rh)",
-        )
-        save_dataframe(
-            combined_merged_pair_data,
-            os.path.join(output_dir, f"{prefix}_{pair_name}.rds"),
-            f"{prefix} {pair_name} (combined)",
-        )
+
+def create_subsets(df, output_dir, prefix, covariates):
+    """Process and save subsets of the data."""
+    features_of_interest = [
+        col
+        for col in df.columns
+        if any(keyword in col.lower() for keyword in ("surfarea", "vol", "thickavg"))
+    ]
+    other_features = [col for col in df.columns if col not in features_of_interest]
+
+    # Subset definitions
+    subsets = get_subset_features(features_of_interest)
+
+    # Process and save the data for each subset
+    process_subset_single(covariates, df, other_features, output_dir, prefix, subsets)
+    process_subset_pair(covariates, df, other_features, output_dir, prefix, subsets)
+
+
+def get_subset_features(features_of_interest):
+    """Get the subset features for the data."""
+    subsets = {
+        "surfarea": [col for col in features_of_interest if "surfarea" in col.lower()],
+        "vol": [col for col in features_of_interest if "vol" in col.lower()],
+        "thickavg": [col for col in features_of_interest if "thickavg" in col.lower()],
+    }
+    return subsets
 
 
 def process_and_save_with_combined(
@@ -230,8 +270,8 @@ def main():
         aparc_data, aseg_data, full_data, covariates, OUTPUT_DIR
     )
 
-    process_and_save_subsets(aparc_data, OUTPUT_DIR, "aparc", covariates)
-    process_and_save_subsets(full_data, OUTPUT_DIR, "full", covariates)
+    create_subsets(aparc_data, OUTPUT_DIR, "aparc", covariates)
+    create_subsets(full_data, OUTPUT_DIR, "full", covariates)
 
 
 if __name__ == "__main__":

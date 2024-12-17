@@ -15,6 +15,7 @@ RUN_TRAINING_SCRIPT="$LOCAL_PROJECT_ROOT/scripts/slurm/run_training.sh"
 RUN_TRAINING_GPU_SCRIPT="$LOCAL_PROJECT_ROOT/scripts/slurm/run_training_gpu.sh"
 RUN_VALIDATION_SCRIPT="$LOCAL_PROJECT_ROOT/scripts/slurm/run_validation.sh"
 RUN_VALIDATION_GPU_SCRIPT="$LOCAL_PROJECT_ROOT/scripts/slurm/run_validation_gpu.sh"
+RUN_TUNING_GPU_SCRIPT="$LOCAL_PROJECT_ROOT/scripts/slurm/run_tuning_gpu.sh"
 POETRY_LOCK="$LOCAL_PROJECT_ROOT/poetry.lock"
 PYPROJECT_TOML="$LOCAL_PROJECT_ROOT/pyproject.toml"
 
@@ -29,6 +30,7 @@ rsync "${RSYNC_OPTIONS[@]}" "$RUN_TRAINING_SCRIPT" "$SERVER:$TARGET_DIR/run_trai
 rsync "${RSYNC_OPTIONS[@]}" "$RUN_TRAINING_GPU_SCRIPT" "$SERVER:$TARGET_DIR/run_training_gpu.sh"
 rsync "${RSYNC_OPTIONS[@]}" "$RUN_VALIDATION_SCRIPT" "$SERVER:$TARGET_DIR/run_validation.sh"
 rsync "${RSYNC_OPTIONS[@]}" "$RUN_VALIDATION_GPU_SCRIPT" "$SERVER:$TARGET_DIR/run_validation_gpu.sh"
+rsync "${RSYNC_OPTIONS[@]}" "$RUN_TUNING_GPU_SCRIPT" "$SERVER:$TARGET_DIR/run_tuning_gpu.sh"
 rsync "${RSYNC_OPTIONS[@]}" "$POETRY_LOCK" "$SERVER:$TARGET_DIR/poetry.lock"
 rsync "${RSYNC_OPTIONS[@]}" "$PYPROJECT_TOML" "$SERVER:$TARGET_DIR/pyproject.toml"
 

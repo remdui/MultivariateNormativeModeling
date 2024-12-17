@@ -10,6 +10,7 @@ from entities.properties import Properties
 from preprocessing.pipeline.factory import create_preprocessing_pipeline
 from tasks.inference.inference_task import InferenceTask
 from tasks.training.train_task import TrainTask
+from tasks.tuning.tuning_task import TuningTask
 from tasks.validation.validate_task import ValidateTask
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
@@ -22,6 +23,7 @@ TASK_MAP = {
     "train": TrainTask,
     "validate": ValidateTask,
     "inference": InferenceTask,
+    "tune": TuningTask,
 }
 
 

@@ -96,6 +96,13 @@ class ValidateTask(AbstractTask):
         all_preds_tensor = torch.from_numpy(all_preds_np)
         all_targets_tensor = torch.from_numpy(all_targets_np)
 
+        # print shapes
+        self.logger.info(f"all_preds_tensor shape: {all_preds_tensor.shape}")
+        self.logger.info(f"all_targets_tensor shape: {all_targets_tensor.shape}")
+        # also print numpy shapes
+        self.logger.info(f"all_preds_np shape: {all_preds_np.shape}")
+        self.logger.info(f"all_targets_np shape: {all_targets_np.shape}")
+
         # Compute MSE
         mse_value = compute_mse(
             all_targets_tensor, all_preds_tensor, metric_type="total"

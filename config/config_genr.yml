@@ -13,23 +13,24 @@ general:
 meta:
   config_version: 2
   description: Variational Autoencoder for GenR Normative Modeling
-  name: vae_genr_no_embedding
-  version: 5
+  name: vae_genr_baseline
+  version: 1
 dataset:
   skipped_columns:
   - row_id
   - idc
   - wave
-  row_data_leakage_columns: []
+  row_data_leakage_columns:
+  - idc
   covariates: []
   targets: []
-  input_data: gen_r_aparc_vol.rds
+  input_data: aparc.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf
-  pin_memory: true
+  pin_memory: false
   shuffle: true
-  test_split: 0.05
+  test_split: 0.1
   train_split: 0.9
   val_split: 0.1
   enable_transforms: true
@@ -82,38 +83,42 @@ data_analysis:
     save_visualizations: false
     show_visualizations: false
 train:
-  batch_size: 2048
+  batch_size: 32
   cross_validation: false
   cross_validation_folds: 10
   cross_validation_method: kfold
   epochs: 500
-  mixed_precision: true
+  mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
   gradient_clipping: true
-  gradient_clipping_value: 1.0
+  gradient_clipping_value: 5.0
   save_model: true
   save_format: safetensors
   checkpoint:
     save_checkpoint: true
-    interval: 20
+    interval: 100
     use_checkpoint: false
     checkpoint: ''
   early_stopping:
     enabled: true
     metric: loss
-    min_delta: 0.0
+    min_delta: 0.001
     patience: 100
   loss_function: mse_vae
   loss_function_params:
     bce_vae:
       reduction: sum
+      beta_start: 0.0
+      beta_end: 100.0
+      kl_anneal_start: 10
+      kl_anneal_end: 200
     mse_vae:
       reduction: sum
       beta_start: 0.0
-      beta_end: 1.0
-      kl_anneal_start: 0
-      kl_anneal_end: 100
+      beta_end: 0.5
+      kl_anneal_start: 5
+      kl_anneal_end: 250
     l1:
       reduction: sum
     mse:
@@ -222,12 +227,12 @@ train:
       last_epoch: -1
     plateau:
       mode: min
-      factor: 0.1
-      patience: 10
-      threshold: 0.0001
+      factor: 0.5
+      patience: 25
+      threshold: 0.001
       threshold_mode: rel
-      cooldown: 0
-      min_lr: 0
+      cooldown: 5
+      min_lr: 1.0e-08
       eps: 1.0e-08
     cyclic:
       base_lr: 0.0001
@@ -269,7 +274,7 @@ train:
       weight_decay: 0.0
       amsgrad: false
     adamw:
-      lr: 0.001
+      lr: 0.0001
       betas:
         - 0.9
         - 0.999
@@ -369,12 +374,12 @@ model:
       latent_dim: 16
       covariate_embedding: input_embedding
   hidden_layers:
+  - 128
   - 64
-  - 32
   weight_initializer: lecun
   dropout: false
   dropout_rate: 0.2
-  normalization_layer: batchnorm1d
+  normalization_layer: layernorm
   normalization_layer_params:
     batchnorm1d:
       eps: 1.0e-05
@@ -471,7 +476,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: 'vae_genr_no_embedding_v5_best.safetensors'
+  model: 'vae_genr_baseline_v1_best.safetensors'
   baseline_model: null
   data_representation: tabular
   metrics:

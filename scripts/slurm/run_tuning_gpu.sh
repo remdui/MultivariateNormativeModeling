@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=mt_vae_nm_genr
-#SBATCH --time=0:20:00
+#SBATCH --job-name=mt_vae_nm_genr_tuning
+#SBATCH --time=0:60:00
 #SBATCH --partition=gpu_a100
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -24,4 +24,4 @@ poetry lock --quiet
 poetry install --only main --no-interaction --no-ansi --quiet
 
 # Run the training script
-poetry run python src/main.py --config config_genr.yml --mode train --debug --verbose --device cuda
+poetry run python src/main.py --config config_genr.yml --mode tune --debug --verbose --device cuda

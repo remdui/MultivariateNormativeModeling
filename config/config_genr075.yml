@@ -1,131 +1,124 @@
 system:
   data_dir: ./data
-  device: cpu
+  device: cuda
   log_dir: ./logs
   models_dir: ./models
   num_workers: 4
   output_dir: ./output
 general:
-  debug: false
+  debug: true
   log_level: INFO
-  seed: 42
-  verbose: false
+  seed: 1
+  verbose: true
 meta:
   config_version: 2
-  description: Variational Autoencoder design experiment setup
-  name: vae_basic
+  description: Variational Autoencoder for GenR Normative Modeling
+  name: vae_genr_baseline
   version: 1
 dataset:
-  skipped_columns: []
-  row_data_leakage_columns: []
+  skipped_columns:
+  - row_id
+  - idc
+  - wave
+  row_data_leakage_columns:
+  - idc
   covariates: []
   targets: []
-  input_data: generated_data.rds
+  input_data: aparc_vol_and_thickavg.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf
-  pin_memory: true
+  pin_memory: false
   shuffle: true
   test_split: 0.1
-  train_split: 0.8
-  val_split: 0.2
+  train_split: 0.9
+  val_split: 0.1
   enable_transforms: true
   transforms:
-  - name: NoiseTransform
-    type: preprocessing
-    params:
-      mean: 0.0
-      std: 0.05
-      distribution: normal
-  - name: DataCleaningTransform
-    type: preprocessing
-    params:
-      drop_na: true
-      remove_duplicates: true
   - name: NormalizationTransform
     type: preprocessing
     params:
-      method: min-max
+      method: z-score
 data_analysis:
   dimensionality_reduction:
-    pca: true
+    pca: false
     pca_settings:
       components: 2
-    tsne: true
+    tsne: false
     tsne_settings:
       components: 2
       perplexity: 30.0
-    umap: true
+    umap: false
     umap_settings:
       components: 2
       neighbors: 15
   latent_space_analysis:
-    latent_space_analysis: true
-    latent_space_visualization: true
-    disentanglement_analysis: true
-    sensitivity_analysis: true
-    variance_analysis: true
+    latent_space_analysis: false
+    latent_space_visualization: false
+    disentanglement_analysis: false
+    sensitivity_analysis: false
+    variance_analysis: false
   reconstruction_analysis:
-    reconstruction_analysis: true
-    reconstruction_error_plot: true
+    reconstruction_analysis: false
+    reconstruction_error_plot: false
     reconstruction_metrics:
     - mse
     - mae
   data_exploration:
     phases:
       raw_input: false
-      processed_input: true
-      output: true
-    distribution_plots: true
-    correlation_matrix: true
-    normality_test: true
+      processed_input: false
+      output: false
+    distribution_plots: false
+    correlation_matrix: false
+    normality_test: false
     normality_test_method: shapiro
     normality_threshold: 0.05
-    outlier_detection: true
+    outlier_detection: false
     outlier_detection_method: z-score
     outlier_threshold: 3.0
-    summary_statistics: true
+    summary_statistics: false
   visualization:
     distribution_visualization_method: histogram
-    save_visualizations: true
+    save_visualizations: false
     show_visualizations: false
 train:
   batch_size: 32
   cross_validation: false
-  cross_validation_folds: 5
+  cross_validation_folds: 10
   cross_validation_method: kfold
-  epochs: 20
+  epochs: 300
+  mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
   gradient_clipping: true
   gradient_clipping_value: 1.0
-  mixed_precision: false
   save_model: true
   save_format: safetensors
   checkpoint:
     save_checkpoint: true
-    interval: 20
+    interval: 100
     use_checkpoint: false
     checkpoint: ''
   early_stopping:
     enabled: true
     metric: loss
-    min_delta: 0.0
-    patience: 10
-  loss_function: bce_vae
+    min_delta: 0.001
+    patience: 100
+  loss_function: mse_vae
   loss_function_params:
     bce_vae:
       reduction: sum
       beta_start: 0.0
-      beta_end: 1.0
-      kl_anneal_start: 0
-      kl_anneal_end: 0
+      beta_end: 100.0
+      kl_anneal_start: 10
+      kl_anneal_end: 200
     mse_vae:
       reduction: sum
       beta_start: 0.0
-      beta_end: 1.0
-      kl_anneal_start: 0
-      kl_anneal_end: 0
+      beta_end: 0.5
+      kl_anneal_start: 5
+      kl_anneal_end: 150
     l1:
       reduction: sum
     mse:
@@ -192,7 +185,7 @@ train:
       margin: 1.0
       swap: false
       reduction: sum
-  scheduler: step
+  scheduler: plateau
   scheduler_params:
     default:
       last_epoch: -1
@@ -234,15 +227,15 @@ train:
       last_epoch: -1
     plateau:
       mode: min
-      factor: 0.1
-      patience: 10
-      threshold: 0.0001
+      factor: 0.5
+      patience: 25
+      threshold: 0.001
       threshold_mode: rel
-      cooldown: 0
-      min_lr: 0
+      cooldown: 5
+      min_lr: 1.0e-08
       eps: 1.0e-08
     cyclic:
-      base_lr: 0.001
+      base_lr: 0.0001
       max_lr: 0.01
       step_size_up: 2000
       step_size_down: null
@@ -250,7 +243,7 @@ train:
       gamma: 1.0
       scale_fn: null
       scale_mode: cycle
-      cycle_momentum: true
+      cycle_momentum: false # does only work with SGD and other optimizers that have momentum
       base_momentum: 0.8
       max_momentum: 0.9
       last_epoch: -1
@@ -270,23 +263,23 @@ train:
       T_mult: 2
       eta_min: 0.0
       last_epoch: -1
-  optimizer: adam
+  optimizer: adamw
   optimizer_params:
     adam:
       lr: 0.001
       betas:
-      - 0.9
-      - 0.999
+        - 0.9
+        - 0.999
       eps: 1.0e-08
       weight_decay: 0.0
       amsgrad: false
     adamw:
-      lr: 0.001
+      lr: 0.0001
       betas:
-      - 0.9
-      - 0.999
+        - 0.9
+        - 0.999
       eps: 1.0e-08
-      weight_decay: 0.01
+      weight_decay: 0.0001
       amsgrad: false
     sgd:
       lr: 0.001
@@ -303,8 +296,8 @@ train:
       lr: 0.01
       beta2_decay: -0.8
       eps:
-      - null
-      - 0.001
+        - null
+        - 0.001
       d: 1.0
       weight_decay: 0.0
     adagrad:
@@ -316,14 +309,14 @@ train:
     sparse_adam:
       lr: 0.001
       betas:
-      - 0.9
-      - 0.999
+        - 0.9
+        - 0.999
       eps: 1.0e-08
     adamax:
       lr: 0.002
       betas:
-      - 0.9
-      - 0.999
+        - 0.9
+        - 0.999
       eps: 1.0e-08
       weight_decay: 0
     asgd:
@@ -343,8 +336,8 @@ train:
     nadam:
       lr: 0.002
       betas:
-      - 0.9
-      - 0.999
+        - 0.9
+        - 0.999
       eps: 1.0e-08
       weight_decay: 0
       momentum_decay: 0.004
@@ -352,8 +345,8 @@ train:
     radam:
       lr: 0.001
       betas:
-      - 0.9
-      - 0.999
+        - 0.9
+        - 0.999
       eps: 1.0e-08
       weight_decay: 0
       decoupled_weight_decay: false
@@ -367,11 +360,11 @@ train:
     rprop:
       lr: 0.01
       etas:
-      - 0.5
-      - 1.2
+        - 0.5
+        - 1.2
       step_sizes:
-      - 1.0e-06
-      - 50
+        - 1.0e-06
+        - 50
 model:
   architecture: vae
   components:
@@ -381,13 +374,12 @@ model:
       latent_dim: 32
       covariate_embedding: input_embedding
   hidden_layers:
-  - 1024
-  - 512
-  - 256
-  weight_initializer: he_normal
+  - 128
+  - 64
+  weight_initializer: lecun
   dropout: false
   dropout_rate: 0.2
-  normalization_layer: batchnorm1d
+  normalization_layer: layernorm
   normalization_layer_params:
     batchnorm1d:
       eps: 1.0e-05
@@ -437,7 +429,7 @@ model:
     rmsnorm:
       eps: 1.0e-08
       elementwise_affine: true
-  activation_function: relu
+  activation_function: silu
   final_activation_function: sigmoid
   activation_function_params:
     elu:
@@ -484,7 +476,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: ''
+  model: 'vae_genr_baseline_v1_best.safetensors'
   baseline_model: null
   data_representation: tabular
   metrics:

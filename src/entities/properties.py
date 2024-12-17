@@ -48,6 +48,14 @@ class Properties:
             raise ConfigurationError("Properties have not been initialized.")
         return cls._instance
 
+    @classmethod
+    def overwrite_instance(cls, updated_properties: "Properties") -> "Properties":
+        """Returns the initialized Properties instance."""
+        if cls._instance is None:
+            raise ConfigurationError("Properties have not been initialized.")
+        cls._instance = updated_properties
+        return cls._instance
+
     def __init__(self, config: dict) -> None:
         """Initialize the Properties object with the validated ConfigSchema."""
         self._sections: dict[str, BaseModel] = {}

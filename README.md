@@ -133,7 +133,7 @@ docker run --rm \
 
 The `main.py` file accepts the following required arguments:
 - `--config`: Path to the configuration file. Default: `config/config_default.yml`.
-- `--mode`: Mode to run the project in. Options: `train`, `inference`, `validate`. Default: `train`.
+- `--mode`: Mode to run the project in. Options: `train`, `inference`, `validate`, `tune`. Default: `train`.
 
 The `main.py` file accepts the following optional arguments:
 - `--checkpoint`: Path to a checkpoint to load.

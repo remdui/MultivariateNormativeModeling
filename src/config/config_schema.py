@@ -141,10 +141,10 @@ class DataAnalysisConfig(BaseModel):
 class DatasetConfig(BaseModel):
     """Dataset configuration."""
 
-    skipped_columns: list[str] = ["id", "subject_id"]
-    row_data_leakage_columns: list[str] = ["subject_id"]
-    covariates: list[str] = ["age", "sex"]
-    targets: list[str] = ["target"]
+    skipped_columns: list[str] = []
+    row_data_leakage_columns: list[str] = []
+    covariates: list[str] = []
+    targets: list[str] = []
     input_data: str = "generated_data.rds"
     data_type: str = "tabular"
     image_type: str = "grayscale"
@@ -417,6 +417,10 @@ class TrainConfig(BaseModel):
             # Custom loss function implementations
             "bce_vae": {
                 "reduction": "sum",
+                "beta_start": 0.0,
+                "beta_end": 1.0,
+                "kl_anneal_start": 0,
+                "kl_anneal_end": 0,
             },
             "mse_vae": {
                 "reduction": "sum",

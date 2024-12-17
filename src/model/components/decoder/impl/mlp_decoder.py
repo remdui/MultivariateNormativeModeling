@@ -16,7 +16,7 @@ class MLPDecoder(BaseDecoder):
         prev_dim = latent_dim
         for _, h_dim in enumerate(hidden_dims):
             layers.append(nn.Linear(prev_dim, h_dim))
-            layers.append(self._get_normalization_layer(h_dim))
+            # layers.append(self._get_normalization_layer(h_dim))
             layers.append(self.activation_function)
             prev_dim = h_dim
         self.model = nn.Sequential(*layers)
@@ -25,8 +25,7 @@ class MLPDecoder(BaseDecoder):
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.model(x)
+        # If we have z-scored the data, we don't need to apply the activation function
         # x = self.output_activation(self.final_layer(x))
-        x = self.final_layer(
-            x
-        )  # If we have z-scored the data, we don't need to apply the activation function
+        x = self.final_layer(x)
         return x
