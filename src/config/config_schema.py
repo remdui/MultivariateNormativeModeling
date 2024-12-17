@@ -384,6 +384,7 @@ class SystemConfig(BaseModel):
 
     data_dir: str = "./data"
     device: str = "cpu"
+    experiment_dir: str = "./experiments"
     log_dir: str = "./logs"
     models_dir: str = "./models"
     num_workers: int = 4

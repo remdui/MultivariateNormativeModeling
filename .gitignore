@@ -18,6 +18,7 @@ models/*
 data/*.csv
 data/processed/*.h5
 output/*
+experiments/*
 
 # Jupyter Notebooks checkpoints
 .ipynb_checkpoints/

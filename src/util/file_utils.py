@@ -2,6 +2,8 @@
 
 import json
 import os
+import shutil
+from datetime import datetime
 from typing import Any, Literal
 
 import pandas as pd
@@ -39,6 +41,77 @@ def write_results_to_file(
         json.dump(result_data, f, indent=4)
 
     logger.info(f"Results written to {filename}")
+
+
+def copy_artifact(
+    src_path: str,
+    dest_dir: str,
+    preserve_structure: bool = False,
+    base_dir: str | None = None,
+) -> None:
+    """
+    Copy an artifact from src_path to a directory.
+
+    Args:
+        src_path (str): The full path of the source file.
+        dest_dir (str): The full path of the destination file.
+        preserve_structure (bool): If True, preserve the relative directory structure under the directory.
+                                   Requires 'base_dir' to be provided.
+        base_dir (str): The base directory from which relative paths are computed when preserve_structure=True.
+    """
+    logger = LogManager.get_logger(__name__)
+
+    if not os.path.exists(src_path):
+        logger.warning(f"Source path does not exist and cannot be copied: {src_path}")
+        return
+
+    if os.path.isdir(src_path):
+        logger.warning(
+            f"Source path is a directory, copy_artifact() is for files only: {src_path}"
+        )
+        return
+
+    if preserve_structure:
+        if base_dir is None:
+            raise ValueError("base_dir must be provided when preserve_structure=True.")
+        rel_dir = os.path.relpath(os.path.dirname(src_path), base_dir)
+        dest_dir = os.path.join(dest_dir, rel_dir)
+        os.makedirs(dest_dir, exist_ok=True)
+        dest_path = os.path.join(dest_dir, os.path.basename(src_path))
+    else:
+        dest_path = os.path.join(dest_dir, os.path.basename(src_path))
+
+    shutil.copy(src_path, dest_path)
+    logger.info(f"Copied artifact: {src_path} -> {dest_path}")
+
+
+def create_experiment_directory(task: str) -> str:
+    """Create a new experiment directory in 'experiments' folder with the naming convention:
+
+    "<task>_<model_name>_<date>_<time>"
+
+    Args:
+        task (str): The task name (e.g., 'train', 'validate', 'inference', 'tune').
+
+    Returns:
+        str: The path to the newly created experiment directory.
+    """
+    properties = Properties.get_instance()
+
+    # Ensure experiments directory exists
+    experiments_dir = properties.system.experiment_dir
+    os.makedirs(experiments_dir, exist_ok=True)
+
+    # Format current date and time
+    now = datetime.now()
+    date_str = now.strftime("%Y%m%d")
+    time_str = now.strftime("%H%M%S")  # Avoid colons for file naming compatibility
+
+    experiment_dir_name = f"{task}_{properties.model_name}_{date_str}_{time_str}"
+    experiment_path = os.path.join(experiments_dir, experiment_dir_name)
+    os.makedirs(experiment_path, exist_ok=True)
+
+    return experiment_path
 
 
 def create_storage_directories() -> None:

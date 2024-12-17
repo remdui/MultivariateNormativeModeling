@@ -5,6 +5,7 @@ import time
 from argparse import Namespace
 
 from config.config_manager import ConfigManager
+from entities.experiment_manager import ExperimentManager
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.pipeline.factory import create_preprocessing_pipeline
@@ -14,7 +15,11 @@ from tasks.tuning.tuning_task import TuningTask
 from tasks.validation.validate_task import ValidateTask
 from util.cmd_utils import parse_args
 from util.config_utils import create_default_config
-from util.file_utils import create_storage_directories, write_results_to_file
+from util.file_utils import (
+    create_experiment_directory,
+    create_storage_directories,
+    write_results_to_file,
+)
 from util.model_utils import visualize_model_arch
 from util.system_utils import log_system_info
 
@@ -61,6 +66,10 @@ def initialize_application(args: Namespace) -> None:
 
         # Create storage directories if they do not exist
         create_storage_directories()
+
+        # Setup experiment directory
+        experiment_path = create_experiment_directory(args.mode)
+        ExperimentManager.get_instance().set_experiment_path(experiment_path)
 
         # Reconfigure logging with the actual properties
         LogManager.reconfigure_logging()
@@ -167,6 +176,10 @@ def main() -> None:
         else:
             logger.info("Skipping preprocessing pipeline.")
 
+        # Save input artifacts to the experiment directory
+        experiment_manager = ExperimentManager.get_instance()
+        experiment_manager.save_input_artifacts(args.config)
+
         # Run the selected task
         task = TASK_MAP.get(args.mode)
         if task:
@@ -183,6 +196,9 @@ def main() -> None:
             )
         total_runtime = time.time() - start_time
         logger.info(f"Application completed in {total_runtime:.2f} seconds.")
+
+        # Save output artifacts to the experiment directory
+        experiment_manager.save_output_artifacts()
 
     except Exception as e:
         logger.error(f"An unhandled error occurred: {e}", exc_info=True)

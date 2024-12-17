@@ -3,7 +3,7 @@
 import time
 
 import optuna
-from optuna.pruners import MedianPruner
+from optuna.pruners import HyperbandPruner
 from optuna.samplers import TPESampler
 
 from entities.log_manager import LogManager
@@ -27,24 +27,25 @@ class TuningTask(AbstractTask):
         Returns:
             TaskResult: The task result object containing the best hyperparameters and validation loss.
         """
-        # Advanced Optuna settings: Use TPE sampler and MedianPruner
-        sampler = TPESampler(
-            seed=42, n_startup_trials=10
-        )  # https://optuna.readthedocs.io/en/stable/reference/samplers.html
-        pruner = MedianPruner(
-            n_startup_trials=5, n_warmup_steps=5
-        )  # https://optuna.readthedocs.io/en/stable/reference/pruners.html
+
+        # https://optuna.readthedocs.io/en/stable/reference/samplers.html
+        sampler = TPESampler(seed=self.properties.general.seed, n_startup_trials=10)
+
+        # https://optuna.readthedocs.io/en/stable/reference/pruners.html
+        pruner = HyperbandPruner(
+            min_resource=1, max_resource="auto", reduction_factor=3
+        )
 
         # Create a study with a pruner and a sampler
         self.logger.info(
-            "Starting hyperparameter tuning using Optuna (TPE Sampler + Median Pruner)."
+            f"Starting hyperparameter tuning using Optuna with {sampler.__class__.__name__} + {pruner.__class__.__name__})."
         )
         study = optuna.create_study(
             direction="minimize", sampler=sampler, pruner=pruner
         )
 
         # Increase n_trials for a more comprehensive search
-        study.optimize(self.objective, n_trials=50, show_progress_bar=True)
+        study.optimize(self.objective, n_trials=100)
 
         # Logging best trial results
         self.logger.info("Hyperparameter tuning completed.")
@@ -74,35 +75,71 @@ class TuningTask(AbstractTask):
         """
         trial_id = trial.number
         self.logger.info(f"Starting trial {trial_id}.")
-
         start_time = time.time()
 
-        # Get the global properties instance
-        properties = Properties.get_instance()
+        # Set epochs for trial
+        epochs = 50
 
-        # Define hyperparameter search space
-        latent_dim = trial.suggest_categorical("latent_dim", [8, 16, 32])
-        beta_end = trial.suggest_uniform("beta_end", 0.1, 1.0)
-        lr = trial.suggest_loguniform("lr", 1e-4, 1e-2)
-        batch_size = trial.suggest_categorical("batch_size", [8, 16, 32, 64])
-        epochs = 20  # Can be tuned or fixed
+        # Set hyperparameters to tune
+        latent_dim = trial.suggest_categorical("latent_dim", [4, 8, 16, 32])
+        batch_size = trial.suggest_categorical("batch_size", [4, 8, 16, 32, 64, 128])
+        gradient_clipping = trial.suggest_categorical(
+            "gradient_clipping", [False, True]
+        )
+        gradient_clipping_value = None
+        if gradient_clipping:
+            gradient_clipping_value = trial.suggest_float(
+                "gradient_clipping_value", 1.0, 10.0
+            )
+        optimizer = trial.suggest_categorical("optimizer", ["adam", "adamw"])
+        activation_function = trial.suggest_categorical(
+            "activation_function", ["silu", "relu", "leakyrelu"]
+        )
+        depth = trial.suggest_categorical("hidden_depth", [2, 3, 4])
+        start_size = trial.suggest_categorical("hidden_start_size", [256, 128, 64])
+        lr = trial.suggest_categorical("learning_rate", [0.01, 0.001, 0.0001])
+
+        # Construct hidden layers based on depth and start_size
+        # For depth 2: [start_size, start_size/2]
+        # For depth 3: [start_size, start_size/2, start_size/4]
+        hidden_layers = [start_size]
+        for _ in range(depth - 1):
+            hidden_layers.append(hidden_layers[-1] // 2)
 
         # Log chosen hyperparameters
         self.logger.info(
-            f"Trial {trial_id} hyperparameters: "
-            f"latent_dim={latent_dim}, beta_end={beta_end:.4f}, lr={lr:.6f}, "
-            f"batch_size={batch_size}, epochs={epochs}"
+            f"Trial {trial_id} hyperparameters:\n"
+            f"  latent_dim={latent_dim}\n"
+            f"  batch_size={batch_size}\n"
+            f"  epochs={epochs}\n"
+            f"  gradient_clipping={gradient_clipping}\n"
+            f"  gradient_clipping_value={gradient_clipping_value}\n"
+            f"  optimizer={optimizer}\n"
+            f"  activation_function={activation_function}\n"
+            f"  hidden_layers={hidden_layers}\n"
+            f"  learning_rate={lr}"
         )
 
         # Overwrite properties
+        properties = Properties.get_instance()
+
         properties.model.components["vae"]["latent_dim"] = latent_dim
-        properties.train.loss_function_params["mse_vae"]["beta_end"] = beta_end
-        properties.train.optimizer_params["adam"]["lr"] = lr
         properties.train.batch_size = batch_size
         properties.train.epochs = epochs
+        properties.train.gradient_clipping = gradient_clipping
+        if gradient_clipping_value is not None:
+            properties.train.gradient_clipping_value = gradient_clipping_value
+        properties.train.optimizer = optimizer
+        properties.model.hidden_layers = hidden_layers
+        properties.model.activation_function = activation_function
+        if optimizer == "adam":
+            properties.train.optimizer_params["adam"]["lr"] = lr
+        else:
+            properties.train.optimizer_params["adamw"]["lr"] = lr
 
-        properties.train.early_stopping.enabled = True
-        properties.train.early_stopping.patience = 5
+        # Set the weight initializer based on activation function
+        if activation_function in {"relu", "leakyrelu"}:
+            properties.model.weight_initializer = "he_normal"
 
         Properties.overwrite_instance(properties)
 

@@ -19,11 +19,11 @@ class ConfigManager:
     def __init__(self, config_file: str, command_line_args: argparse.Namespace):
         """Initialize the ConfigManager with the provided configuration file and command-line arguments."""
         self.logger = LogManager.get_logger(__name__)
-        self.config_file = config_file
         self.args = command_line_args
 
         # Initialize an empty configuration dictionary
         self.config: dict = {}
+        self.config_file = os.path.join("./config", config_file)
 
         # Process the configuration file and command-line arguments
         self._load_config()
@@ -31,14 +31,12 @@ class ConfigManager:
 
     def _load_config(self) -> None:
         """Load the configuration from a YAML file."""
-        config_file = os.path.join("./config", self.config_file)
-
-        if os.path.exists(config_file):
-            with open(config_file, encoding="utf-8") as file:
+        if os.path.exists(self.config_file):
+            with open(self.config_file, encoding="utf-8") as file:
                 self.config = yaml.safe_load(file)
-                self.logger.info(f"Configuration loaded from file: {config_file}")
+                self.logger.info(f"Configuration loaded from file: {self.config_file}")
         else:
-            raise FileNotFoundError(f"Configuration file {config_file} not found.")
+            raise FileNotFoundError(f"Configuration file {self.config_file} not found.")
 
     def _override_with_args(self) -> None:
         """Override configuration values with command-line arguments."""
@@ -135,6 +133,9 @@ class ConfigManager:
 
     def _save_config(self) -> None:
         """Save the updated configuration to the file."""
-        config_file = os.path.join("./config", self.config_file)
-        with open(config_file, "w", encoding="utf-8") as file:
+        with open(self.config_file, "w", encoding="utf-8") as file:
             yaml.dump(self.config, file, sort_keys=False)
+
+    def get_config_path(self) -> str:
+        """Return the path to the configuration file."""
+        return self.config_file
