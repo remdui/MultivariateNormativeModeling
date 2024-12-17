@@ -36,6 +36,7 @@ This repository contains the code for the master thesis project. The code is str
 - The `data` directory contains raw and processed data (not included in the repository due to privacy reasons).
 - The `docker` directory contains required files to run the project in a Docker container.
 - The `docs` directory contains documentation and literature.
+- The `experiments` directory contains input and output artifact per experiment.
 - The `logs` directory contains log files.
 - The `models` directory contains saved models.
 - The `output` directory contains output files (e.g., predictions, visualizations, etc.).
@@ -207,6 +208,7 @@ The application generates different types of artifacts during the execution of t
 - **Processed Data**: Processed data is saved in the `data/processed` directory. Processed data is saved in the `csv` format.
 
 Output files are not tracked in the repository. Output files and folders can be safely deleted.
+Additionally, all input and output files are copied to a timestamped experiment folder to keep track of experiments and to enable reproducability.
 
 ### Scripts
 
