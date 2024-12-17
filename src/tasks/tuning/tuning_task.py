@@ -32,9 +32,7 @@ class TuningTask(AbstractTask):
         sampler = TPESampler(seed=self.properties.general.seed, n_startup_trials=10)
 
         # https://optuna.readthedocs.io/en/stable/reference/pruners.html
-        pruner = HyperbandPruner(
-            min_resource=1, max_resource="auto", reduction_factor=3
-        )
+        pruner = HyperbandPruner(min_resource=25, max_resource=200, reduction_factor=3)
 
         # Create a study with a pruner and a sampler
         self.logger.info(
@@ -78,7 +76,7 @@ class TuningTask(AbstractTask):
         start_time = time.time()
 
         # Set epochs for trial
-        epochs = 50
+        epochs = 200
 
         # Set hyperparameters to tune
         latent_dim = trial.suggest_categorical("latent_dim", [4, 8, 16, 32])

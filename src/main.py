@@ -198,7 +198,7 @@ def main() -> None:
         logger.info(f"Application completed in {total_runtime:.2f} seconds.")
 
         # Save output artifacts to the experiment directory
-        experiment_manager.save_output_artifacts()
+        experiment_manager.save_output_artifacts(args.mode)
 
     except Exception as e:
         logger.error(f"An unhandled error occurred: {e}", exc_info=True)

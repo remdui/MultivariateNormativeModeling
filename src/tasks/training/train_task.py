@@ -209,13 +209,14 @@ class TrainTask(AbstractTask):
 
             # If using Optuna, report the intermediate result
             if self.trial is not None:
-                self.trial.report(avg_val_loss, step=epoch)
-                # If the trial should be pruned, raise an exception
-                if self.trial.should_prune():
-                    self.logger.info(
-                        f"Trial {self.trial.number} pruned at epoch {epoch + 1} with val_loss={avg_val_loss:.4f}"
-                    )
-                    raise optuna.TrialPruned()
+                if epoch > 100:  # start reporting after warm-up
+                    self.trial.report(avg_val_loss, step=epoch)
+                    # If the trial should be pruned, raise an exception
+                    if self.trial.should_prune():
+                        self.logger.info(
+                            f"Trial {self.trial.number} pruned at epoch {epoch + 1} with val_loss={avg_val_loss:.4f}"
+                        )
+                        raise optuna.TrialPruned()
 
             # Update best model if validation loss improves
             best_val_loss = self.__update_best_model(avg_val_loss, best_val_loss)
