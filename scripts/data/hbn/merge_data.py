@@ -1,4 +1,4 @@
-"""Merge and process GENR MRI data from FreeSurfer output files."""
+"""Merge and process HBN MRI data from FreeSurfer output files."""
 
 import logging
 import os
@@ -17,21 +17,16 @@ logging.basicConfig(
 
 # Constants
 OUTPUT_DIR = "../../../data"
-WAVE_MAPPING = {"f05": 0, "f09": 1, "f13": 2}
 APARC_FILES = [
-    "f05_freesurfer_v6_24june2021_aparc_stats_pull18Aug2021.rds",
-    "f09_freesurfer_v6_09dec2016_aparc_stats_pull06june2017.rds",
-    "f13_freesurfer_v6_14oct2020_aparc_stats_pull23Nov2020.rds",
+    "aparc_hbn.rds",
 ]
 ASEG_FILES = [
-    "f05_freesurfer_v6_24june2021_aseg_stats_pull18Aug2021_v1.rds",
-    "f09_freesurfer_v6_09dec2016_aseg_stats_pull06june2017_v1.rds",
-    "f13_freesurfer_v6_14oct2020_aseg_stats_pull23Nov2020_v1.rds",
+    "aseg_hbn.rds",
 ]
-CORE_FILE = "genr_mri_core_data_20231204.rds"
+CORE_FILE = "core_hbn.rds"
 
 # Features to exclude
-APARC_EXCLUDE_FEATURES = ["lh_MeanThickness", "rh_MeanThickness"]
+APARC_EXCLUDE_FEATURES = []
 ASEG_EXCLUDE_FEATURES = []
 
 # Ensure output directory exists
@@ -41,31 +36,24 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 def load_core_data(file_path):
     """Load the core data file and process the covariates."""
     core_data = pyreadr.read_r(file_path)[None]
-    covariates = core_data[
-        ["idc", "age_child_mri_f05", "age_child_mri_f09", "age_child_mri_f13"]
-    ]
-    covariates = pd.melt(
-        covariates, id_vars=["idc"], var_name="wave", value_name="age"
-    ).dropna()
-    covariates["wave"] = covariates["wave"].str[-3:].map(WAVE_MAPPING)
-    covariates["age"] = covariates["age"].astype(np.float64)
+    covariates = core_data[["EID", "Age", "Sex"]]
+    covariates = pd.melt(covariates, id_vars=["EID"]).dropna()
+
+    covariates["Age"] = covariates["Age"].astype(np.float64)
+    covariates["Sex"] = covariates["Sex"].astype(np.float64)
     logging.info(
         f"Core data loaded with {covariates.shape[0]} rows and columns: {list(covariates.columns)}"
     )
     return covariates
 
 
-def load_and_process_files(file_list, wave_mapping, is_aseg=False):
+def load_and_process_files(file_list, is_aseg=False):
     """Load and process the FreeSurfer output files."""
     processed_data = []
     exclude_features = ASEG_EXCLUDE_FEATURES if is_aseg else APARC_EXCLUDE_FEATURES
     for file_path in file_list:
-        wave_label = os.path.basename(file_path)[:3]
         data = pyreadr.read_r(file_path)[None]
-        data.rename(
-            columns=lambda col: col.rstrip("_f05").rstrip("_f09").rstrip("_f13"),
-            inplace=True,
-        )
+
         if is_aseg:
             data.rename(
                 columns=lambda col: col[:-4] if col.endswith("_vol") else col,
@@ -75,15 +63,7 @@ def load_and_process_files(file_list, wave_mapping, is_aseg=False):
             columns=[col for col in exclude_features if col in data.columns],
             errors="ignore",
         )
-        data = pd.concat(
-            [
-                data,
-                pd.DataFrame(
-                    {"wave": [wave_mapping[wave_label]] * len(data)}, index=data.index
-                ),
-            ],
-            axis=1,
-        )
+
         data = data.astype(np.float64, errors="ignore")
         processed_data.append(data)
     combined_data = pd.concat(processed_data, ignore_index=True).dropna()
@@ -137,20 +117,18 @@ def save_dataframe(df, file_path, description):
 def process_subset_and_save(data, covariates, output_dir, prefix, name):
     """Combine hemisphere columns, merge with covariates, and save both lh/rh and combined data."""
     combined_data = combine_hemisphere_columns(data)
-    merged_data = covariates.merge(data, on=["idc", "wave"], how="inner")
-    combined_merged_data = covariates.merge(
-        combined_data, on=["idc", "wave"], how="inner"
-    )
+    merged_data = covariates.merge(data, on=["EID"], how="inner")
+    combined_merged_data = covariates.merge(combined_data, on=["EID"], how="inner")
 
     # Save results
     save_dataframe(
         merged_data,
-        os.path.join(output_dir, f"genr_{prefix}_{name}_lh_rh.rds"),
+        os.path.join(output_dir, f"hbn_{prefix}_{name}_lh_rh.rds"),
         f"{prefix} {name} (lh/rh)",
     )
     save_dataframe(
         combined_merged_data,
-        os.path.join(output_dir, f"genr_{prefix}_{name}.rds"),
+        os.path.join(output_dir, f"hbn_{prefix}_{name}.rds"),
         f"{prefix} {name} (combined)",
     )
 
@@ -216,44 +194,42 @@ def process_and_save_with_combined(
     # aseg_combined = combine_hemisphere_columns(aseg_data)
     combined_full_data = combine_hemisphere_columns(full_data)
 
-    aparc_with_covariates = covariates.merge(
-        aparc_data, on=["idc", "wave"], how="inner"
-    )
-    aseg_with_covariates = covariates.merge(aseg_data, on=["idc", "wave"], how="inner")
-    full_with_covariates = covariates.merge(full_data, on=["idc", "wave"], how="inner")
+    aparc_with_covariates = covariates.merge(aparc_data, on=["EID"], how="inner")
+    aseg_with_covariates = covariates.merge(aseg_data, on=["EID"], how="inner")
+    full_with_covariates = covariates.merge(full_data, on=["EID"], how="inner")
 
     aparc_combined_with_covariates = covariates.merge(
-        aparc_combined, on=["idc", "wave"], how="inner"
+        aparc_combined, on=["EID"], how="inner"
     )
-    # aseg_combined_with_covariates = covariates.merge(aseg_combined, on=["idc", "wave"], how="inner")
+    # aseg_combined_with_covariates = covariates.merge(aseg_combined, on=["EID"], how="inner")
     combined_full_with_covariates = covariates.merge(
-        combined_full_data, on=["idc", "wave"], how="inner"
+        combined_full_data, on=["EID"], how="inner"
     )
 
     save_dataframe(
         aparc_with_covariates,
-        os.path.join(output_dir, "genr_aparc_lh_rh.rds"),
+        os.path.join(output_dir, "hbn_aparc_lh_rh.rds"),
         "Aparc full data (lh/rh)",
     )
     save_dataframe(
         aseg_with_covariates,
-        os.path.join(output_dir, "genr_aseg_lh_rh.rds"),
+        os.path.join(output_dir, "hbn_aseg_lh_rh.rds"),
         "Aseg full data (lh/rh)",
     )
     save_dataframe(
         full_with_covariates,
-        os.path.join(output_dir, "genr_full_lh_rh.rds"),
+        os.path.join(output_dir, "hbn_full_lh_rh.rds"),
         "full data (lh/rh)",
     )
     save_dataframe(
         aparc_combined_with_covariates,
-        os.path.join(output_dir, "genr_aparc.rds"),
+        os.path.join(output_dir, "hbn_aparc.rds"),
         "Aparc full data (combined)",
     )
     # save_dataframe(aseg_combined_with_covariates, os.path.join(output_dir, "aseg.rds"), "Aseg full data (combined)")
     save_dataframe(
         combined_full_with_covariates,
-        os.path.join(output_dir, "genr_full.rds"),
+        os.path.join(output_dir, "hbn_full.rds"),
         "full data (combined)",
     )
 
@@ -262,9 +238,9 @@ def main():
     """Main function to load and process the data."""
     covariates = load_core_data(CORE_FILE)
 
-    aparc_data = load_and_process_files(APARC_FILES, WAVE_MAPPING)
-    aseg_data = load_and_process_files(ASEG_FILES, WAVE_MAPPING, is_aseg=True)
-    full_data = pd.merge(aparc_data, aseg_data, on=["idc", "wave"], how="inner")
+    aparc_data = load_and_process_files(APARC_FILES)
+    aseg_data = load_and_process_files(ASEG_FILES, is_aseg=True)
+    full_data = pd.merge(aparc_data, aseg_data, on=["EID"], how="inner")
 
     process_and_save_with_combined(
         aparc_data, aseg_data, full_data, covariates, OUTPUT_DIR
