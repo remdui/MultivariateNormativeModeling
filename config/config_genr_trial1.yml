@@ -23,7 +23,7 @@ dataset:
   row_data_leakage_columns: []
   covariates: []
   targets: []
-  input_data: gen_r_aparc.rds
+  input_data: genr_aparc.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf

@@ -24,7 +24,7 @@ dataset:
   - idc
   covariates: []
   targets: []
-  input_data: aparc.rds
+  input_data: hbn_aparc.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf

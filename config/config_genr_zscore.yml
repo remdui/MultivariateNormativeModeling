@@ -24,7 +24,7 @@ dataset:
   - idc
   covariates: []
   targets: []
-  input_data: aparc_vol_and_thickavg.rds
+  input_data: genr_aparc_vol_and_thickavg.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf

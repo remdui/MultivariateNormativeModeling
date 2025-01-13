@@ -37,8 +37,6 @@ def load_core_data(file_path):
     """Load the core data file and process the covariates."""
     core_data = pyreadr.read_r(file_path)[None]
     covariates = core_data[["EID", "Age", "Sex"]]
-    covariates = pd.melt(covariates, id_vars=["EID"]).dropna()
-
     covariates["Age"] = covariates["Age"].astype(np.float64)
     covariates["Sex"] = covariates["Sex"].astype(np.float64)
     logging.info(
