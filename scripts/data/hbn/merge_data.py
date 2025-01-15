@@ -36,9 +36,10 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 def load_core_data(file_path):
     """Load the core data file and process the covariates."""
     core_data = pyreadr.read_r(file_path)[None]
-    covariates = core_data[["EID", "Age", "Sex"]]
+    covariates = core_data[["EID", "Age", "Sex", "site"]]
     covariates["Age"] = covariates["Age"].astype(np.float64)
     covariates["Sex"] = covariates["Sex"].astype(np.float64)
+    covariates["site"] = covariates["site"].astype(np.float64)
     logging.info(
         f"Core data loaded with {covariates.shape[0]} rows and columns: {list(covariates.columns)}"
     )

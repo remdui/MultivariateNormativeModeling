@@ -83,7 +83,7 @@ data_analysis:
     save_visualizations: false
     show_visualizations: false
 train:
-  batch_size: 64
+  batch_size: 32
   cross_validation: false
   cross_validation_folds: 10
   cross_validation_method: kfold
@@ -91,7 +91,7 @@ train:
   mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
-  gradient_clipping: false
+  gradient_clipping: true
   gradient_clipping_value: 5.0
   save_model: true
   save_format: safetensors
@@ -116,7 +116,7 @@ train:
     mse_vae:
       reduction: sum
       beta_start: 0.0
-      beta_end: 200.0
+      beta_end: 0.5
       kl_anneal_start: 5
       kl_anneal_end: 250
     l1:
@@ -274,7 +274,7 @@ train:
       weight_decay: 0.0
       amsgrad: false
     adamw:
-      lr: 0.001
+      lr: 0.0001
       betas:
         - 0.9
         - 0.999
@@ -371,12 +371,12 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 32
+      latent_dim: 16
       covariate_embedding: input_embedding
   hidden_layers:
-  - 256
   - 128
-  weight_initializer: he_normal
+  - 64
+  weight_initializer: lecun
   dropout: false
   dropout_rate: 0.2
   normalization_layer: layernorm
@@ -429,7 +429,7 @@ model:
     rmsnorm:
       eps: 1.0e-08
       elementwise_affine: true
-  activation_function: relu
+  activation_function: silu
   final_activation_function: sigmoid
   activation_function_params:
     elu:

@@ -80,7 +80,12 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
 
             # Load data as a torch tensor and apply preprocessing
             data = load_data(data_path)
-            data_tensor = torch.tensor(data.values, dtype=torch.float32).to(
+
+            skipped_columns = self.properties.dataset.skipped_columns
+            skipped_data = data[skipped_columns]
+            numeric_data = data.drop(columns=skipped_columns)
+
+            data_tensor = torch.tensor(numeric_data.values, dtype=torch.float32).to(
                 self.properties.system.device
             )
 
@@ -90,8 +95,18 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
                 data_tensor = transform(data_tensor)
 
             transformed_data = pd.DataFrame(
-                data_tensor.cpu().numpy(), columns=data.columns
+                data_tensor.cpu().numpy(), columns=numeric_data.columns
             )
+
+            # Add the skipped columns back
+            for col in skipped_columns:
+                transformed_data[col] = skipped_data[col].values
+
+            # Reorder the columns to match the original DataFrame structure
+            transformed_data = transformed_data[
+                [*skipped_columns, *numeric_data.columns]
+            ]
+
             save_data(transformed_data, data_path)
             self.logger.info(
                 f"Preprocessing steps applied to data and saved to {data_path}"

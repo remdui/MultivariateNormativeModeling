@@ -12,21 +12,19 @@ general:
   verbose: true
 meta:
   config_version: 2
-  description: Variational Autoencoder for Normative Modeling
-  name: vae_hbn_baseline
+  description: Variational Autoencoder for GenR Normative Modeling
+  name: vae_genr_baseline
   version: 1
 dataset:
   skipped_columns:
   - row_id
-  - EID
+  - idc
+  - wave
   row_data_leakage_columns:
-  - EID
-  covariates:
-  - Age
-  - Sex
-  - site
+  - idc
+  covariates: []
   targets: []
-  input_data: hbn_aparc.rds
+  input_data: genr_aparc.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf
@@ -478,7 +476,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: 'vae_hbn_baseline_v1_best.safetensors'
+  model: 'vae_genr_baseline_v1_best.safetensors'
   baseline_model: null
   data_representation: tabular
   metrics:

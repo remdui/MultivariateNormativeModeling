@@ -19,6 +19,9 @@ class RDSConverter(AbstractDataConverter):
             result = pyreadr.read_r(str(input_file_path))
             # Assuming there's only one dataframe in the RDS file
             self.data = next(iter(result.values()))
+            self.logger.info(self.data.head())
+            self.logger.info(self.data.columns)
+            self.logger.info(self.data.dtypes)
         except OSError as e:
             self.logger.exception(f"Failed to load {input_file_path}")
             raise e
