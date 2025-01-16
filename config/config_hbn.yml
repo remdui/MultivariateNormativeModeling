@@ -39,8 +39,13 @@ dataset:
   - name: SiteFilterTransform
     type: preprocessing
     params:
-      selected_site: -1
+      selected_site: 2
       col_id: 2
+  - name: SampleLimitTransform
+    type: preprocessing
+    params:
+      max_samples: 1000
+      shuffle: true
   - name: NormalizationTransform
     type: preprocessing
     params:

@@ -39,6 +39,10 @@ class AgeFilterTransform(Transform):
         Returns:
             Tensor: Filtered dataset containing only rows within the age range.
         """
+        if self.age_lowerbound == -1 or self.age_upperbound == -1:
+            self.logger.info("No age filtering applied. Returning original data.")
+            return data
+
         self.logger.info(
             f"Filtering data for age range: {self.age_lowerbound}-{self.age_upperbound}"
         )

@@ -8,6 +8,7 @@ from preprocessing.transform.impl.age_filter import AgeFilterTransform
 from preprocessing.transform.impl.data_cleaning import DataCleaningTransform
 from preprocessing.transform.impl.noise import NoiseTransform
 from preprocessing.transform.impl.normalization import NormalizationTransform
+from preprocessing.transform.impl.sample_limit import SampleLimitTransform
 from preprocessing.transform.impl.sex_filter import SexFilterTransform
 from preprocessing.transform.impl.site_filter import SiteFilterTransform
 from preprocessing.transform.impl.wave_filter import WaveFilterTransform
@@ -22,6 +23,7 @@ TRANSFORM_MAPPING: dict[str, type[Any]] = {
     "AgeFilterTransform": AgeFilterTransform,
     "SexFilterTransform": SexFilterTransform,
     "WaveFilterTransform": WaveFilterTransform,
+    "SampleLimitTransform": SampleLimitTransform,
     # Torchvision transforms
     "Grayscale": Grayscale,
     "Normalize": Normalize,

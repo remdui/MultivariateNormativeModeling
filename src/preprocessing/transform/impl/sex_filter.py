@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import torch
 from torch import Tensor
 from torchvision.transforms.v2 import Transform  # type: ignore
 
@@ -32,10 +33,15 @@ class SexFilterTransform(Transform):
         Returns:
             Tensor: Filtered dataset containing only rows matching the specified sex.
         """
+        if self.sex == -1:
+            self.logger.info("No sex filtering applied. Returning original data.")
+            return data
+
         self.logger.info(f"Filtering data for sex: {self.sex}")
 
         sex_data = data[:, self.col_id]
-        mask = sex_data == self.sex
+        tolerance = 1e-5
+        mask = torch.abs(sex_data - self.sex) < tolerance
         filtered_data = data[mask]
 
         return filtered_data

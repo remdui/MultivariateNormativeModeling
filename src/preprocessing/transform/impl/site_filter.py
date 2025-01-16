@@ -37,24 +37,12 @@ class SiteFilterTransform(Transform):
 
         self.logger.info(f"Filtering data for site ID: {self.selected_site}")
 
-        self.logger.info(data[0])
-        self.logger.info(data[-1])
         site_data = data[:, self.col_id]
-        self.logger.info(f"Site data: {site_data}")
-
         tolerance = 1e-5
         mask = torch.abs(site_data - self.selected_site) < tolerance
-        self.logger.info(f"Mask: {mask}")
-        self.logger.info(f"Mask size: {mask.shape}")
+        data[~mask] = float("nan")
 
-        # Create a copy of the data to modify
-        filtered_data = data.clone()
-        filtered_data[~mask] = float("nan")
-
-        self.logger.info(f"Filtered data: {filtered_data}")
-        self.logger.info(f"Filtered data shape: {filtered_data.shape}")
-
-        return filtered_data
+        return data
 
     def _transform(self, inpt: Any, params: dict[str, Any]) -> Any:
         """Apply the site filter transformation."""

@@ -52,6 +52,27 @@ dataset:
     params:
       selected_site: -1
       col_id: 1
+  - name: WaveFilterTransform
+    type: preprocessing
+    params:
+      selected_wave: -1
+      col_id: 1
+  - name: AgeFilterTransform
+    type: preprocessing
+    params:
+      age_lowerbound: 0.0
+      age_upperbound: 100.0
+      col_id: 1
+  - name: SexFilterTransform
+    type: preprocessing
+    params:
+      sex: -1
+      col_id: 1
+  - name: SampleLimitTransform
+    type: preprocessing
+    params:
+      max_samples: 1000
+      shuffle: true
 data_analysis:
   dimensionality_reduction:
     pca: true

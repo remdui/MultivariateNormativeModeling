@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import torch
 from torch import Tensor
 from torchvision.transforms.v2 import Transform  # type: ignore
 
@@ -37,7 +38,8 @@ class WaveFilterTransform(Transform):
         self.logger.info(f"Filtering data for wave ID: {self.selected_wave}")
 
         wave_data = data[:, self.col_id]
-        mask = wave_data == self.selected_wave
+        tolerance = 1e-5
+        mask = torch.abs(wave_data - self.selected_wave) < tolerance
         filtered_data = data[mask]
 
         return filtered_data

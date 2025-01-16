@@ -176,6 +176,26 @@ class DatasetConfig(BaseModel):
             type="preprocessing",
             params={"selected_site": -1, "col_id": 1},
         ),
+        TransformConfig(
+            name="WaveFilterTransform",
+            type="preprocessing",
+            params={"selected_wave": -1, "col_id": 1},
+        ),
+        TransformConfig(
+            name="AgeFilterTransform",
+            type="preprocessing",
+            params={"age_lowerbound": 0.0, "age_upperbound": 100.0, "col_id": 1},
+        ),
+        TransformConfig(
+            name="SexFilterTransform",
+            type="preprocessing",
+            params={"sex": -1, "col_id": 1},
+        ),
+        TransformConfig(
+            name="SampleLimitTransform",
+            type="preprocessing",
+            params={"max_samples": 1000, "shuffle": True},
+        ),
     ]
 
     @model_validator(mode="after")
