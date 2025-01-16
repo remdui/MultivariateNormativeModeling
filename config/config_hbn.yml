@@ -1,6 +1,6 @@
 system:
   data_dir: ./data
-  device: cuda
+  device: cpu
   log_dir: ./logs
   models_dir: ./models
   num_workers: 4
@@ -39,8 +39,8 @@ dataset:
   - name: SiteFilterTransform
     type: preprocessing
     params:
-      selected_sites: 3
-      site_col_id: 1
+      selected_site: -1
+      col_id: 2
   - name: NormalizationTransform
     type: preprocessing
     params:

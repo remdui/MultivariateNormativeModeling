@@ -4,10 +4,13 @@ from typing import Any
 
 from torchvision.transforms.v2 import Grayscale, Normalize, Transform  # type: ignore
 
+from preprocessing.transform.impl.age_filter import AgeFilterTransform
 from preprocessing.transform.impl.data_cleaning import DataCleaningTransform
 from preprocessing.transform.impl.noise import NoiseTransform
 from preprocessing.transform.impl.normalization import NormalizationTransform
+from preprocessing.transform.impl.sex_filter import SexFilterTransform
 from preprocessing.transform.impl.site_filter import SiteFilterTransform
+from preprocessing.transform.impl.wave_filter import WaveFilterTransform
 
 # Mapping for available transforms, including custom and torchvision transforms
 TRANSFORM_MAPPING: dict[str, type[Any]] = {
@@ -16,6 +19,9 @@ TRANSFORM_MAPPING: dict[str, type[Any]] = {
     "DataCleaningTransform": DataCleaningTransform,
     "NoiseTransform": NoiseTransform,
     "SiteFilterTransform": SiteFilterTransform,
+    "AgeFilterTransform": AgeFilterTransform,
+    "SexFilterTransform": SexFilterTransform,
+    "WaveFilterTransform": WaveFilterTransform,
     # Torchvision transforms
     "Grayscale": Grayscale,
     "Normalize": Normalize,

@@ -174,7 +174,7 @@ class DatasetConfig(BaseModel):
         TransformConfig(
             name="SiteFilterTransform",
             type="preprocessing",
-            params={"selected_sites": -1, "site_col_id": 1},
+            params={"selected_site": -1, "col_id": 1},
         ),
     ]
 

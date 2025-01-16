@@ -50,8 +50,8 @@ dataset:
   - name: SiteFilterTransform
     type: preprocessing
     params:
-      selected_sites: -1
-      site_col_id: 1
+      selected_site: -1
+      col_id: 1
 data_analysis:
   dimensionality_reduction:
     pca: true

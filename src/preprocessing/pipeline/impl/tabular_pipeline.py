@@ -74,43 +74,84 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
             raise ValueError(f"Unsupported file extension: {input_file_extension}")
 
     def __apply_transforms(self, data_path: str) -> None:
-        """Apply preprocessing steps to the data if enabled."""
-        if self.properties.dataset.enable_transforms:
-            self.logger.info("Applying data preprocessing methods")
+        """Apply preprocessing steps to the data if enabled,.
 
-            # Load data as a torch tensor and apply preprocessing
-            data = load_data(data_path)
+        dropping rows with NaN after each transform (and removing
+        from the 'skipped' columns as well).
+        """
+        if not self.properties.dataset.enable_transforms:
+            return
 
-            skipped_columns = self.properties.dataset.skipped_columns
-            skipped_data = data[skipped_columns]
-            numeric_data = data.drop(columns=skipped_columns)
+        self.logger.info("Applying data preprocessing methods")
 
-            data_tensor = torch.tensor(numeric_data.values, dtype=torch.float32).to(
-                self.properties.system.device
-            )
+        # 1. Load data
+        data = load_data(data_path)
 
-            # Apply each transform to the data
-            for transform in self.transforms:
-                self.logger.info(f"Applying transform: {transform.__class__.__name__}")
-                data_tensor = transform(data_tensor)
+        # 2. Separate out skipped columns and numeric columns
+        skipped_columns = self.properties.dataset.skipped_columns
+        skipped_data = data[skipped_columns].copy()
+        numeric_data = data.drop(columns=skipped_columns)
 
-            transformed_data = pd.DataFrame(
-                data_tensor.cpu().numpy(), columns=numeric_data.columns
-            )
+        # 3. Store the original indices so we can align numeric_data and skipped_data
+        numeric_indices = numeric_data.index
 
-            # Add the skipped columns back
-            for col in skipped_columns:
-                transformed_data[col] = skipped_data[col].values
+        # 4. Convert numeric data to torch.Tensor
+        device = self.properties.system.device
+        data_tensor = torch.tensor(
+            numeric_data.values, dtype=torch.float32, device=device
+        )
 
-            # Reorder the columns to match the original DataFrame structure
-            transformed_data = transformed_data[
-                [*skipped_columns, *numeric_data.columns]
-            ]
+        # 5. Apply each transform, then immediately drop NaN rows
+        for transform in self.transforms:
+            self.logger.info(f"Applying transform: {transform.__class__.__name__}")
 
-            save_data(transformed_data, data_path)
-            self.logger.info(
-                f"Preprocessing steps applied to data and saved to {data_path}"
-            )
+            # Apply the transform in-place
+            data_tensor = transform(data_tensor)
+
+            # 5a. Check if any row now has a NaN (in *any* column)
+            #     'mask' is True for rows with at least one NaN
+            nan_mask = torch.isnan(data_tensor).any(dim=1)
+            num_bad_rows = nan_mask.sum().item()
+
+            if num_bad_rows > 0:
+                self.logger.warning(
+                    f"Found {num_bad_rows} rows with NaN values after "
+                    f"{transform.__class__.__name__}. Dropping these rows."
+                )
+
+                # 5b. Figure out which row indices correspond to these NaNs
+                bad_index_positions = nan_mask.nonzero(as_tuple=True)[
+                    0
+                ]  # Tensor indices
+                bad_indices = numeric_indices[bad_index_positions.cpu().numpy()]
+
+                # 5c. Remove those rows from 'data_tensor'
+                keep_mask = ~nan_mask
+                data_tensor = data_tensor[keep_mask]
+
+                # 5d. Remove those rows from 'numeric_indices'
+                numeric_indices = numeric_indices[keep_mask.cpu().numpy()]
+
+                # 5e. Also remove them from 'skipped_data'
+                skipped_data.drop(index=bad_indices, inplace=True)
+
+        # 6. At this point, data_tensor and numeric_indices only contain valid rows
+        #    (i.e., no NaNs across transforms).
+        #    Convert back to a DataFrame using the updated indices.
+        transformed_numeric_data = pd.DataFrame(
+            data_tensor.cpu().numpy(),
+            index=numeric_indices,
+            columns=numeric_data.columns,
+        )
+
+        # 7. Merge the skipped columns back in, aligning on the index
+        transformed_data = transformed_numeric_data.join(skipped_data, how="left")
+
+        # 8. Save the final, cleaned DataFrame
+        save_data(transformed_data, data_path)
+        self.logger.info(
+            f"Preprocessing steps applied to data and saved to {data_path}"
+        )
 
     def __split_train_test(self) -> None:
         """Split data into training/validation and test sets without data leakage.
