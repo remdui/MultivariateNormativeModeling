@@ -22,4 +22,4 @@ poetry lock --quiet
 poetry install --only main --no-interaction --no-ansi --quiet
 
 # Run the training script
-poetry run python src/main.py --config config_genr.yml --mode train --debug --verbose --device cpu
+poetry run python src/main.py --config config_hbn.yml --mode train --debug --verbose --device cpu

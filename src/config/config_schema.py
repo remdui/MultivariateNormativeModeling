@@ -171,6 +171,11 @@ class DatasetConfig(BaseModel):
             type="preprocessing",
             params={"method": "min-max"},
         ),
+        TransformConfig(
+            name="SiteFilterTransform",
+            type="preprocessing",
+            params={"selected_sites": -1, "site_col_id": 1},
+        ),
     ]
 
     @model_validator(mode="after")

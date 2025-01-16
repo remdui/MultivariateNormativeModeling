@@ -7,6 +7,7 @@ from torchvision.transforms.v2 import Grayscale, Normalize, Transform  # type: i
 from preprocessing.transform.impl.data_cleaning import DataCleaningTransform
 from preprocessing.transform.impl.noise import NoiseTransform
 from preprocessing.transform.impl.normalization import NormalizationTransform
+from preprocessing.transform.impl.site_filter import SiteFilterTransform
 
 # Mapping for available transforms, including custom and torchvision transforms
 TRANSFORM_MAPPING: dict[str, type[Any]] = {
@@ -14,6 +15,7 @@ TRANSFORM_MAPPING: dict[str, type[Any]] = {
     "NormalizationTransform": NormalizationTransform,
     "DataCleaningTransform": DataCleaningTransform,
     "NoiseTransform": NoiseTransform,
+    "SiteFilterTransform": SiteFilterTransform,
     # Torchvision transforms
     "Grayscale": Grayscale,
     "Normalize": Normalize,
