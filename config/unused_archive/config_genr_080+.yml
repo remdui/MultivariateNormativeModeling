@@ -1,6 +1,6 @@
 system:
   data_dir: ./data
-  device: cpu
+  device: cuda
   log_dir: ./logs
   models_dir: ./models
   num_workers: 4
@@ -8,24 +8,23 @@ system:
 general:
   debug: true
   log_level: INFO
-  seed: 3
+  seed: 1
   verbose: true
 meta:
   config_version: 2
-  description: Variational Autoencoder for Normative Modeling
-  name: vae_hbn_site_effect
+  description: Variational Autoencoder for GenR Normative Modeling
+  name: vae_genr_baseline
   version: 1
 dataset:
   skipped_columns:
   - row_id
-  - EID
+  - idc
+  - wave
   row_data_leakage_columns:
-  - EID
-  covariates:
-  - Sex
-  - site
+  - idc
+  covariates: []
   targets: []
-  input_data: hbn_aparc.rds
+  input_data: genr_aparc.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf
@@ -36,16 +35,6 @@ dataset:
   val_split: 0.1
   enable_transforms: true
   transforms:
-  - name: SiteFilterTransform
-    type: preprocessing
-    params:
-      selected_site: -1
-      col_id: 2
-  - name: SampleLimitTransform
-    type: preprocessing
-    params:
-      max_samples: 1000
-      shuffle: true
   - name: NormalizationTransform
     type: preprocessing
     params:
@@ -487,7 +476,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: 'vae_hbn_site_effect_v1_best.safetensors'
+  model: 'vae_genr_baseline_v1_best.safetensors'
   baseline_model: null
   data_representation: tabular
   metrics:

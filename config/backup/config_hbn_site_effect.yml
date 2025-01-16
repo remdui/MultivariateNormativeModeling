@@ -13,7 +13,7 @@ general:
 meta:
   config_version: 2
   description: Variational Autoencoder for Normative Modeling
-  name: vae_hbn_site_effect
+  name: vae_hbn_baseline
   version: 1
 dataset:
   skipped_columns:
@@ -39,7 +39,7 @@ dataset:
   - name: SiteFilterTransform
     type: preprocessing
     params:
-      selected_site: -1
+      selected_site: 2
       col_id: 2
   - name: SampleLimitTransform
     type: preprocessing
@@ -487,7 +487,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: 'vae_hbn_site_effect_v1_best.safetensors'
+  model: 'vae_hbn_baseline_v1_best.safetensors'
   baseline_model: null
   data_representation: tabular
   metrics:
