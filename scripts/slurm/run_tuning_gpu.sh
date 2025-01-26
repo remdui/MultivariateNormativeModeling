@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=mt_vae_nm_genr_tuning
-#SBATCH --time=12:00:00
+#SBATCH --time=02:00:00
 #SBATCH --partition=gpu_a100
 #SBATCH --nodes=1
 #SBATCH --ntasks=1

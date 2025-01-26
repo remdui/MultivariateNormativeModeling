@@ -1,20 +1,18 @@
 """Validator class module."""
 
-import random
-
 import numpy as np
 import pandas as pd
 import torch
-from torch import Tensor, autocast, no_grad
+from torch import autocast
 from tqdm import tqdm
 
-from analysis.metrics.mse import compute_mse
-from analysis.metrics.r2 import compute_r2_score
-from analysis.visualization.image import combine_images, tensor_to_image
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
-from util.data_utils import sample_batch_from_indices
+from util.file_utils import (  # <--- for saving DataFrame
+    get_internal_file_extension,
+    save_data,
+)
 from util.model_utils import load_model
 
 
@@ -46,230 +44,105 @@ class ValidateTask(AbstractTask):
         self.model = load_model(self.model, self.model_path, self.device)
 
     def run(self) -> TaskResult:
-        """Run the validation process using flattened R² scores.
+        """
+        Main entry point:
 
-        Returns:
-            ValidationResult: The validation result object.
+        1) Save reconstruction and latent data for each sample.
+        2) Analyze the saved data (compute metrics, produce visual samples, etc.).
         """
         self.logger.info("Starting the validation process.")
 
-        # Initialize results dictionary
-        results = TaskResult()
+        # 1) Save reconstructions and latents to file
+        self.__save_reconstruction_data()
 
-        total_loss = 0.0
-        total_samples = 0
+        # 2) Analyze the results using the newly saved data
+        results = self.__analyze_results()
 
-        # Lists to accumulate predictions and targets
-        all_preds = []
-        all_targets = []
+        return results
 
-        # Process each batch in the test dataset
+    def __save_reconstruction_data(self) -> None:
+        """
+        Goes through the test set, computes reconstructions and latent representations,.
+
+        and saves them (alongside the originals) to a file in the same order they appear.
+        """
+        self.logger.info("Saving latent and reconstruction data per sample.")
+
+        original_data_list = []
+        reconstruction_data_list = []
+        latent_mean_list = []
+        latent_logvar_list = []
+
         with torch.no_grad():
-            for batch in tqdm(self.test_dataloader, desc="Validating"):
-                data, _ = batch
+            for batch in tqdm(self.test_dataloader, desc="Collecting recon data"):
+                data, _ = (
+                    batch  # (inputs, labels) but for unsupervised this may be empty
+                )
                 data = data.to(self.device)
 
                 with autocast(
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
                 ):
-                    recon_batch, z_mean, z_logvar = self.model(data)  # Forward pass
-                    loss = self.loss(
-                        recon_batch, data, z_mean, z_logvar
-                    )  # Compute loss
-                    total_loss += loss.item()
-                    total_samples += data.size(0)
+                    recon_batch, z_mean, z_logvar = self.model(data)
 
-                    # Move tensors to CPU for metric calculation
-                    preds_cpu = recon_batch.detach().cpu().numpy()
-                    targets_cpu = data.detach().cpu().numpy()
+                # Move data to CPU for concatenation
+                original_data_list.append(data.cpu().numpy())
+                reconstruction_data_list.append(recon_batch.cpu().numpy())
+                latent_mean_list.append(z_mean.cpu().numpy())
+                latent_logvar_list.append(z_logvar.cpu().numpy())
 
-                    # Accumulate predictions and targets
-                    all_preds.append(preds_cpu)
-                    all_targets.append(targets_cpu)
+        # Concatenate all batches into final arrays
+        original_data = np.concatenate(original_data_list, axis=0)
+        reconstruction_data = np.concatenate(reconstruction_data_list, axis=0)
+        z_mean_data = np.concatenate(latent_mean_list, axis=0)
+        z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
 
-        # Concatenate all predictions and targets
-        all_preds_np = np.concatenate(all_preds, axis=0)
-        all_targets_np = np.concatenate(all_targets, axis=0)
-
-        # Convert to tensor
-        all_preds_tensor = torch.from_numpy(all_preds_np)
-        all_targets_tensor = torch.from_numpy(all_targets_np)
-
-        # print shapes
-        self.logger.info(f"all_preds_tensor shape: {all_preds_tensor.shape}")
-        self.logger.info(f"all_targets_tensor shape: {all_targets_tensor.shape}")
-        # also print numpy shapes
-        self.logger.info(f"all_preds_np shape: {all_preds_np.shape}")
-        self.logger.info(f"all_targets_np shape: {all_targets_np.shape}")
-
-        # Compute MSE
-        mse_value = compute_mse(
-            all_targets_tensor, all_preds_tensor, metric_type="total"
-        )
-
-        # Compute R² score
-        r2_value = compute_r2_score(
-            all_targets_tensor, all_preds_tensor, metric_type="total"
-        )
-
-        avg_loss = total_loss / total_samples
-        self.logger.info(f"Average test loss: {avg_loss:.4f}")
-        self.logger.info(f"MSE: {mse_value:.4f}")
-        self.logger.info(f"R²: {r2_value:.4f}")
-
-        results["average_loss"] = avg_loss
-        results["mse"] = mse_value.item()
-        results["r2"] = r2_value.item()
-
-        # Draw image samples if applicable
-        if (
-            self.data_representation == "image"
-            or self.properties.dataset.data_type == "image"
-        ):
-            self.__draw_image_samples()
-        elif (
-            self.properties.dataset.data_type == "tabular"
-            and self.data_representation == "tabular"
-        ):
-            self.__analyse_tabular_samples()
-
-        return results
-
-    def __draw_image_samples(self) -> None:
-        """Draw original and reconstructed images if data is represented in a flattened tabular form."""
+        # Build a single DataFrame that keeps all information.
+        # For tabular data, you can merge original & reconstructed columns directly.
+        # For image data, you might keep them flattened, or store them differently.
         self.logger.info(
-            "Creating samples to compare original and reconstructed images."
+            "Creating DataFrame with original, reconstruction, latent data."
         )
 
-        # Select random indices from the test dataset
-        num_samples = self.properties.validation.image.num_visual_samples
-        total_samples = len(self.test_dataloader)
-        random_indices = random.sample(range(total_samples), num_samples)
+        # Original columns
+        # If you have feature names for tabular data, you might do something like:
+        #   col_names = self.test_dataloader.dataset.feature_names
+        # Otherwise, fallback to enumerating columns.
+        original_col_names = [f"orig_{i}" for i in range(original_data.shape[1])]
 
-        # Dimensions for image reconstruction if data is flattened
-        image_width = self.properties.validation.image.width
-        image_length = self.properties.validation.image.length
+        # Reconstruction columns
+        recon_col_names = [f"recon_{i}" for i in range(reconstruction_data.shape[1])]
 
-        # Retrieve data for the selected indices
-        original_images: list[Tensor] = []
-        reconstructed_images: list[Tensor] = []
+        # Latent columns
+        z_mean_col_names = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
+        z_logvar_col_names = [f"z_logvar_{i}" for i in range(z_mean_data.shape[1])]
 
-        # Access specific samples by index
-        with torch.no_grad():
-            data_batch = sample_batch_from_indices(
-                self.test_dataloader.dataset, random_indices, self.device
-            )
+        # Combine all into a single np.array
+        combined_data = np.concatenate(
+            [original_data, reconstruction_data, z_mean_data, z_logvar_data], axis=1
+        )
+        all_columns = (
+            original_col_names + recon_col_names + z_mean_col_names + z_logvar_col_names
+        )
+        df = pd.DataFrame(combined_data, columns=all_columns)
 
-            # Apply autocast for mixed precision inference
-            with autocast(
-                enabled=self.properties.train.mixed_precision,
-                device_type=self.device,
-            ):
-                recon_batch, _, _ = self.model(
-                    data_batch
-                )  # Forward pass for the entire batch
+        # Decide where to save
+        output_extension = get_internal_file_extension()
+        output_file_path = f"{self.properties.system.output_dir}/reconstructions/{self.model_name}_validation_data.{output_extension}"
 
-            # Append original and reconstructed images
-            original_images.extend(
-                data_batch.cpu().unbind()
-            )  # Unbind to individual tensors
-            reconstructed_images.extend(
-                recon_batch.cpu().unbind()
-            )  # Unbind to individual tensors
+        # Use your custom `save_data` function to handle CSV/HDF format
+        self.logger.info(f"Saving validation data to {output_file_path}...")
+        save_data(df, output_file_path)
+        self.logger.info("Data saved successfully.")
 
-        for idx in range(num_samples):
-            # Convert to PIL images
-            original_image = tensor_to_image(
-                original_images[idx], image_length, image_width
-            )
-            reconstructed_image = tensor_to_image(
-                reconstructed_images[idx], image_length, image_width
-            )
+    def __analyze_results(self) -> TaskResult:
+        """
+        Loads or reuses the newly saved reconstruction & latent data,.
 
-            # Combine original and reconstructed images side by side
-            combined_image = combine_images(original_image, reconstructed_image)
-
-            # Show images
-            if self.properties.validation.image.show_image_samples:
-                combined_image.show(title=f"Sample {idx + 1}")
-
-            # Save images
-            if self.properties.validation.image.save_image_samples:
-                output_file_path = f"{self.properties.system.output_dir}/reconstructions/{self.model_name}_image_sample_{idx + 1}.png"
-                combined_image.save(output_file_path)
-                self.logger.info(f"Sample {idx + 1} saved to {output_file_path}")
-
-    def __analyse_tabular_samples(self) -> None:
-        """Analyze original and reconstructed tabular data samples and compare them.
-
-        This method:
-        - Randomly selects a set of rows from the test dataset.
-        - Runs these rows through the model to get their reconstructed values.
-        - Prints out original vs reconstructed values side by side.
-        - Applies and prints some metrics (e.g., MSE) between the original and reconstruction.
-        - Ensures that all columns are visible in the printout by adjusting pandas options.
-
-        Notes:
-            - Assumes the test dataset returns tabular data in a tensor format.
-            - Assumes `sample_batch_from_indices` and the model are compatible with tabular data.
-            - Assumes that the dataset or properties object contains information on how to interpret the data.
+        then performs analysis (metrics, visual samples, etc.).
         """
 
-        self.logger.info(
-            "Analyzing samples to compare original and reconstructed tabular data."
-        )
+        results = TaskResult()
 
-        num_samples = 1
-        total_samples = len(self.test_dataloader)
-        random_indices = random.sample(range(total_samples), num_samples)
-
-        # Retrieve data for the selected indices
-        with no_grad():
-            data_batch = sample_batch_from_indices(
-                self.test_dataloader.dataset, random_indices, self.device
-            )
-
-            with autocast(
-                enabled=self.properties.train.mixed_precision,
-                device_type=self.device,
-            ):
-                reconstructed_batch, _, _ = self.model(data_batch)
-
-        # Convert tensors to CPU for processing
-        original_np = data_batch.cpu().numpy()
-        reconstructed_np = reconstructed_batch.cpu().numpy()
-
-        # Set pandas display options to ensure all columns are visible
-        orig_max_cols = pd.get_option("display.max_columns")
-        pd.set_option("display.max_columns", None)
-
-        try:
-            # Convert to DataFrames for nice printing
-            original_df = pd.DataFrame(
-                original_np, columns=self.dataloader.get_feature_names()
-            )
-            reconstructed_df = pd.DataFrame(
-                reconstructed_np, columns=self.dataloader.get_feature_names()
-            )
-
-            # Compute metrics (e.g., MSE for each sample and overall)
-            mse_values = ((original_df - reconstructed_df) ** 2).mean(axis=1)
-            overall_mse = mse_values.mean()
-
-            self.logger.info("Original vs. Reconstructed Tabular Samples:")
-            for i in range(num_samples):
-                self.logger.info(f"Sample Index: {random_indices[i]}")
-                self.logger.info("Original:")
-                self.logger.info(f"\n{str(original_df.iloc[i : i + 1])}")
-                self.logger.info("Reconstructed:")
-                self.logger.info(f"\n{str(reconstructed_df.iloc[i : i + 1])}")
-
-                sample_mse = mse_values.iloc[i]
-                self.logger.info(f"MSE for this sample: {sample_mse:.6f}")
-
-            self.logger.info(f"Average MSE across selected samples: {overall_mse:.6f}")
-
-        finally:
-            # Reset pandas display options back to original
-            pd.set_option("display.max_columns", orig_max_cols)
+        return results

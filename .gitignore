@@ -16,7 +16,10 @@ tests/.hypothesis
 logs/*
 models/*
 data/*.csv
+data/hbn_*.rds
+data/genr_*.rds
 data/processed/*.h5
+data/processed/*.csv
 output/*
 experiments/*
 

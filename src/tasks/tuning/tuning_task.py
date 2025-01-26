@@ -79,7 +79,42 @@ class TuningTask(AbstractTask):
         epochs = 200
 
         # Set hyperparameters to tune
-        latent_dim = trial.suggest_categorical("latent_dim", [4, 8, 16, 32])
+        latent_dim = trial.suggest_categorical(
+            "latent_dim",
+            [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+            ],
+        )
         batch_size = trial.suggest_categorical("batch_size", [4, 8, 16, 32, 64, 128])
         gradient_clipping = trial.suggest_categorical(
             "gradient_clipping", [False, True]
