@@ -105,14 +105,14 @@ class ValidateTask(AbstractTask):
             "Creating DataFrame with original, reconstruction, latent data."
         )
 
+        # Obtain the feature names from your dataloader
+        feature_names = self.dataloader.get_feature_names()
+
         # Original columns
-        # If you have feature names for tabular data, you might do something like:
-        #   col_names = self.test_dataloader.dataset.feature_names
-        # Otherwise, fallback to enumerating columns.
-        original_col_names = [f"orig_{i}" for i in range(original_data.shape[1])]
+        original_col_names = [f"orig_{col}" for col in feature_names]
 
         # Reconstruction columns
-        recon_col_names = [f"recon_{i}" for i in range(reconstruction_data.shape[1])]
+        recon_col_names = [f"recon_{col}" for col in feature_names]
 
         # Latent columns
         z_mean_col_names = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
