@@ -3,8 +3,11 @@
 from typing import Any
 
 import pandas as pd
+import torch
 
 from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
+from analysis.metrics.mse import compute_mse
+from analysis.metrics.r2 import compute_r2_score
 from entities.log_manager import LogManager
 from util.file_utils import (
     get_internal_file_extension,
@@ -78,5 +81,80 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
 
         self.logger.info("Tabular Data Exploration engine initialization complete.")
 
+    def _get_data_as_tensor(
+        self, df: pd.DataFrame, suffix: str, features: list[str]
+    ) -> torch.Tensor | None:
+        """
+        Given a DataFrame `df`, a prefix/suffix like 'orig' or 'recon',.
+
+        and a list of feature names, build a list of columns, extract them,
+        and return as a float32 Torch tensor.
+
+        e.g., if suffix='orig', columns become ['orig_feature1', 'orig_feature2', ...].
+        """
+        # Check if DataFrame is valid
+        if df is None or df.empty:
+            self.logger.warning("DataFrame is None or empty.")
+            return None
+
+        # Build the list of columns
+        column_names = [f"{suffix}_{feat}" for feat in features]
+
+        # Check for missing columns
+        missing_cols = [c for c in column_names if c not in df.columns]
+        if missing_cols:
+            self.logger.warning(f"Missing columns in DataFrame: {missing_cols}")
+            return None
+
+        # Extract and convert to torch tensor
+        values = df[column_names].values  # shape: (num_rows, num_features)
+        tensor = torch.as_tensor(values, dtype=torch.float32)
+        return tensor
+
     def calculate_reconstruction_mse(self) -> float:
-        return 0.0
+        """
+        Compute MSE between original (input) columns and reconstruction (recon) columns.
+
+        for all features at once, then return it as a float.
+        """
+        input_tensor = self._get_data_as_tensor(
+            self.recon_df, "orig", self.feature_labels
+        )
+        recon_tensor = self._get_data_as_tensor(
+            self.recon_df, "recon", self.feature_labels
+        )
+
+        if input_tensor is None or recon_tensor is None:
+            self.logger.warning("Unable to calculate MSE due to missing data/tensors.")
+            return float("nan")
+
+        # Compute MSE via custom function
+        mse_tensor = compute_mse(input_tensor, recon_tensor, metric_type="total")
+        mse_value = float(mse_tensor)  # Convert to Python float
+
+        self.logger.info(f"Reconstruction MSE (across all features): {mse_value:.4f}")
+        return mse_value
+
+    def calculate_reconstruction_r2(self) -> float:
+        """
+        Compute R^2 between original (input) columns and reconstruction (recon) columns.
+
+        for all features at once, then return it as a float.
+        """
+        input_tensor = self._get_data_as_tensor(
+            self.recon_df, "orig", self.feature_labels
+        )
+        recon_tensor = self._get_data_as_tensor(
+            self.recon_df, "recon", self.feature_labels
+        )
+
+        if input_tensor is None or recon_tensor is None:
+            self.logger.warning("Unable to calculate R^2 due to missing data/tensors.")
+            return float("nan")
+
+        # Compute R^2 via custom function
+        r2_tensor = compute_r2_score(input_tensor, recon_tensor, metric_type="total")
+        r2_value = float(r2_tensor)
+
+        self.logger.info(f"Reconstruction R^2 (across all features): {r2_value:.4f}")
+        return r2_value

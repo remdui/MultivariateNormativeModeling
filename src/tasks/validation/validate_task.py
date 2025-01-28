@@ -161,4 +161,7 @@ class ValidateTask(AbstractTask):
         if self.properties.data_analysis.features.reconstruction_mse:
             results["recon_mse"] = engine.calculate_reconstruction_mse()
 
+        if self.properties.data_analysis.features.reconstruction_r2:
+            results["recon_r2"] = engine.calculate_reconstruction_r2()
+
         return results

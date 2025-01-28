@@ -27,3 +27,7 @@ class AbstractAnalysisEngine(ABC):
     @abstractmethod
     def calculate_reconstruction_mse(self) -> float:
         """Calculate mse of reconstruction."""
+
+    @abstractmethod
+    def calculate_reconstruction_r2(self) -> float:
+        """Calculate r2 of reconstruction."""
