@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from logging import Logger
 from typing import Any
 
-from analysis.explorer.exploration_phase import DataExplorationPhase
 from entities.log_manager import LogManager
 from entities.properties import Properties
 
@@ -17,34 +16,14 @@ class AbstractAnalysisEngine(ABC):
         self.logger = logger
         self.properties = Properties.get_instance()
 
-        # Get the data analysis settings
-        self.visualization_settings = self.properties.data_analysis.visualization
-        self.dimensionality_reduction_settings = (
-            self.properties.data_analysis.dimensionality_reduction
-        )
-
-        # Initialize the data analysis modules
-        self.__init_data_analysis_modules()
-
-    def __init_data_analysis_modules(self) -> None:
-        """Initialize and store data analysis properties as modules."""
-        # Storing each analysis component's configuration for easy access
-        self.data_exploration_module = self.properties.data_analysis.data_exploration
-        self.reconstruction_analysis_module = (
-            self.properties.data_analysis.reconstruction_analysis
-        )
-        self.latent_space_analysis_module = (
-            self.properties.data_analysis.latent_space_analysis
-        )
+        # Get the data analysis plot settings
+        self.plot_settings = self.properties.data_analysis.plots
+        self.feature_settings = self.properties.data_analysis.features
 
     @abstractmethod
-    def run_data_exploration(self, phase: DataExplorationPhase, data: Any) -> None:
-        """Run the data exploration pipeline for the specified phase."""
+    def initialize_engine(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize data exploration pipeline."""
 
     @abstractmethod
-    def run_reconstruction_analysis(self) -> None:
-        """Run the reconstruction analysis pipeline."""
-
-    @abstractmethod
-    def run_latent_space_analysis(self) -> None:
-        """Run the latent space analysis pipeline."""
+    def calculate_reconstruction_mse(self) -> float:
+        """Calculate mse of reconstruction."""

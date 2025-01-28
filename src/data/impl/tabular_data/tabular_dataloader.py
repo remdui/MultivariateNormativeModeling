@@ -244,14 +244,14 @@ class TabularDataloader(AbstractDataloader):
             f"Splitting train dataset: {len(self.train_dataset)} train samples, {len(self.val_dataset)} validation samples"
         )
 
-    def get_feature_names(self) -> list[str]:
-        """Get the names of the features in the dataset."""
+    def get_feature_labels(self) -> list[str]:
+        """Get the labels of the features in the dataset."""
         return self.features
 
-    def get_covariate_names(self) -> list[str]:
-        """Get the names of the covariates in the dataset."""
+    def get_covariate_labels(self) -> list[str]:
+        """Get the labels of the covariates in the dataset."""
         return self.covariates
 
-    def get_target_names(self) -> list[str]:
-        """Get the names of the targets in the dataset."""
+    def get_target_labels(self) -> list[str]:
+        """Get the labels of the targets in the dataset."""
         return self.targets

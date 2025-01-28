@@ -479,11 +479,7 @@ model:
       dim: null
 validation:
   model: ''
-  baseline_model: null
   data_representation: tabular
-  metrics:
-  - mse
-  - mae
   image:
     length: 28
     width: 28

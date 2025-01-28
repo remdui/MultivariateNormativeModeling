@@ -24,14 +24,14 @@ class Image3DDataLoader(AbstractDataloader):
         """Get the DataLoader for the training and validation data for a given fold."""
         raise NotImplementedError
 
-    def get_feature_names(self) -> list[str]:
-        """Get the names of the features in the dataset."""
+    def get_feature_labels(self) -> list[str]:
+        """Get the labels of the features in the dataset."""
         raise NotImplementedError
 
-    def get_covariate_names(self) -> list[str]:
-        """Get the names of the covariates in the dataset."""
+    def get_covariate_labels(self) -> list[str]:
+        """Get the labels of the covariates in the dataset."""
         raise NotImplementedError
 
-    def get_target_names(self) -> list[str]:
-        """Get the names of the targets in the dataset."""
+    def get_target_labels(self) -> list[str]:
+        """Get the labels of the targets in the dataset."""
         raise NotImplementedError

@@ -6,6 +6,7 @@ import torch
 from torch import autocast
 from tqdm import tqdm
 
+from analysis.engine.factory import create_analysis_engine
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
@@ -31,14 +32,9 @@ class ValidateTask(AbstractTask):
         self.task_name = "validate"
 
         # Get the validation properties
-        self.metrics = self.properties.validation.metrics
         self.data_representation = self.properties.validation.data_representation
         self.model_file = self.properties.validation.model
         self.model_path = self.properties.system.models_dir + "/" + self.model_file
-        self.baseline_model_file = str(self.properties.validation.baseline_model)
-        self.baseline_model_path = (
-            self.properties.system.models_dir + "/" + self.baseline_model_file
-        )
 
         # Load model state dictionary from model file
         self.model = load_model(self.model, self.model_path, self.device)
@@ -106,7 +102,7 @@ class ValidateTask(AbstractTask):
         )
 
         # Obtain the feature names from your dataloader
-        feature_names = self.dataloader.get_feature_names()
+        feature_names = self.dataloader.get_feature_labels()
 
         # Original columns
         original_col_names = [f"orig_{col}" for col in feature_names]
@@ -144,5 +140,25 @@ class ValidateTask(AbstractTask):
         """
 
         results = TaskResult()
+
+        # Create analysis engine instance
+        data_type = self.properties.dataset.data_type
+        engine = create_analysis_engine(data_type)
+
+        # Collect the label labels from dataloader
+        feature_labels = self.dataloader.get_feature_labels()
+        covariate_labels = self.dataloader.get_covariate_labels()
+        target_labels = self.dataloader.get_target_labels()
+
+        # Initialize data analysis engine
+        engine.initialize_engine(
+            feature_labels=feature_labels,
+            covariate_labels=covariate_labels,
+            target_labels=target_labels,
+        )
+
+        # Get reconstruction metrics
+        if self.properties.data_analysis.features.reconstruction_mse:
+            results["recon_mse"] = engine.calculate_reconstruction_mse()
 
         return results

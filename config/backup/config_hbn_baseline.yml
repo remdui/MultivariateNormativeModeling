@@ -51,35 +51,13 @@ dataset:
     params:
       method: z-score
 data_analysis:
-  dimensionality_reduction:
-    pca: false
-    pca_settings:
-      components: 2
-    tsne: false
-    tsne_settings:
-      components: 2
-      perplexity: 30.0
-    umap: false
-    umap_settings:
-      components: 2
-      neighbors: 15
-  latent_space_analysis:
+  features:
+    reconstruction_mse: true
+    reconstruction_r2: true
     latent_space_analysis: false
     latent_space_visualization: false
-    disentanglement_analysis: false
     sensitivity_analysis: false
     variance_analysis: false
-  reconstruction_analysis:
-    reconstruction_analysis: false
-    reconstruction_error_plot: false
-    reconstruction_metrics:
-    - mse
-    - mae
-  data_exploration:
-    phases:
-      raw_input: false
-      processed_input: false
-      output: false
     distribution_plots: false
     correlation_matrix: false
     normality_test: false
@@ -89,10 +67,20 @@ data_analysis:
     outlier_detection_method: z-score
     outlier_threshold: 3.0
     summary_statistics: false
-  visualization:
-    distribution_visualization_method: histogram
-    save_visualizations: false
-    show_visualizations: false
+  plots:
+    save_plots: true
+    show_plots: false
+    distribution_plot_type: histogram
+    dimensionality_reduction: tsne
+    dimensionality_reduction_settings:
+      pca_settings:
+        components: 2
+      tsne_settings:
+        components: 2
+        perplexity: 30.0
+      umap_settings:
+        components: 2
+        neighbors: 15
 train:
   batch_size: 32
   cross_validation: false
@@ -490,9 +478,6 @@ validation:
   model: 'vae_hbn_baseline_v1_best.safetensors'
   baseline_model: null
   data_representation: tabular
-  metrics:
-  - mse
-  - mae
   image:
     length: 28
     width: 28

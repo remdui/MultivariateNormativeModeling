@@ -46,25 +46,25 @@ class AbstractDataloader(ABC):
         """
 
     @abstractmethod
-    def get_feature_names(self) -> list[str]:
-        """Get the names of the features in the dataset.
+    def get_feature_labels(self) -> list[str]:
+        """Get the labels of the features in the dataset.
 
         Returns:
-            list[str]: List of feature names.
+            list[str]: List of feature labels.
         """
 
     @abstractmethod
-    def get_covariate_names(self) -> list[str]:
-        """Get the names of the covariates in the dataset.
+    def get_covariate_labels(self) -> list[str]:
+        """Get the labels of the covariates in the dataset.
 
         Returns:
-            list[str]: List of covariate names.
+            list[str]: List of covariate labels.
         """
 
     @abstractmethod
-    def get_target_names(self) -> list[str]:
-        """Get the names of the targets in the dataset.
+    def get_target_labels(self) -> list[str]:
+        """Get the labels of the targets in the dataset.
 
         Returns:
-            list[str]: List of target
+            list[str]: List of target labels.
         """

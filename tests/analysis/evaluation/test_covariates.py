@@ -3,8 +3,8 @@
 import pytest
 import torch
 
-from analysis.evaluation.covariates import evaluate_covariates_correlation
 from analysis.metrics.mae import compute_mae
+from analysis.metrics.misc.covariate_corr import evaluate_covariates_correlation
 from analysis.metrics.mse import compute_mse
 
 

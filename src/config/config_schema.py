@@ -9,76 +9,48 @@ from pydantic import BaseModel, Field, model_validator
 ###################################################################
 # Sub-configurations used in the main configuration schema
 ###################################################################
-class DimensionalityReductionConfig(BaseModel):
-    """Dimensionality reduction configuration."""
+class DimensionalityReductionSettings(BaseModel):
+    """Configuration for dimensionality reduction settings within plots."""
 
-    pca: bool = True  # Enable PCA
-    pca_settings: dict[str, Any] = Field(
-        default_factory=lambda: {
-            "components": 2,  # Number of components for PCA
-        }
-    )
-    tsne: bool = True  # Enable t-SNE
+    pca_settings: dict[str, Any] = Field(default_factory=lambda: {"components": 2})
     tsne_settings: dict[str, Any] = Field(
-        default_factory=lambda: {
-            "components": 2,  # Number of components for t-SNE
-            "perplexity": 30.0,  # Perplexity parameter for t-SNE
-        }
+        default_factory=lambda: {"components": 2, "perplexity": 30.0}
     )
-    umap: bool = True  # Enable UMAP
     umap_settings: dict[str, Any] = Field(
-        default_factory=lambda: {
-            "components": 2,  # Number of components for UMAP
-            "neighbors": 15,  # Number of neighbors for UMAP
-        }
+        default_factory=lambda: {"components": 2, "neighbors": 15}
     )
 
 
-class LatentSpaceAnalysisConfig(BaseModel):
-    """Latent space analysis configuration."""
+class DataAnalysisFeatures(BaseModel):
+    """Feature flags (and related parameters) for data analysis."""
 
-    latent_space_analysis: bool = True  # Toggle latent space analysis
-    latent_space_visualization: bool = True  # Toggle latent space visualization
-    disentanglement_analysis: bool = True  # Toggle disentanglement analysis
-    sensitivity_analysis: bool = True  # Toggle sensitivity analysis
-    variance_analysis: bool = True  # Toggle variance analysis
-
-
-class ReconstructionAnalysisConfig(BaseModel):
-    """Reconstruction analysis configuration."""
-
-    reconstruction_analysis: bool = True
-    reconstruction_error_plot: bool = True
-    reconstruction_metrics: list[str] = ["mse", "mae"]
-
-
-class DataExplorationConfig(BaseModel):
-    """Data exploration configuration."""
-
-    phases: dict[str, bool] = Field(
-        default_factory=lambda: {
-            "raw_input": False,
-            "processed_input": True,
-            "output": True,
-        }
-    )
-    distribution_plots: bool = True
-    correlation_matrix: bool = True
-    normality_test: bool = True
+    reconstruction_mse: bool = True
+    reconstruction_r2: bool = True
+    latent_space_analysis: bool = False
+    latent_space_visualization: bool = False
+    sensitivity_analysis: bool = False
+    variance_analysis: bool = False
+    distribution_plots: bool = False
+    correlation_matrix: bool = False
+    normality_test: bool = False
     normality_test_method: str = "shapiro"
     normality_threshold: float = 0.05
-    outlier_detection: bool = True
+    outlier_detection: bool = False
     outlier_detection_method: str = "z-score"
     outlier_threshold: float = 3.0
-    summary_statistics: bool = True
+    summary_statistics: bool = False
 
 
-class VisualizationConfig(BaseModel):
-    """Visualization configuration."""
+class DataAnalysisPlots(BaseModel):
+    """Plotting configuration for data analysis."""
 
-    distribution_visualization_method: str = "histogram"
-    save_visualizations: bool = True
-    show_visualizations: bool = False
+    save_plots: bool = True
+    show_plots: bool = False
+    distribution_plot_type: str = "histogram"
+    dimensionality_reduction: str = "tsne"
+    dimensionality_reduction_settings: DimensionalityReductionSettings = Field(
+        default_factory=DimensionalityReductionSettings
+    )
 
 
 class TransformConfig(BaseModel):
@@ -121,21 +93,10 @@ class ImageConfig(BaseModel):
 # Main configuration schema
 ###################################################################
 class DataAnalysisConfig(BaseModel):
-    """Data analysis configuration."""
+    """Data analysis configuration (features + plots)."""
 
-    dimensionality_reduction: DimensionalityReductionConfig = Field(
-        default_factory=DimensionalityReductionConfig
-    )
-    latent_space_analysis: LatentSpaceAnalysisConfig = Field(
-        default_factory=LatentSpaceAnalysisConfig
-    )
-    reconstruction_analysis: ReconstructionAnalysisConfig = Field(
-        default_factory=ReconstructionAnalysisConfig
-    )
-    data_exploration: DataExplorationConfig = Field(
-        default_factory=DataExplorationConfig
-    )
-    visualization: VisualizationConfig = Field(default_factory=VisualizationConfig)
+    features: DataAnalysisFeatures = Field(default_factory=DataAnalysisFeatures)
+    plots: DataAnalysisPlots = Field(default_factory=DataAnalysisPlots)
 
 
 class DatasetConfig(BaseModel):
@@ -749,9 +710,7 @@ class ValidationConfig(BaseModel):
     """Validation configuration."""
 
     model: str = ""
-    baseline_model: str | None = None
     data_representation: str = "tabular"
-    metrics: list[str] = ["mse", "mae"]
     image: ImageConfig = Field(default_factory=ImageConfig)
 
 

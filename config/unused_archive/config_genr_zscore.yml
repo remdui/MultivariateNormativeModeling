@@ -473,11 +473,7 @@ model:
       dim: null
 validation:
   model: 'vae_genr_baseline_v1_best.safetensors'
-  baseline_model: null
   data_representation: tabular
-  metrics:
-  - mse
-  - mae
   image:
     length: 28
     width: 28
