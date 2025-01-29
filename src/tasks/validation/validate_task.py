@@ -48,13 +48,48 @@ class ValidateTask(AbstractTask):
         """
         self.logger.info("Starting the validation process.")
 
-        # 1) Save reconstructions and latents to file
+        # 1) Save reconstructions and test latent distribution
         self.__save_reconstruction_data()
 
-        # 2) Analyze the results using the newly saved data
+        # 2) Save training latent distribution
+        self.__save_training_distribution()
+
+        # 3) Analyze the results using the newly saved data
         results = self.__analyze_results()
 
         return results
+
+    def __save_training_distribution(self) -> None:
+        """Goes through the training set, computes latent representations parameters."""
+        self.logger.info("Saving training latent parameters.")
+
+        latent_mean_list = []
+        latent_logvar_list = []
+
+        with torch.no_grad():
+            for batch in tqdm(
+                self.train_dataloader, desc="Calculating latent parameters"
+            ):
+                data, _ = (
+                    batch  # (inputs, labels) but for unsupervised this may be empty
+                )
+                data = data.to(self.device)
+
+                with autocast(
+                    enabled=self.properties.train.mixed_precision,
+                    device_type=self.device,
+                ):
+                    _, z_mean, z_logvar = self.model(data)
+
+                # Move data to CPU for concatenation
+                latent_mean_list.append(z_mean.cpu().numpy())
+                latent_logvar_list.append(z_logvar.cpu().numpy())
+
+        # Concatenate all batches into final arrays
+        z_mean_data = np.concatenate(latent_mean_list, axis=0)
+        z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
+
+        self.__save_latent_parameters(z_logvar_data, z_mean_data, data="train")
 
     def __save_reconstruction_data(self) -> None:
         """
@@ -132,6 +167,8 @@ class ValidateTask(AbstractTask):
         save_data(df, output_file_path)
         self.logger.info("Data saved successfully.")
 
+        self.__save_latent_parameters(z_logvar_data, z_mean_data, data="test")
+
     def __analyze_results(self) -> TaskResult:
         """
         Loads or reuses the newly saved reconstruction & latent data,.
@@ -157,11 +194,57 @@ class ValidateTask(AbstractTask):
             target_labels=target_labels,
         )
 
-        # Get reconstruction metrics
+        # Calculate model performance and characteristics
         if self.properties.data_analysis.features.reconstruction_mse:
             results["recon_mse"] = engine.calculate_reconstruction_mse()
 
         if self.properties.data_analysis.features.reconstruction_r2:
             results["recon_r2"] = engine.calculate_reconstruction_r2()
 
+        if self.properties.data_analysis.features.outlier_detection:
+            outlier_result_dict = engine.detect_outliers()
+            results["outlier_detection"] = outlier_result_dict
+
+        summary_latent_space_dict = engine.summarize_latent_space()
+        results["summary_latent_space"] = summary_latent_space_dict
+
+        # Generate plots and other visualisations
+        engine.plot_train_latent_distributions()
+
         return results
+
+    def __save_latent_parameters(
+        self, z_logvar_data: np.ndarray, z_mean_data: np.ndarray, data: str = "train"
+    ) -> None:
+        """
+        Compute mean and std across dataset for each latent dim and save it.
+
+        Then we store latent_dim, mean, and std in a DataFrame and save it.
+        """
+        self.logger.info("Computing learned latent space parameters.")
+
+        # Compute mean for each dimension
+        latent_means = np.mean(z_mean_data, axis=0)
+        # Compute std for each dimension
+        latent_stds = np.mean(np.exp(0.5 * z_logvar_data), axis=0)
+
+        # Build a DataFrame
+        latent_df = pd.DataFrame(
+            {
+                "latent_dim": np.arange(z_mean_data.shape[1]),
+                "mean": latent_means,
+                "std": latent_stds,
+            }
+        )
+
+        # Save latent space parameters
+        output_extension = get_internal_file_extension()
+        latent_output_path = (
+            f"{self.properties.system.output_dir}/model/"
+            f"{self.model_name}_latent_space_{data}.{output_extension}"
+        )
+        self.logger.info(
+            f"Saving {data} latent space parameters to {latent_output_path}..."
+        )
+        save_data(latent_df, latent_output_path)
+        self.logger.info("Latent space parameters saved successfully.")

@@ -155,6 +155,7 @@ def create_storage_directories() -> None:
         properties.system.models_dir: ["checkpoints"],
         properties.system.output_dir: [
             "reconstructions",
+            "model",
             "visualizations",
             "model_arch",
             "metrics",

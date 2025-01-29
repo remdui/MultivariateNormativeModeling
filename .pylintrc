@@ -111,6 +111,8 @@ disable=
     logging-fstring-interpolation,
     no-member,
     duplicate-code,
+    too-complex,
+    too-many-locals,
 
 
 [REPORTS]

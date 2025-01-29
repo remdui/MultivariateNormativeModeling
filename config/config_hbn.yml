@@ -31,7 +31,7 @@ dataset:
   internal_file_format: csv
   pin_memory: false
   shuffle: true
-  test_split: 0.1
+  test_split: 0.3
   train_split: 0.9
   val_split: 0.1
   enable_transforms: true
@@ -45,7 +45,7 @@ dataset:
     type: preprocessing
     params:
       max_samples: 1000
-      shuffle: true
+      shuffle: false
   - name: NormalizationTransform
     type: preprocessing
     params:
@@ -63,7 +63,7 @@ data_analysis:
     normality_test: false
     normality_test_method: shapiro
     normality_threshold: 0.05
-    outlier_detection: false
+    outlier_detection: true
     outlier_detection_method: z-score
     outlier_threshold: 3.0
     summary_statistics: false
