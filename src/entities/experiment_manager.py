@@ -4,7 +4,12 @@ import os
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
-from util.file_utils import copy_artifact, get_processed_file_path, save_zip_folder
+from util.file_utils import (
+    copy_artifact,
+    get_internal_file_extension,
+    get_processed_file_path,
+    save_zip_folder,
+)
 from util.system_utils import gpu_supported_by_triton_compiler
 
 
@@ -103,6 +108,38 @@ class ExperimentManager:
                 model_arch_dir, f"{model_name}_model_arch.png"
             )
             self._save_to_experiment(model_arch_file)
+
+        if task == "validate":
+            extension = get_internal_file_extension()
+
+            # Save visualisations
+            visualisations_dir = os.path.join(
+                self.properties.system.output_dir, "visualizations"
+            )
+            latent_distributions_file = os.path.join(
+                visualisations_dir, f"{model_name}_latent_distributions.png"
+            )
+            self._save_to_experiment(latent_distributions_file)
+
+            # Save latent space parameters
+            model_dir = os.path.join(self.properties.system.output_dir, "model")
+            latent_test_parameters = os.path.join(
+                model_dir, f"{model_name}_latent_space_test.{extension}"
+            )
+            self._save_to_experiment(latent_test_parameters)
+            latent_train_parameters = os.path.join(
+                model_dir, f"{model_name}_latent_space_train.{extension}"
+            )
+            self._save_to_experiment(latent_train_parameters)
+
+            # Save reconstructions dataset
+            reconstructions_dir = os.path.join(
+                self.properties.system.output_dir, "reconstructions"
+            )
+            reconstructions_dataset = os.path.join(
+                reconstructions_dir, f"{model_name}_validation_data.{extension}"
+            )
+            self._save_to_experiment(reconstructions_dataset)
 
     def _save_to_experiment(self, src_path: str) -> None:
         """Copy an artifact to the experiment directory."""
