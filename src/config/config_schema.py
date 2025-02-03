@@ -36,7 +36,6 @@ class DataAnalysisFeatures(BaseModel):
     normality_test_method: str = "shapiro"
     normality_threshold: float = 0.05
     outlier_detection: bool = False
-    outlier_detection_method: str = "z-score"
     outlier_threshold: float = 3.0
     summary_statistics: bool = False
 
@@ -103,6 +102,7 @@ class DatasetConfig(BaseModel):
     """Dataset configuration."""
 
     skipped_columns: list[str] = []
+    unique_identifier_column: str = ""
     row_data_leakage_columns: list[str] = []
     covariates: list[str] = []
     targets: list[str] = []

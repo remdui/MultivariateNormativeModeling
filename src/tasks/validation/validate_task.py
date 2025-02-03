@@ -10,10 +10,7 @@ from analysis.engine.factory import create_analysis_engine
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
-from util.file_utils import (  # <--- for saving DataFrame
-    get_internal_file_extension,
-    save_data,
-)
+from util.file_utils import get_internal_file_extension, save_data
 from util.model_utils import load_model
 
 
@@ -129,6 +126,15 @@ class ValidateTask(AbstractTask):
         z_mean_data = np.concatenate(latent_mean_list, axis=0)
         z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
 
+        # Retrieve skipped columns data
+        skipped_data_df = self.dataloader.get_skipped_data()
+
+        if skipped_data_df is not None:
+            if skipped_data_df.shape[0] != original_data.shape[0]:
+                raise ValueError(
+                    f"Mismatch in skipped data rows ({skipped_data_df.shape[0]}) and dataset rows ({original_data.shape[0]})."
+                )
+
         # Build a single DataFrame that keeps all information.
         # For tabular data, you can merge original & reconstructed columns directly.
         # For image data, you might keep them flattened, or store them differently.
@@ -157,6 +163,10 @@ class ValidateTask(AbstractTask):
             original_col_names + recon_col_names + z_mean_col_names + z_logvar_col_names
         )
         df = pd.DataFrame(combined_data, columns=all_columns)
+
+        # Prepend skipped columns if available
+        if skipped_data_df is not None:
+            df = pd.concat([skipped_data_df.reset_index(drop=True), df], axis=1)
 
         # Decide where to save
         output_extension = get_internal_file_extension()
@@ -205,12 +215,42 @@ class ValidateTask(AbstractTask):
             outlier_result_dict = engine.detect_outliers()
             results["outlier_detection"] = outlier_result_dict
 
-        summary_latent_space_dict = engine.summarize_latent_space()
-        results["summary_latent_space"] = summary_latent_space_dict
+        if self.properties.data_analysis.features.latent_space_analysis:
+            summary_latent_space_dict = engine.summarize_latent_space()
+            results["summary_latent_space"] = summary_latent_space_dict
+
+        latent_outliers = engine.find_extreme_outliers_in_latent(top_k=1)
+        results["latent_outliers"] = latent_outliers
 
         # Generate plots and other visualisations
-        engine.plot_train_latent_distributions()
-
+        if self.properties.data_analysis.features.latent_space_visualization:
+            engine.plot_latent_distributions(split="train")
+            engine.plot_latent_distributions(split="test")
+            engine.plot_latent_projection(
+                method="pca", n_components=2, color_covariate="Age"
+            )
+            engine.plot_latent_projection(
+                method="pca", n_components=3, color_covariate="Age"
+            )
+            engine.plot_latent_projection(
+                method="tsne", n_components=2, color_covariate="Age"
+            )
+            engine.plot_latent_projection(
+                method="tsne", n_components=3, color_covariate="Age"
+            )
+            engine.plot_latent_projection(
+                method="pca", n_components=2, color_covariate="Sex"
+            )
+            engine.plot_latent_projection(
+                method="pca", n_components=3, color_covariate="Sex"
+            )
+            engine.plot_latent_projection(
+                method="tsne", n_components=2, color_covariate="Sex"
+            )
+            engine.plot_latent_projection(
+                method="tsne", n_components=3, color_covariate="Sex"
+            )
+            engine.plot_latent_pairplot()
         return results
 
     def __save_latent_parameters(

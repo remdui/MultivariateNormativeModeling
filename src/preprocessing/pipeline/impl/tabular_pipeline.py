@@ -52,9 +52,6 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         else:
             self.__split_train_test()
 
-        # Remove skipped columns from the processed data
-        self.__remove_skipped_columns()
-
     def __load_and_convert_data(self, input_path: str, output_path: str) -> None:
         """Load and convert data if necessary, then save to the processed path."""
         self.logger.info(f"Loading and converting input data: {input_path}")
@@ -146,6 +143,10 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
 
         # 7. Merge the skipped columns back in, aligning on the index
         transformed_data = transformed_numeric_data.join(skipped_data, how="left")
+        expected_order = list(skipped_data.columns) + list(
+            transformed_numeric_data.columns
+        )
+        transformed_data = transformed_data[expected_order]
 
         # 8. Save the final, cleaned DataFrame
         save_data(transformed_data, data_path)
@@ -231,24 +232,3 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         self.logger.info(
             f"Data splits saved to {self.train_output_path} and {self.test_output_path}"
         )
-
-    def __remove_skipped_columns(self) -> None:
-        """Remove skipped columns from the processed data."""
-        skipped_columns = self.properties.dataset.skipped_columns
-        if skipped_columns:
-            self.logger.info(f"Removing skipped columns: {skipped_columns}")
-
-            # Load the processed training data and test data
-            train_data = load_data(self.train_output_path)
-            test_data = load_data(self.test_output_path)
-
-            # Remove skipped columns
-            train_data.drop(columns=skipped_columns, inplace=True)
-            test_data.drop(columns=skipped_columns, inplace=True)
-
-            # Save the modified data
-            save_data(train_data, self.train_output_path)
-            save_data(test_data, self.test_output_path)
-            self.logger.info(
-                f"Skipped columns removed from data and saved to {self.train_output_path} and {self.test_output_path}"
-            )

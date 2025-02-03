@@ -6,8 +6,11 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import seaborn as sns  # type: ignore
 import torch
 from matplotlib import pyplot as plt
+from sklearn.decomposition import PCA  # type: ignore
+from sklearn.manifold import TSNE  # type: ignore
 
 from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
 from analysis.metrics.mse import compute_mse
@@ -490,26 +493,39 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             "average_deviation": average_deviation,
         }
 
-    def plot_train_latent_distributions(self) -> None:
+    def plot_latent_distributions(self, split: str = "train") -> None:
         """
-        Plot each latent dimension's Normal-like distribution from self.latent_train_df.
+        Plot each latent dimension's Normal-like distribution from either.
 
-        on a single figure. Each line corresponds to one latent dimension, with a label
-        including the dim ID, mean, and std.
+        self.latent_train_df or self.latent_test_df, depending on `split`.
 
-        The distribution is plotted using mean = row['mean'] and
-        variance = exp(row['std']) for each row.
+        Each line corresponds to one latent dimension, with a label that
+        includes the dim ID, mean, and std.
+
+        The distribution is plotted using mean = row['mean'] and std = row['std'].
         """
-        if self.latent_train_df.empty:
-            self.logger.warning("No training latent data available. Skipping plot.")
+        if split == "train":
+            df = self.latent_train_df
+            title_str = "Train"
+        elif split == "test":
+            df = self.latent_test_df
+            title_str = "Test"
+        else:
+            self.logger.warning(f"Invalid split={split}. Use 'train' or 'test'.")
+            return
+
+        if df.empty:
+            self.logger.warning(
+                f"No latent data available for split='{split}'. Skipping plot."
+            )
             return
 
         # Extract arrays of dims, means, and std
-        dims = self.latent_train_df["latent_dim"].to_numpy()
-        means = self.latent_train_df["mean"].to_numpy()
-        stds = self.latent_train_df["std"].to_numpy()
+        dims = df["latent_dim"].to_numpy()
+        means = df["mean"].to_numpy()
+        stds = df["std"].to_numpy()
 
-        # Determine a global plotting range that covers all distributions (±3 std from each mean)
+        # Determine a global plotting range (±3 std from each mean)
         x_min = np.min(means - 3 * stds)
         x_max = np.max(means + 3 * stds)
         x = np.linspace(x_min, x_max, 400)  # 400 points for a smooth curve
@@ -527,17 +543,168 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
                 -0.5 * ((x - mu) / sigma) ** 2
             )
 
-            # Create a legend label that includes the dimension, mean, and std
-            label = f"Dim {int(dim)} (μ={mu:.2f}, σ={stds[i]:.2f})"
-
+            label = f"Dim {int(dim)} (μ={mu:.2f}, σ={sigma:.2f})"
             plt.plot(x, pdf, label=label, color=cmap(i), linewidth=2)
 
-        plt.title("Latent Distributions (Train)")
+        plt.title(f"Latent Distributions ({title_str})")
         plt.xlabel("Value")
         plt.ylabel("PDF")
         plt.legend(loc="best", fontsize="small")
         plt.tight_layout()
 
+        # Show plot if needed
+        if self.properties.data_analysis.plots.show_plots:
+            plt.show()
+
+        # Save plot if needed
+        if self.properties.data_analysis.plots.save_plots:
+            output_folder = os.path.join(
+                self.properties.system.output_dir, "visualizations"
+            )
+            os.makedirs(output_folder, exist_ok=True)
+            plot_filename = (
+                f"{self.properties.model_name}_latent_distributions_{split}.png"
+            )
+            plot_filepath = os.path.join(output_folder, plot_filename)
+            plt.savefig(plot_filepath)
+            self.logger.info(f"Plot saved to {plot_filepath}")
+
+    def plot_latent_projection(
+        self,
+        method: str = "pca",
+        n_components: int = 2,
+        color_covariate: str | None = None,
+    ) -> None:
+        """
+        Perform dimensionality reduction on the z_mean columns in self.recon_df,.
+
+        using PCA or t-SNE, then plot either a 2D or 3D scatter.
+
+        If `color_covariate` is provided, each data point is colored by the
+        corresponding column in self.test_df.
+
+        Parameters:
+            method: one of ["pca", "tsne"]
+            n_components: 2 or 3
+            color_covariate: optional name of a covariate column in self.test_df
+        """
+        # 1) Basic checks
+        if self.recon_df.empty:
+            self.logger.warning("recon_df is empty. No latent data to project.")
+            return
+
+        z_mean_cols = [
+            col for col in self.recon_df.columns if col.startswith("z_mean_")
+        ]
+        if not z_mean_cols:
+            self.logger.warning(
+                "No z_mean_* columns found in recon_df. Skipping projection."
+            )
+            return
+
+        # 2) Gather latent vectors
+        z_mean_array = self.recon_df[z_mean_cols].to_numpy()
+
+        if n_components not in (2, 3):
+            self.logger.warning(
+                f"Unsupported n_components={n_components}; must be 2 or 3."
+            )
+            return
+
+        method = method.lower()
+        if method not in ("pca", "tsne"):
+            self.logger.warning(f"Unsupported method='{method}'. Use 'pca' or 'tsne'.")
+            return
+
+        # 3) (Optional) Gather color array from covariate
+        #    If the user provided a column name, attempt to fetch from self.test_df
+        color_array: Any = "steelblue"  # default single color
+        add_colorbar = False  # we'll add a colorbar only if numeric data
+
+        if color_covariate is not None:
+            if color_covariate in self.test_df.columns:
+                cov_values = self.test_df[color_covariate].to_numpy()
+                # We'll assume numeric for a continuous colormap:
+                # If it's categorical, you'd need a discrete colormap approach.
+                if np.issubdtype(cov_values.dtype, np.number):
+                    color_array = cov_values
+                    add_colorbar = True
+                else:
+                    self.logger.warning(
+                        f"Covariate '{color_covariate}' is not numeric; using single color."
+                    )
+            else:
+                self.logger.warning(
+                    f"Covariate '{color_covariate}' not found in test_df. Using single color."
+                )
+
+        # 4) Create reducer (PCA or t-SNE) and transform
+        if method == "pca":
+            reducer = PCA(n_components=n_components)
+            try:
+                z_transformed = reducer.fit_transform(z_mean_array)
+            except ValueError as e:
+                self.logger.error(f"Error performing PCA: {e}")
+                return
+            method_label = "PCA"
+        else:  # t-SNE
+            reducer = TSNE(n_components=n_components, perplexity=30, random_state=42)
+            try:
+                z_transformed = reducer.fit_transform(z_mean_array)
+            except ValueError as e:
+                self.logger.error(f"Error performing t-SNE: {e}")
+                return
+            method_label = "t-SNE"
+
+        # 5) Plot
+        fig = plt.figure(figsize=(8, 8))
+
+        # We'll store the scatter artist in sc so we can add colorbars, etc.
+        sc = None
+
+        if n_components == 2:
+            # 2D scatter
+            sc = plt.scatter(
+                z_transformed[:, 0],
+                z_transformed[:, 1],
+                c=color_array,
+                cmap="viridis" if add_colorbar else None,
+                alpha=0.8,
+                s=30,
+                marker="o",
+            )
+            plt.xlabel("Component 1")
+            plt.ylabel("Component 2")
+            plt.title(f"{method_label} Projection (2D) of Latent z_mean")
+
+            # If using a numeric covariate, add a colorbar
+            if add_colorbar:
+                cbar = plt.colorbar(sc)
+                cbar.set_label(color_covariate)
+
+        else:  # 3D scatter
+            ax = fig.add_subplot(111, projection="3d")
+            sc = ax.scatter(
+                z_transformed[:, 0],
+                z_transformed[:, 1],
+                z_transformed[:, 2],
+                c=color_array,
+                cmap="viridis" if add_colorbar else None,
+                alpha=0.8,
+                s=30,
+                marker="o",
+            )
+            ax.set_xlabel("Component 1")
+            ax.set_ylabel("Component 2")
+            ax.set_zlabel("Component 3")
+            ax.set_title(f"{method_label} Projection (3D) of Latent z_mean")
+
+            # For a 3D plot, we can add a colorbar to the figure if numeric
+            if add_colorbar and hasattr(fig, "colorbar"):
+                cbar = fig.colorbar(sc, ax=ax)
+                cbar.set_label(color_covariate)
+
+        # 6) Show or save
         if self.properties.data_analysis.plots.show_plots:
             plt.show()
 
@@ -545,7 +712,121 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             output_folder = os.path.join(
                 self.properties.system.output_dir, "visualizations"
             )
-            plot_filename = f"{self.properties.model_name}_latent_distributions.png"
+            os.makedirs(output_folder, exist_ok=True)
+
+            plot_filename = (
+                f"{self.properties.model_name}_latent_{method.lower()}_{n_components}d"
+            )
+            if color_covariate:
+                plot_filename += f"_{color_covariate}"
+            plot_filename += ".png"
+
             plot_filepath = os.path.join(output_folder, plot_filename)
-            plt.savefig(plot_filepath)
-            self.logger.info(f"Plot saved to {plot_filepath}")
+            plt.savefig(plot_filepath, dpi=300, bbox_inches="tight")
+            self.logger.info(
+                f"{method_label} ({n_components}D) latent projection plot saved to {plot_filepath}"
+            )
+        else:
+            plt.close(fig)
+
+    def plot_latent_pairplot(self) -> None:
+        """
+        Creates a scatterplot matrix (pair plot) of all z_mean columns.
+
+        from recon_df. This helps to visually check for approximate normality
+        and relationships across latent dimensions.
+        """
+        if self.recon_df.empty:
+            self.logger.warning("recon_df is empty. Cannot create pairplot.")
+            return
+
+        # 1) Select only the columns that start with "z_mean_"
+        z_mean_cols = [
+            col for col in self.recon_df.columns if col.startswith("z_mean_")
+        ]
+        if not z_mean_cols:
+            self.logger.warning(
+                "No z_mean_* columns found in recon_df. Skipping pairplot."
+            )
+            return
+
+        sub_df = self.recon_df[z_mean_cols]
+
+        # 2) Create the pair plot with Seaborn
+        grid = sns.pairplot(sub_df, diag_kind="kde", corner=False)
+        grid.fig.suptitle("Pair Plot of z_mean (Latent Space)", y=1.02)
+
+        # 3) Show or save
+        if self.properties.data_analysis.plots.show_plots:
+            plt.show()
+
+        if self.properties.data_analysis.plots.save_plots:
+            output_folder = os.path.join(
+                self.properties.system.output_dir, "visualizations"
+            )
+            os.makedirs(output_folder, exist_ok=True)
+
+            plot_filename = f"{self.properties.model_name}_latent_zmean_pairplot.png"
+            plot_filepath = os.path.join(output_folder, plot_filename)
+            grid.fig.savefig(plot_filepath, dpi=300, bbox_inches="tight")
+            self.logger.info(f"Latent z_mean pairplot saved to {plot_filepath}")
+        else:
+            plt.close(grid.fig)
+
+    def find_extreme_outliers_in_latent(
+        self, top_k: int = 5
+    ) -> dict[str, dict[str, list[Any]]]:
+        """
+        Identify the samples with the largest and smallest outliers in each z_mean_* column.
+
+        Parameters:
+            top_k (int): Number of top/bottom extreme outliers to select per z_mean column.
+
+        Returns:
+            A dictionary containing:
+            {
+                "z_mean_<dim>": {
+                    "largest_outliers": [id1, id2, ...],
+                    "smallest_outliers": [id1, id2, ...]
+                },
+                ...
+            }
+        """
+        if self.recon_df.empty:
+            self.logger.warning("recon_df is empty. No latent data to analyze.")
+            return {}
+
+        # Identify z_mean columns
+        z_mean_cols = [
+            col for col in self.recon_df.columns if col.startswith("z_mean_")
+        ]
+        if not z_mean_cols:
+            self.logger.warning(
+                "No z_mean_* columns found in recon_df. Skipping analysis."
+            )
+            return {}
+
+        # Get the unique identifier column
+        unique_id_col = self.properties.dataset.unique_identifier_column
+        if unique_id_col not in self.recon_df.columns:
+            self.logger.error(
+                f"Unique identifier column '{unique_id_col}' not found in recon_df."
+            )
+            return {}
+
+        outlier_dict = {}
+
+        for col in z_mean_cols:
+            # Sort dataframe based on column values
+            sorted_df = self.recon_df[[unique_id_col, col]].sort_values(by=col)
+
+            # Select top_k smallest and largest
+            smallest_outliers = sorted_df.iloc[:top_k][unique_id_col].tolist()
+            largest_outliers = sorted_df.iloc[-top_k:][unique_id_col].tolist()
+
+            outlier_dict[col] = {
+                "largest_outliers": largest_outliers,
+                "smallest_outliers": smallest_outliers,
+            }
+
+        return outlier_dict

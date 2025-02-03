@@ -1,10 +1,11 @@
-"""TabularDataset class to process Tabular datasets."""
+"""Tabular implementation of abstract dataset."""
 
 import pandas as pd
 import torch
 
 from data.abstract_dataset import AbstractDataset
 from entities.log_manager import LogManager
+from entities.properties import Properties
 from util.file_utils import load_data
 
 
@@ -16,13 +17,21 @@ class TabularDataset(AbstractDataset):
 
         Args:
             file_path (str): Path to the file containing the dataset.
-            covariatess (list[str]): List of covariates.
+            covariates (list[str]): List of covariates.
         """
         super().__init__()
         self.logger = LogManager.get_logger(__name__)
-
+        self.properties = Properties.get_instance()
         self.logger.debug(f"Loading dataset from: {file_path}")
         self.data = load_data(file_path)
+
+        self.skipped_columns = self.properties.dataset.skipped_columns or []
+
+        if self.skipped_columns:
+            self.logger.info(f"Removing skipped columns: {self.skipped_columns}")
+            self.skipped_data = self.data[self.skipped_columns].copy()
+            self.data.drop(columns=self.skipped_columns, inplace=True)
+
         self.covariates = covariates
 
         # Ensure covariate names exist in the dataset
@@ -32,12 +41,13 @@ class TabularDataset(AbstractDataset):
                 f"Covariate columns not found in dataset: {missing_covariates}"
             )
 
-        # Identify feature columns (excluding covariates)
+        # Identify feature columns (excluding covariates and skipped columns)
         self.features = [col for col in self.data.columns if col not in covariates]
 
         # If debug mode is enabled, log the dataset details
         self.logger.debug(f"Features: {self.features}")
         self.logger.debug(f"Covariates: {self.covariates}")
+        self.logger.debug(f"Skipped Columns: {self.skipped_columns}")
 
     def __len__(self) -> int:
         """Returns the length of the dataset.
@@ -86,3 +96,11 @@ class TabularDataset(AbstractDataset):
             int: Number of covariates.
         """
         return len(self.covariates)
+
+    def get_skipped_data(self) -> pd.DataFrame:
+        """Returns a dataframe containing the skipped columns.
+
+        Returns:
+            pd.DataFrame: Dataframe of skipped columns.
+        """
+        return self.skipped_data

@@ -60,7 +60,6 @@ data_analysis:
     normality_test_method: shapiro
     normality_threshold: 0.05
     outlier_detection: false
-    outlier_detection_method: z-score
     outlier_threshold: 3.0
     summary_statistics: false
   plots:

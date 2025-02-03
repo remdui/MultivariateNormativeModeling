@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 
+import pandas as pd
 from torch.utils.data import DataLoader
 
 
@@ -67,4 +68,12 @@ class AbstractDataloader(ABC):
 
         Returns:
             list[str]: List of target labels.
+        """
+
+    @abstractmethod
+    def get_skipped_data(self) -> pd.DataFrame:
+        """Get the skipped data as dataframe.
+
+        Returns:
+            pd.DataFrame: dataframe of skipped columns.
         """

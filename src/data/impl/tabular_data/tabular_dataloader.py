@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import pandas as pd
 import torch
 from sklearn.model_selection import GroupKFold, KFold, StratifiedKFold  # type: ignore
 from torch.utils.data import DataLoader, Subset, random_split
@@ -255,3 +256,7 @@ class TabularDataloader(AbstractDataloader):
     def get_target_labels(self) -> list[str]:
         """Get the labels of the targets in the dataset."""
         return self.targets
+
+    def get_skipped_data(self) -> pd.DataFrame:
+        """Get the skipped data as dataframe."""
+        return self.test_dataset.get_skipped_data()

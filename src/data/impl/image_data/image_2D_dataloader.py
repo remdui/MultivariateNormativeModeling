@@ -1,5 +1,6 @@
 """DataLoader for 2D image data."""
 
+import pandas as pd
 from torch.utils.data import DataLoader
 
 from data.abstract_dataloader import AbstractDataloader
@@ -34,4 +35,8 @@ class Image2DDataLoader(AbstractDataloader):
 
     def get_target_labels(self) -> list[str]:
         """Get the labels of the targets in the dataset."""
+        raise NotImplementedError
+
+    def get_skipped_data(self) -> pd.DataFrame:
+        """Get the skipped data as dataframe."""
         raise NotImplementedError
