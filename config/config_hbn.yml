@@ -26,13 +26,13 @@ dataset:
   - Sex
   - site
   targets: []
-  input_data: hbn_aparc.rds
+  input_data: hbn_aparc_volume.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: csv
   pin_memory: false
   shuffle: true
-  test_split: 0.3
+  test_split: 0.2
   train_split: 0.9
   val_split: 0.1
   enable_transforms: true
@@ -42,11 +42,11 @@ dataset:
     params:
       selected_site: 2
       col_id: 2
-  - name: SampleLimitTransform
-    type: preprocessing
-    params:
-      max_samples: 1000
-      shuffle: false
+#  - name: SampleLimitTransform
+#    type: preprocessing
+#    params:
+#      max_samples: 1000
+#      shuffle: false
   - name: NormalizationTransform
     type: preprocessing
     params:
@@ -59,7 +59,7 @@ data_analysis:
     latent_space_visualization: true
     sensitivity_analysis: false
     variance_analysis: false
-    distribution_plots: false
+    distribution_plots: true
     correlation_matrix: false
     normality_test: false
     normality_test_method: shapiro
@@ -70,7 +70,7 @@ data_analysis:
   plots:
     save_plots: true
     show_plots: false
-    distribution_plot_type: histogram
+    distribution_plot_type: kde
     dimensionality_reduction: tsne
     dimensionality_reduction_settings:
       pca_settings:
@@ -115,9 +115,9 @@ train:
     mse_vae:
       reduction: sum
       beta_start: 0.0
-      beta_end: 0.5
-      kl_anneal_start: 5
-      kl_anneal_end: 250
+      beta_end: 1.0
+      kl_anneal_start: 25
+      kl_anneal_end: 200
     l1:
       reduction: sum
     mse:

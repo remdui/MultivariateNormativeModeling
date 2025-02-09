@@ -830,3 +830,222 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             }
 
         return outlier_dict
+
+    def plot_sampled_latent_distributions(self, n: int = 5) -> None:
+        """
+        Sample "n" random participants from recon_df and plot their z_mean values.
+
+        against the latent distribution of the test set, with separate plots for each participant.
+        Each latent dimension has a unique color. Mean values are plotted as solid lines,
+        while participant-specific values are plotted as dotted lines.
+        The legend explicitly distinguishes between the distribution mean and sampled values.
+        """
+        if self.recon_df.empty or self.latent_test_df.empty:
+            self.logger.warning(
+                "Either recon_df or latent_test_df is empty. Cannot plot."
+            )
+            return
+
+        # Extract latent test data distributions
+        dims = self.latent_test_df["latent_dim"].to_numpy()
+        means = self.latent_test_df["mean"].to_numpy()
+        stds = self.latent_test_df["std"].to_numpy()
+
+        # Define plotting range
+        x_min = np.min(means - 3 * stds)
+        x_max = np.max(means + 3 * stds)
+        x = np.linspace(x_min, x_max, 400)
+
+        # Sample "n" random participants from recon_df
+        sampled_df = self.recon_df.sample(n=min(n, len(self.recon_df)), random_state=42)
+        z_mean_cols = [col for col in sampled_df.columns if col.startswith("z_mean_")]
+
+        # Generate unique colors for each latent dimension
+        num_dims = len(dims)
+        colors = plt.cm.get_cmap("tab10", num_dims)
+
+        participant_id_col = self.properties.dataset.unique_identifier_column
+
+        for _, row in sampled_df.iterrows():
+            participant_id = row[participant_id_col]
+            plt.figure(figsize=(8, 6))
+
+            # Plot distributions with higher opacity and solid mean lines
+            for i, dim in enumerate(dims):
+                mu = means[i]
+                sigma = stds[i]
+                pdf = (1.0 / (sigma * np.sqrt(2 * np.pi))) * np.exp(
+                    -0.5 * ((x - mu) / sigma) ** 2
+                )
+                plt.plot(
+                    x, pdf, color="black", alpha=0.6, linewidth=1
+                )  # Keep density function in black
+                plt.fill_between(x, pdf, color=colors(i), alpha=0.3)
+                plt.axvline(
+                    mu,
+                    color=colors(i),
+                    linestyle="solid",
+                    linewidth=2,
+                    label=f"Dist. Dim {int(dim)} Mean={mu:.2f}",
+                )
+
+            # Plot participant's z_mean values as dotted vertical lines
+            z_means = row[z_mean_cols].to_numpy()
+            for dim_idx, value in enumerate(z_means):
+                dim_number = int(dims[dim_idx]) if dim_idx < len(dims) else dim_idx
+                plt.axvline(
+                    value,
+                    color=colors(dim_idx),
+                    linestyle="dotted",
+                    linewidth=2,
+                    label=f"Sampled z Dim {dim_number}, μ={value:.2f}",
+                )
+
+            plt.title(f"Latent Distributions - Participant {participant_id}")
+            plt.xlabel("Latent Space Value")
+            plt.ylabel("Probability Density")
+            plt.ylim(bottom=0)  # Ensure y-axis starts at 0
+            plt.legend(loc="upper right", fontsize="small", frameon=False)
+            plt.tight_layout()
+
+            # Show or save plot
+            if self.properties.data_analysis.plots.show_plots:
+                plt.show()
+
+            if self.properties.data_analysis.plots.save_plots:
+                output_folder = os.path.join(
+                    self.properties.system.output_dir, "visualizations"
+                )
+                os.makedirs(output_folder, exist_ok=True)
+                plot_filename = f"{self.properties.model_name}_latent_sampled_participant_{participant_id}.png"
+                plot_filepath = os.path.join(output_folder, plot_filename)
+                plt.savefig(plot_filepath, dpi=300, bbox_inches="tight")
+                self.logger.info(
+                    f"Sampled latent distribution plot for Participant {participant_id} saved to {plot_filepath}"
+                )
+            else:
+                plt.close()
+
+    def plot_kl_divergence_per_latent_dim(self) -> None:
+        """
+        Plot the KL divergence per latent dimension using the test set latent variables.
+
+        This helps visualize which latent dimensions contribute the most to the KL term.
+        """
+        if self.latent_test_df.empty:
+            self.logger.warning(
+                "latent_test_df is empty. Cannot compute KL divergence plot."
+            )
+            return
+
+        # Extract mean and log variance columns from the latent test set
+        z_mean_cols = [
+            col for col in self.recon_df.columns if col.startswith("z_mean_")
+        ]
+        z_logvar_cols = [
+            col for col in self.recon_df.columns if col.startswith("z_logvar_")
+        ]
+
+        if not z_mean_cols or not z_logvar_cols:
+            self.logger.warning("Missing z_mean or z_logvar columns in recon_df.")
+            return
+
+        # Convert DataFrame columns to numpy arrays
+        means = self.recon_df[z_mean_cols].to_numpy()
+        log_vars = self.recon_df[z_logvar_cols].to_numpy()
+        stds = np.exp(0.5 * log_vars)  # Convert log variance to standard deviation
+
+        # Compute KL divergence per latent dimension
+        kl_per_dim = 0.5 * (stds**2 + means**2 - 1 - np.log(stds**2))
+        kl_mean_per_dim = kl_per_dim.mean(axis=0)  # Average over all samples
+
+        # Plot KL divergence per latent dimension
+        plt.figure(figsize=(10, 5))
+        plt.bar(range(len(kl_mean_per_dim)), kl_mean_per_dim)
+        plt.xlabel("Latent Dimension")
+        plt.ylabel("Average KL Divergence")
+        plt.title("KL Divergence Per Latent Dimension")
+
+        # Show or save plot
+        if self.properties.data_analysis.plots.show_plots:
+            plt.show()
+
+        # Save plot if needed
+        if self.properties.data_analysis.plots.save_plots:
+            output_folder = os.path.join(
+                self.properties.system.output_dir, "visualizations"
+            )
+            os.makedirs(output_folder, exist_ok=True)
+            plot_filename = f"{self.properties.model_name}_kl_divergence_per_dim.png"
+            plot_filepath = os.path.join(output_folder, plot_filename)
+            plt.savefig(plot_filepath, dpi=300, bbox_inches="tight")
+            self.logger.info(f"KL divergence plot saved to {plot_filepath}")
+
+    def plot_feature_distributions(self) -> None:
+        """Plot histograms or density plots comparing original (`orig_*`) and reconstructed (`recon_*`) features."""
+        if self.recon_df.empty:
+            self.logger.warning("recon_df is empty. Cannot plot histograms.")
+            return
+
+        # Identify feature columns
+        feature_names = [
+            col[5:] for col in self.recon_df.columns if col.startswith("orig_")
+        ]
+        num_features = len(feature_names)
+        num_cols = 4  # Adjust for readability
+        num_rows = (num_features + num_cols - 1) // num_cols
+
+        fig, axes = plt.subplots(num_rows, num_cols, figsize=(15, num_rows * 3))
+        axes = axes.flatten()
+
+        plot_type = self.properties.data_analysis.plots.distribution_plot_type
+
+        for idx, feature in enumerate(feature_names):
+            orig_col = f"orig_{feature}"
+            recon_col = f"recon_{feature}"
+
+            if orig_col in self.recon_df.columns and recon_col in self.recon_df.columns:
+                ax = axes[idx]
+                if plot_type == "kde":
+                    sns.kdeplot(
+                        self.recon_df[orig_col], ax=ax, label="Original", color="blue"
+                    )
+                    sns.kdeplot(
+                        self.recon_df[recon_col],
+                        ax=ax,
+                        label="Reconstructed",
+                        color="red",
+                    )
+                elif plot_type == "histogram":
+                    ax.hist(
+                        self.recon_df[orig_col],
+                        bins=30,
+                        alpha=0.5,
+                        label="Original",
+                        color="blue",
+                    )
+                    ax.hist(
+                        self.recon_df[recon_col],
+                        bins=30,
+                        alpha=0.5,
+                        label="Reconstructed",
+                        color="red",
+                    )
+                ax.set_title(feature)
+                ax.legend()
+
+        for ax in axes[num_features:]:
+            fig.delaxes(ax)
+
+        plt.tight_layout()
+        if self.properties.data_analysis.plots.show_plots:
+            plt.show()
+        if self.properties.data_analysis.plots.save_plots:
+            output_folder = os.path.join(
+                self.properties.system.output_dir, "visualizations"
+            )
+            os.makedirs(output_folder, exist_ok=True)
+            plot_filename = f"{self.properties.model_name}_feature_distributions.png"
+            plot_filepath = os.path.join(output_folder, plot_filename)
+            plt.savefig(plot_filepath, dpi=300, bbox_inches="tight")
+            self.logger.info(f"Reconstruction histograms saved to {plot_filepath}")

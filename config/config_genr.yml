@@ -8,7 +8,7 @@ system:
 general:
   debug: true
   log_level: INFO
-  seed: 1
+  seed: 2
   verbose: true
 meta:
   config_version: 2
@@ -31,7 +31,7 @@ dataset:
   internal_file_format: hdf
   pin_memory: false
   shuffle: true
-  test_split: 0.1
+  test_split: 0.2
   train_split: 0.9
   val_split: 0.1
   enable_transforms: true
@@ -44,22 +44,22 @@ data_analysis:
   features:
     reconstruction_mse: true
     reconstruction_r2: true
-    latent_space_analysis: false
-    latent_space_visualization: false
-    sensitivity_analysis: false
+    latent_space_analysis: true
+    latent_space_visualization: true
+    sensitivity_analysis: true
     variance_analysis: false
     distribution_plots: false
     correlation_matrix: false
     normality_test: false
     normality_test_method: shapiro
     normality_threshold: 0.05
-    outlier_detection: false
+    outlier_detection: true
     outlier_threshold: 3.0
     summary_statistics: false
   plots:
     save_plots: true
     show_plots: false
-    distribution_plot_type: histogram
+    distribution_plot_type: kde
     dimensionality_reduction: tsne
     dimensionality_reduction_settings:
       pca_settings:
@@ -359,7 +359,7 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 16
+      latent_dim: 5
       covariate_embedding: input_embedding
   hidden_layers:
   - 128

@@ -84,9 +84,8 @@ class ValidateTask(AbstractTask):
 
         # Concatenate all batches into final arrays
         z_mean_data = np.concatenate(latent_mean_list, axis=0)
-        z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
 
-        self.__save_latent_parameters(z_logvar_data, z_mean_data, data="train")
+        self.__save_latent_parameters(z_mean_data, data="train")
 
     def __save_reconstruction_data(self) -> None:
         """
@@ -177,7 +176,7 @@ class ValidateTask(AbstractTask):
         save_data(df, output_file_path)
         self.logger.info("Data saved successfully.")
 
-        self.__save_latent_parameters(z_logvar_data, z_mean_data, data="test")
+        self.__save_latent_parameters(z_mean_data, data="test")
 
     def __analyze_results(self) -> TaskResult:
         """
@@ -223,6 +222,9 @@ class ValidateTask(AbstractTask):
         results["latent_outliers"] = latent_outliers
 
         # Generate plots and other visualisations
+        if self.properties.data_analysis.features.distribution_plots:
+            engine.plot_feature_distributions()
+
         if self.properties.data_analysis.features.latent_space_visualization:
             engine.plot_latent_distributions(split="train")
             engine.plot_latent_distributions(split="test")
@@ -251,22 +253,25 @@ class ValidateTask(AbstractTask):
                 method="tsne", n_components=3, color_covariate="Sex"
             )
             engine.plot_latent_pairplot()
+            engine.plot_sampled_latent_distributions(n=5)
+            engine.plot_kl_divergence_per_latent_dim()
+
         return results
 
     def __save_latent_parameters(
-        self, z_logvar_data: np.ndarray, z_mean_data: np.ndarray, data: str = "train"
+        self, z_mean_data: np.ndarray, data: str = "train"
     ) -> None:
         """
         Compute mean and std across dataset for each latent dim and save it.
 
-        Then we store latent_dim, mean, and std in a DataFrame and save it.
+        Instead of averaging log-variances, we compute the standard deviation
+        directly from the empirical z_mean_data distribution.
         """
         self.logger.info("Computing learned latent space parameters.")
 
-        # Compute mean for each dimension
+        # Compute mean and standard deviation from z_mean_data
         latent_means = np.mean(z_mean_data, axis=0)
-        # Compute std for each dimension
-        latent_stds = np.mean(np.exp(0.5 * z_logvar_data), axis=0)
+        latent_stds = np.std(z_mean_data, axis=0)  # Corrected: std from z_mean_data
 
         # Build a DataFrame
         latent_df = pd.DataFrame(

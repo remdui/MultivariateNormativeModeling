@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=mt_vae_nm_genr
-#SBATCH --time=0:10:00
+#SBATCH --time=0:30:00
 #SBATCH --partition=genoa
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -22,4 +22,4 @@ poetry lock --quiet
 poetry install --only main --no-interaction --no-ansi --quiet
 
 # Run the training script
-poetry run python src/main.py --config config_hbn.yml --mode train --debug --verbose --device cpu
+poetry run python src/main.py --config config_genr.yml --mode train --debug --verbose --device cpu

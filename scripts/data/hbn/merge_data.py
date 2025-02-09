@@ -163,7 +163,7 @@ def create_subsets(df, output_dir, prefix, covariates):
     features_of_interest = [
         col
         for col in df.columns
-        if any(keyword in col.lower() for keyword in ("surfarea", "vol", "thickavg"))
+        if any(keyword in col.lower() for keyword in ("area", "volume", "thickness"))
     ]
     other_features = [col for col in df.columns if col not in features_of_interest]
 
@@ -178,9 +178,11 @@ def create_subsets(df, output_dir, prefix, covariates):
 def get_subset_features(features_of_interest):
     """Get the subset features for the data."""
     subsets = {
-        "surfarea": [col for col in features_of_interest if "surfarea" in col.lower()],
-        "vol": [col for col in features_of_interest if "vol" in col.lower()],
-        "thickavg": [col for col in features_of_interest if "thickavg" in col.lower()],
+        "area": [col for col in features_of_interest if "area" in col.lower()],
+        "volume": [col for col in features_of_interest if "volume" in col.lower()],
+        "thickness": [
+            col for col in features_of_interest if "thickness" in col.lower()
+        ],
     }
     return subsets
 
