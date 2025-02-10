@@ -1,0 +1,4 @@
+1) Gather per-wave genr tabular aparc, asges and core data files
+2) Run merge_data.py to merge the extracted data and core data and create specific subsets (ENABLE_QC=False).
+3) Run ENIGMA_outliers.R on genr_aparc_volume and genr_aparc_thickavg for QC.
+4) Run merge_data.py again with ENABLE_QC=True with the hbn_qc.rds file to filter out unwanted samples.
