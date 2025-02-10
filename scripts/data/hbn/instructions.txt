@@ -1,0 +1,7 @@
+1) Run process_hbn.sh to extract tabular data from freesurfer recon-all outout.
+2) Run process_hbn_core.sh to process all the "HBN_R*_Pheno.csv" files.
+3) Run create_hbn_site_table.py to create a hbn_sites.rds file (missing from core data).
+4) Run merge_core_site.py to merge the missign site col with the core dataset.
+5) Run merge_data.py to merge the extracted data and core data and create specific subsets (ENABLE_QC=False).
+6) Run ENIGMA_outliers.R on hbn_aparc_volume and hbn_aparc_thickness for QC.
+7) Run merge_data.py again with ENABLE_QC=True with the hbn_qc.rds file to filter out unwanted samples.

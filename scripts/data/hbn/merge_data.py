@@ -8,24 +8,40 @@ import numpy as np
 import pandas as pd
 import pyreadr
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s]: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    force=True,  # forces reconfiguration
 )
 
-# Constants
-OUTPUT_DIR = "../../../data"
-APARC_FILES = [
-    "aparc_hbn.rds",
-]
-ASEG_FILES = [
-    "aseg_hbn.rds",
-]
-CORE_FILE = "core_hbn.rds"
+# ----------------------------
+# User-defined Parameters
+# ----------------------------
+DATASET_PREFIX = "hbn"  # Dataset prefix (e.g., "hbn")
+ID_FIELD = "EID"  # Identifier column name
+COVARIATE_COLUMNS = [ID_FIELD, "Age", "Sex", "site"]
 
-# Features to exclude
+# Toggle QC filtering on or off
+ENABLE_QC = True  # Set to False to disable QC filtering
+
+# Keywords used to identify measure-related columns
+AREA_KEY = "area"
+VOLUME_KEY = "volume"
+THICKNESS_KEY = "thickness"
+
+# Keys for hemisphere columns
+LH_KEY = "lh_"
+RH_KEY = "rh_"
+
+# File names built using the dataset prefix
+OUTPUT_DIR = "../../../data"
+APARC_FILES = [f"aparc_{DATASET_PREFIX}.rds"]
+ASEG_FILES = [f"aseg_{DATASET_PREFIX}.rds"]
+CORE_FILE = f"core_{DATASET_PREFIX}.rds"
+QC_FILE = f"{DATASET_PREFIX}_qc.rds"
+
+# Features to exclude (if any)
 APARC_EXCLUDE_FEATURES = []
 ASEG_EXCLUDE_FEATURES = []
 
@@ -33,10 +49,13 @@ ASEG_EXCLUDE_FEATURES = []
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
+# ----------------------------
+# Function Definitions
+# ----------------------------
 def load_core_data(file_path):
     """Load the core data file and process the covariates."""
     core_data = pyreadr.read_r(file_path)[None]
-    covariates = core_data[["EID", "Age", "Sex", "site"]]
+    covariates = core_data[COVARIATE_COLUMNS]
     covariates["Age"] = covariates["Age"].astype(np.float64)
     covariates["Sex"] = covariates["Sex"].astype(np.float64)
     covariates["site"] = covariates["site"].astype(np.float64)
@@ -52,7 +71,6 @@ def load_and_process_files(file_list, is_aseg=False):
     exclude_features = ASEG_EXCLUDE_FEATURES if is_aseg else APARC_EXCLUDE_FEATURES
     for file_path in file_list:
         data = pyreadr.read_r(file_path)[None]
-
         if is_aseg:
             data.rename(
                 columns=lambda col: col[:-4] if col.endswith("_vol") else col,
@@ -62,7 +80,6 @@ def load_and_process_files(file_list, is_aseg=False):
             columns=[col for col in exclude_features if col in data.columns],
             errors="ignore",
         )
-
         data = data.astype(np.float64, errors="ignore")
         processed_data.append(data)
     combined_data = pd.concat(processed_data, ignore_index=True).dropna()
@@ -70,26 +87,23 @@ def load_and_process_files(file_list, is_aseg=False):
 
 
 def identify_hemisphere_columns(df):
-    """Identify hemisphere-related columns and other columns."""
+    """Identify hemisphere-related columns and other columns using LH_KEY and RH_KEY."""
     hemisphere_columns = [
-        col for col in df.columns if col.startswith("lh_") or col.startswith("rh_")
+        col for col in df.columns if col.startswith(LH_KEY) or col.startswith(RH_KEY)
     ]
     other_columns = [col for col in df.columns if col not in hemisphere_columns]
     return hemisphere_columns, other_columns
 
 
 def combine_hemisphere_pairs(df, hemisphere_columns):
-    """Combine left and right hemisphere columns into single averaged columns."""
+    """Combine left and right hemisphere columns into single averaged columns using LH_KEY and RH_KEY."""
     combined_columns = {}
-    # Extract the base name from columns that have 'lh_'
+    # Create a mapping from base name to left hemisphere column
     lh_base_names = {
-        c[len("lh_") :]: f"lh_{c[len('lh_'): ]}"
-        for c in hemisphere_columns
-        if c.startswith("lh_")
+        col[len(LH_KEY) :]: col for col in hemisphere_columns if col.startswith(LH_KEY)
     }
-
     for base_name, lh_col in lh_base_names.items():
-        rh_col = f"rh_{base_name}"
+        rh_col = f"{RH_KEY}{base_name}"
         if lh_col in df.columns and rh_col in df.columns:
             combined_columns[base_name] = (
                 df[[lh_col, rh_col]].mean(axis=1).astype(np.float64)
@@ -116,18 +130,17 @@ def save_dataframe(df, file_path, description):
 def process_subset_and_save(data, covariates, output_dir, prefix, name):
     """Combine hemisphere columns, merge with covariates, and save both lh/rh and combined data."""
     combined_data = combine_hemisphere_columns(data)
-    merged_data = covariates.merge(data, on=["EID"], how="inner")
-    combined_merged_data = covariates.merge(combined_data, on=["EID"], how="inner")
-
+    merged_data = covariates.merge(data, on=[ID_FIELD], how="inner")
+    combined_merged_data = covariates.merge(combined_data, on=[ID_FIELD], how="inner")
     # Save results
     save_dataframe(
         merged_data,
-        os.path.join(output_dir, f"hbn_{prefix}_{name}_lh_rh.rds"),
+        os.path.join(output_dir, f"{DATASET_PREFIX}_{prefix}_{name}_lh_rh.rds"),
         f"{prefix} {name} (lh/rh)",
     )
     save_dataframe(
         combined_merged_data,
-        os.path.join(output_dir, f"hbn_{prefix}_{name}.rds"),
+        os.path.join(output_dir, f"{DATASET_PREFIX}_{prefix}_{name}.rds"),
         f"{prefix} {name} (combined)",
     )
 
@@ -140,19 +153,14 @@ def process_subset_pair(covariates, df, other_features, output_dir, prefix, subs
         pair_columns = list(set(subsets[pair[0]] + subsets[pair[1]]))
         pair_features = pair_columns + other_features
         pair_data = df[pair_features].dropna()
-
-        # Reuse the helper function
         process_subset_and_save(pair_data, covariates, output_dir, prefix, pair_name)
 
 
 def process_subset_single(covariates, df, other_features, output_dir, prefix, subsets):
     """Process and save the data for each subset."""
     for subset_name, subset_cols in subsets.items():
-        # Keep only the features for the current subset
         subset_features = subset_cols + other_features
         subset_data = df[subset_features].dropna()
-
-        # Reuse the helper function
         process_subset_and_save(
             subset_data, covariates, output_dir, prefix, subset_name
         )
@@ -160,28 +168,27 @@ def process_subset_single(covariates, df, other_features, output_dir, prefix, su
 
 def create_subsets(df, output_dir, prefix, covariates):
     """Process and save subsets of the data."""
+    # Identify features of interest based on the defined keywords
     features_of_interest = [
         col
         for col in df.columns
-        if any(keyword in col.lower() for keyword in ("area", "volume", "thickness"))
+        if any(
+            keyword in col.lower() for keyword in (AREA_KEY, VOLUME_KEY, THICKNESS_KEY)
+        )
     ]
     other_features = [col for col in df.columns if col not in features_of_interest]
-
-    # Subset definitions
     subsets = get_subset_features(features_of_interest)
-
-    # Process and save the data for each subset
     process_subset_single(covariates, df, other_features, output_dir, prefix, subsets)
     process_subset_pair(covariates, df, other_features, output_dir, prefix, subsets)
 
 
 def get_subset_features(features_of_interest):
-    """Get the subset features for the data."""
+    """Get the subset features for the data using the defined keywords."""
     subsets = {
-        "area": [col for col in features_of_interest if "area" in col.lower()],
-        "volume": [col for col in features_of_interest if "volume" in col.lower()],
-        "thickness": [
-            col for col in features_of_interest if "thickness" in col.lower()
+        AREA_KEY: [col for col in features_of_interest if AREA_KEY in col.lower()],
+        VOLUME_KEY: [col for col in features_of_interest if VOLUME_KEY in col.lower()],
+        THICKNESS_KEY: [
+            col for col in features_of_interest if THICKNESS_KEY in col.lower()
         ],
     }
     return subsets
@@ -192,61 +199,128 @@ def process_and_save_with_combined(
 ):
     """Process and save the data with combined hemisphere columns."""
     aparc_combined = combine_hemisphere_columns(aparc_data)
-    # aseg_combined = combine_hemisphere_columns(aseg_data)
     combined_full_data = combine_hemisphere_columns(full_data)
-
-    aparc_with_covariates = covariates.merge(aparc_data, on=["EID"], how="inner")
-    aseg_with_covariates = covariates.merge(aseg_data, on=["EID"], how="inner")
-    full_with_covariates = covariates.merge(full_data, on=["EID"], how="inner")
-
+    aparc_with_covariates = covariates.merge(aparc_data, on=[ID_FIELD], how="inner")
+    aseg_with_covariates = covariates.merge(aseg_data, on=[ID_FIELD], how="inner")
+    full_with_covariates = covariates.merge(full_data, on=[ID_FIELD], how="inner")
     aparc_combined_with_covariates = covariates.merge(
-        aparc_combined, on=["EID"], how="inner"
+        aparc_combined, on=[ID_FIELD], how="inner"
     )
-    # aseg_combined_with_covariates = covariates.merge(aseg_combined, on=["EID"], how="inner")
     combined_full_with_covariates = covariates.merge(
-        combined_full_data, on=["EID"], how="inner"
+        combined_full_data, on=[ID_FIELD], how="inner"
     )
 
     save_dataframe(
         aparc_with_covariates,
-        os.path.join(output_dir, "hbn_aparc_lh_rh.rds"),
+        os.path.join(output_dir, f"{DATASET_PREFIX}_aparc_lh_rh.rds"),
         "Aparc full data (lh/rh)",
     )
     save_dataframe(
         aseg_with_covariates,
-        os.path.join(output_dir, "hbn_aseg_lh_rh.rds"),
+        os.path.join(output_dir, f"{DATASET_PREFIX}_aseg_lh_rh.rds"),
         "Aseg full data (lh/rh)",
     )
     save_dataframe(
         full_with_covariates,
-        os.path.join(output_dir, "hbn_full_lh_rh.rds"),
-        "full data (lh/rh)",
+        os.path.join(output_dir, f"{DATASET_PREFIX}_full_lh_rh.rds"),
+        "Full data (lh/rh)",
     )
     save_dataframe(
         aparc_combined_with_covariates,
-        os.path.join(output_dir, "hbn_aparc.rds"),
+        os.path.join(output_dir, f"{DATASET_PREFIX}_aparc.rds"),
         "Aparc full data (combined)",
     )
-    # save_dataframe(aseg_combined_with_covariates, os.path.join(output_dir, "aseg.rds"), "Aseg full data (combined)")
     save_dataframe(
         combined_full_with_covariates,
-        os.path.join(output_dir, "hbn_full.rds"),
-        "full data (combined)",
+        os.path.join(output_dir, f"{DATASET_PREFIX}_full.rds"),
+        "Full data (combined)",
     )
 
 
+# ----------------------------
+# Main Function
+# ----------------------------
 def main():
-    """Main function to load and process the data."""
+    """Main function to load, filter, and process the data."""
+    # Load core, aparc, and aseg data
     covariates = load_core_data(CORE_FILE)
-
     aparc_data = load_and_process_files(APARC_FILES)
     aseg_data = load_and_process_files(ASEG_FILES, is_aseg=True)
-    full_data = pd.merge(aparc_data, aseg_data, on=["EID"], how="inner")
+
+    # Log initial counts before filtering
+    logging.info(
+        f"Initial counts: covariates: {covariates.shape[0]}, aparc: {aparc_data.shape[0]}, aseg: {aseg_data.shape[0]}"
+    )
+
+    if ENABLE_QC:
+        # -----------------------------------------------
+        # Load QC file and filter out excluded and duplicate EIDs
+        # -----------------------------------------------
+        qc_data = pyreadr.read_r(QC_FILE)[None]
+        logging.info(f"QC data loaded with shape {qc_data.shape}")
+
+        # Exclude rows with exclude == 1 and drop duplicate QC entries based on ID_FIELD
+        qc_valid = qc_data[qc_data["exclude"] != 1].drop_duplicates(subset=[ID_FIELD])
+        valid_eids = set(qc_valid[ID_FIELD])
+        logging.info(f"{len(valid_eids)} valid EIDs after QC filtering")
+
+        # Filter the data frames by valid EIDs and log counts
+        covariates_before = covariates.shape[0]
+        covariates = covariates[covariates[ID_FIELD].isin(valid_eids)]
+        logging.info(
+            f"Covariates: Kept {covariates.shape[0]} rows out of {covariates_before} (removed {covariates_before - covariates.shape[0]} rows) after filtering by valid EIDs."
+        )
+
+        aparc_before = aparc_data.shape[0]
+        aparc_data = aparc_data[aparc_data[ID_FIELD].isin(valid_eids)]
+        logging.info(
+            f"Aparc: Kept {aparc_data.shape[0]} rows out of {aparc_before} (removed {aparc_before - aparc_data.shape[0]} rows) after filtering by valid EIDs."
+        )
+
+        aseg_before = aseg_data.shape[0]
+        aseg_data = aseg_data[aseg_data[ID_FIELD].isin(valid_eids)]
+        logging.info(
+            f"Aseg: Kept {aseg_data.shape[0]} rows out of {aseg_before} (removed {aseg_before - aseg_data.shape[0]} rows) after filtering by valid EIDs."
+        )
+
+        # For EIDs flagged with duplicate_removed == 1, remove duplicate rows (keep first occurrence)
+        qc_dup_ids = qc_valid.loc[qc_valid["duplicate_removed"] == 1, ID_FIELD].unique()
+
+        def remove_duplicates_for_flagged(df):
+            mask = df[ID_FIELD].isin(qc_dup_ids)
+            return pd.concat([df[~mask], df[mask].drop_duplicates(subset=[ID_FIELD])])
+
+        covariates_before_dup = covariates.shape[0]
+        covariates = remove_duplicates_for_flagged(covariates)
+        logging.info(
+            f"Covariates after duplicate removal: Kept {covariates.shape[0]} rows out of {covariates_before_dup} (removed {covariates_before_dup - covariates.shape[0]} duplicates)."
+        )
+
+        aparc_before_dup = aparc_data.shape[0]
+        aparc_data = remove_duplicates_for_flagged(aparc_data)
+        logging.info(
+            f"Aparc after duplicate removal: Kept {aparc_data.shape[0]} rows out of {aparc_before_dup} (removed {aparc_before_dup - aparc_data.shape[0]} duplicates)."
+        )
+
+        aseg_before_dup = aseg_data.shape[0]
+        aseg_data = remove_duplicates_for_flagged(aseg_data)
+        logging.info(
+            f"Aseg after duplicate removal: Kept {aseg_data.shape[0]} rows out of {aseg_before_dup} (removed {aseg_before_dup - aseg_data.shape[0]} duplicates)."
+        )
+    else:
+        logging.info("QC filtering is disabled. Skipping QC filtering steps.")
+
+    # -----------------------------------------------
+    # Merge datasets and proceed with processing and saving
+    # -----------------------------------------------
+    full_data = pd.merge(aparc_data, aseg_data, on=[ID_FIELD], how="inner")
+    logging.info(
+        f"Full data after merging aparc and aseg has {full_data.shape[0]} rows"
+    )
 
     process_and_save_with_combined(
         aparc_data, aseg_data, full_data, covariates, OUTPUT_DIR
     )
-
     create_subsets(aparc_data, OUTPUT_DIR, "aparc", covariates)
     create_subsets(full_data, OUTPUT_DIR, "full", covariates)
 
