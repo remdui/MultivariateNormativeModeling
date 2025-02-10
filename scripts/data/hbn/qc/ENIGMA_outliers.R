@@ -2,12 +2,12 @@
 # User-defined Parameters
 # ----------------------------
 id_col <- "EID"                    # Name of the identifier column
-thickness_suffix <- "_thickness"     # Suffix for thickness features
-area_suffix <- "_area"               # Suffix for area features
-dataset_prefix <- "hbn"              # Dataset prefix (e.g., "hbn"); change as needed
-exclusion_rate <- 0.1                # Exclusion threshold as a fraction of total features
-remove_exact_duplicates <- TRUE      # If TRUE, remove rows that are exactly the same
-handle_duplicates <- TRUE            # If TRUE, make duplicate IDs unique and merge duplicate groups
+thickness_suffix <- "_thickness"   # Suffix for thickness features
+area_suffix <- "_area"             # Suffix for area features
+dataset_prefix <- "hbn"            # Dataset prefix (e.g., "hbn"); change as needed
+exclusion_rate <- 0.1              # Exclusion threshold as a fraction of total features
+remove_exact_duplicates <- TRUE    # If TRUE, remove rows that are exactly the same
+handle_duplicates <- TRUE          # If TRUE, make duplicate IDs unique and merge duplicate groups
 
 # Build file names based on the dataset prefix
 thickness_file <- paste0(dataset_prefix, "_aparc_thickness.rds")
@@ -29,13 +29,13 @@ if(remove_exact_duplicates) {
 }
 
 if(remove_exact_duplicates) {
-    n_thick_exact_duplicates <- sum(duplicated(dat_thick))
-    if(n_thick_exact_duplicates > 0) {
-      cat("Found", n_thick_exact_duplicates, "exact duplicate rows in", thickness_file, ". Removing them...\n")
-      dat_thick <- dat_thick[!duplicated(dat_thick), ]
-    } else {
-      cat("No exact duplicate rows found in", thickness_file, "\n")
-    }
+  n_thick_exact_duplicates <- sum(duplicated(dat_thick))
+  if(n_thick_exact_duplicates > 0) {
+    cat("Found", n_thick_exact_duplicates, "exact duplicate rows in", thickness_file, ". Removing them...\n")
+    dat_thick <- dat_thick[!duplicated(dat_thick), ]
+  } else {
+    cat("No exact duplicate rows found in", thickness_file, "\n")
+  }
 }
 
 # Ensure the identifier column is treated as a character vector
@@ -63,25 +63,47 @@ num_features_thick <- ncol(dat_thick) - 1
 # Calculate the lower and upper thresholds for each thickness feature
 lower_thick <- rep(NA, num_features_thick)
 upper_thick <- rep(NA, num_features_thick)
-for(x in 2:ncol(dat_thick)){
+for(x in 2:ncol(dat_thick)) {
   lower_thick[x - 1] <- mean(dat_thick[, x], na.rm = TRUE) - 2.698 * sd(dat_thick[, x], na.rm = TRUE)
   upper_thick[x - 1] <- mean(dat_thick[, x], na.rm = TRUE) + 2.698 * sd(dat_thick[, x], na.rm = TRUE)
 }
 
 # For each subject, count the number of thickness outliers
 thick_outlier_counts <- numeric(nrow(dat_thick))
-for(i in 1:nrow(dat_thick)){
-  # Identify indices where the subject's value is too low or too high
+for(i in 1:nrow(dat_thick)) {
   lowind <- which(dat_thick[i, -1] < lower_thick)
   upind  <- which(dat_thick[i, -1] > upper_thick)
-
-  # Total number of outliers for this subject in thickness measures
   thick_outlier_counts[i] <- length(lowind) + length(upind)
 }
 
 # Create a data frame with the identifier and thickness outlier count
 df_thick <- data.frame(dat_thick[, id_col, drop = FALSE],
                        thickness_outliers = thick_outlier_counts)
+
+# --- NEW: Count outliers per thickness feature ---
+thickness_feature_counts <- sapply(2:ncol(dat_thick), function(j) {
+  sum(dat_thick[, j] < lower_thick[j - 1] | dat_thick[, j] > upper_thick[j - 1], na.rm = TRUE)
+})
+names(thickness_feature_counts) <- names(dat_thick)[-1]
+
+cat("\nOutlier counts per thickness feature:\n")
+print(thickness_feature_counts)
+
+# --- NEW: Identify thickness features with significantly more outliers ---
+# Using the IQR method: features with count > Q3 + 1.5 * IQR are flagged.
+thick_q1 <- quantile(thickness_feature_counts, 0.25)
+thick_q3 <- quantile(thickness_feature_counts, 0.75)
+thick_iqr <- thick_q3 - thick_q1
+thick_threshold <- thick_q3 + 1.5 * thick_iqr
+
+sig_thick_features <- thickness_feature_counts[thickness_feature_counts > thick_threshold]
+
+cat("\nThickness features with significantly more outliers (IQR threshold =", thick_threshold, "):\n")
+if(length(sig_thick_features) > 0) {
+  print(sig_thick_features)
+} else {
+  cat("None found.\n")
+}
 
 # ----------------------------
 # STEP 2: Process Surface Area Data
@@ -99,13 +121,13 @@ if(remove_exact_duplicates) {
 }
 
 if(remove_exact_duplicates) {
-    n_area_exact_duplicates <- sum(duplicated(dat_area))
-    if(n_area_exact_duplicates > 0) {
-      cat("Found", n_area_exact_duplicates, "exact duplicate rows in", area_file, ". Removing them...\n")
-      dat_area <- dat_area[!duplicated(dat_area), ]
-    } else {
-      cat("No exact duplicate rows found in", area_file, "\n")
-    }
+  n_area_exact_duplicates <- sum(duplicated(dat_area))
+  if(n_area_exact_duplicates > 0) {
+    cat("Found", n_area_exact_duplicates, "exact duplicate rows in", area_file, ". Removing them...\n")
+    dat_area <- dat_area[!duplicated(dat_area), ]
+  } else {
+    cat("No exact duplicate rows found in", area_file, "\n")
+  }
 }
 
 # Ensure the identifier column is treated as a character vector
@@ -133,24 +155,47 @@ num_features_area <- ncol(dat_area) - 1
 # Calculate the lower and upper thresholds for each area feature
 lower_area <- rep(NA, num_features_area)
 upper_area <- rep(NA, num_features_area)
-for(x in 2:ncol(dat_area)){
+for(x in 2:ncol(dat_area)) {
   lower_area[x - 1] <- mean(dat_area[, x], na.rm = TRUE) - 2.698 * sd(dat_area[, x], na.rm = TRUE)
   upper_area[x - 1] <- mean(dat_area[, x], na.rm = TRUE) + 2.698 * sd(dat_area[, x], na.rm = TRUE)
 }
 
 # For each subject, count the number of area outliers
 area_outlier_counts <- numeric(nrow(dat_area))
-for(i in 1:nrow(dat_area)){
+for(i in 1:nrow(dat_area)) {
   lowind <- which(dat_area[i, -1] < lower_area)
   upind  <- which(dat_area[i, -1] > upper_area)
-
-  # Total number of outliers for this subject in area measures
   area_outlier_counts[i] <- length(lowind) + length(upind)
 }
 
 # Create a data frame with the identifier and area outlier count
 df_area <- data.frame(dat_area[, id_col, drop = FALSE],
                       area_outliers = area_outlier_counts)
+
+# --- NEW: Count outliers per area feature ---
+area_feature_counts <- sapply(2:ncol(dat_area), function(j) {
+  sum(dat_area[, j] < lower_area[j - 1] | dat_area[, j] > upper_area[j - 1], na.rm = TRUE)
+})
+names(area_feature_counts) <- names(dat_area)[-1]
+
+cat("\nOutlier counts per area feature:\n")
+print(area_feature_counts)
+
+# --- NEW: Identify area features with significantly more outliers ---
+# Using the IQR method: features with count > Q3 + 1.5 * IQR are flagged.
+area_q1 <- quantile(area_feature_counts, 0.25)
+area_q3 <- quantile(area_feature_counts, 0.75)
+area_iqr <- area_q3 - area_q1
+area_threshold <- area_q3 + 1.5 * area_iqr
+
+sig_area_features <- area_feature_counts[area_feature_counts > area_threshold]
+
+cat("\nArea features with significantly more outliers (IQR threshold =", area_threshold, "):\n")
+if(length(sig_area_features) > 0) {
+  print(sig_area_features)
+} else {
+  cat("None found.\n")
+}
 
 # ----------------------------
 # STEP 3: Merge Results and Create Summary
@@ -210,7 +255,7 @@ if(handle_duplicates) {
 }
 
 # ----------------------------
-# STEP 4: Add duplicate_removed Column and Save Summary to CSV
+# STEP 4: Add duplicate_removed Column and Save Summary to RDS
 # ----------------------------
 
 # Compute a duplicate flag based on the original datasets.
@@ -279,7 +324,7 @@ if(length(flagged_ids) > 0) {
 # STEP 6: Report Duplicate Row Removal Summary
 # ----------------------------
 if(remove_exact_duplicates) {
-    cat("\nDuplicate Row Removal Summary:\n")
-    cat("Thickness file (", thickness_file, "): Found and removed ", n_thick_exact_duplicates, " exact duplicate rows.\n", sep = "")
-    cat("Area file (", area_file, "): Found and removed ", n_area_exact_duplicates, " exact duplicate rows.\n", sep = "")
+  cat("\nDuplicate Row Removal Summary:\n")
+  cat("Thickness file (", thickness_file, "): Found and removed ", n_thick_exact_duplicates, " exact duplicate rows.\n", sep = "")
+  cat("Area file (", area_file, "): Found and removed ", n_area_exact_duplicates, " exact duplicate rows.\n", sep = "")
 }
