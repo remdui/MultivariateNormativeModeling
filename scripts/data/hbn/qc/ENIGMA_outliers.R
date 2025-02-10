@@ -1,13 +1,19 @@
 # ----------------------------
 # User-defined Parameters
 # ----------------------------
-id_col <- "EID"                    # Name of the identifier column
-thickness_suffix <- "_thickness"   # Suffix for thickness features
-area_suffix <- "_area"             # Suffix for area features
-dataset_prefix <- "hbn"            # Dataset prefix (e.g., "hbn"); change as needed
-exclusion_rate <- 0.1              # Exclusion threshold as a fraction of total features
-remove_exact_duplicates <- TRUE    # If TRUE, remove rows that are exactly the same
-handle_duplicates <- TRUE          # If TRUE, make duplicate IDs unique and merge duplicate groups
+id_col <- "EID"                           # Name of the identifier column
+thickness_suffix <- "_thickness"          # Suffix for thickness features
+area_suffix <- "_area"                    # Suffix for area features
+dataset_prefix <- "hbn"                   # Dataset prefix (e.g., "hbn"); change as needed
+exclusion_rate <- 0.0                     # Exclusion threshold as a fraction of total features.
+                                          # If set to 0.0, a fixed number of features (see exclusion_threshold) will be used.
+exclusion_threshold <- 10                 # Fixed threshold (number of features) for exclusion when exclusion_rate == 0.0
+remove_exact_duplicates <- TRUE           # If TRUE, remove rows that are exactly the same
+handle_duplicates <- TRUE                 # If TRUE, make duplicate IDs unique and merge duplicate groups
+
+# NEW parameters:
+outlier_feature_threshold_multiplier <- 1.5 # Multiplier for IQR threshold to flag problematic features
+exclude_outlier_features_from_count <- TRUE   # If TRUE, exclude features flagged as problematic from subject-level outlier counts
 
 # Build file names based on the dataset prefix
 thickness_file <- paste0(dataset_prefix, "_aparc_thickness.rds")
@@ -68,7 +74,7 @@ for(x in 2:ncol(dat_thick)) {
   upper_thick[x - 1] <- mean(dat_thick[, x], na.rm = TRUE) + 2.698 * sd(dat_thick[, x], na.rm = TRUE)
 }
 
-# For each subject, count the number of thickness outliers
+# For each subject, count the number of thickness outliers (initially using all features)
 thick_outlier_counts <- numeric(nrow(dat_thick))
 for(i in 1:nrow(dat_thick)) {
   lowind <- which(dat_thick[i, -1] < lower_thick)
@@ -90,11 +96,11 @@ cat("\nOutlier counts per thickness feature:\n")
 print(thickness_feature_counts)
 
 # --- NEW: Identify thickness features with significantly more outliers ---
-# Using the IQR method: features with count > Q3 + 1.5 * IQR are flagged.
+# Using the IQR method with the new threshold multiplier:
 thick_q1 <- quantile(thickness_feature_counts, 0.25)
 thick_q3 <- quantile(thickness_feature_counts, 0.75)
 thick_iqr <- thick_q3 - thick_q1
-thick_threshold <- thick_q3 + 1.5 * thick_iqr
+thick_threshold <- thick_q3 + outlier_feature_threshold_multiplier * thick_iqr
 
 sig_thick_features <- thickness_feature_counts[thickness_feature_counts > thick_threshold]
 
@@ -103,6 +109,26 @@ if(length(sig_thick_features) > 0) {
   print(sig_thick_features)
 } else {
   cat("None found.\n")
+}
+
+# --- NEW: Optionally recalculate subject-level thickness outlier counts excluding problematic features ---
+if (exclude_outlier_features_from_count) {
+  thickness_feature_names <- names(dat_thick)[-1]
+  non_prob_idx_thick <- which(!(thickness_feature_names %in% names(sig_thick_features)))
+
+  thick_outlier_counts_new <- numeric(nrow(dat_thick))
+  for(i in 1:nrow(dat_thick)) {
+    subject_vals <- as.numeric(dat_thick[i, -1])
+    selected_vals <- subject_vals[non_prob_idx_thick]
+    selected_lower <- lower_thick[non_prob_idx_thick]
+    selected_upper <- upper_thick[non_prob_idx_thick]
+    low_count <- sum(selected_vals < selected_lower, na.rm = TRUE)
+    up_count <- sum(selected_vals > selected_upper, na.rm = TRUE)
+    thick_outlier_counts_new[i] <- low_count + up_count
+  }
+  df_thick$thickness_outliers <- thick_outlier_counts_new
+  num_features_thick <- length(non_prob_idx_thick)
+  cat("\nRecalculated thickness outlier counts excluding problematic features.\n")
 }
 
 # ----------------------------
@@ -160,7 +186,7 @@ for(x in 2:ncol(dat_area)) {
   upper_area[x - 1] <- mean(dat_area[, x], na.rm = TRUE) + 2.698 * sd(dat_area[, x], na.rm = TRUE)
 }
 
-# For each subject, count the number of area outliers
+# For each subject, count the number of area outliers (initially using all features)
 area_outlier_counts <- numeric(nrow(dat_area))
 for(i in 1:nrow(dat_area)) {
   lowind <- which(dat_area[i, -1] < lower_area)
@@ -182,11 +208,11 @@ cat("\nOutlier counts per area feature:\n")
 print(area_feature_counts)
 
 # --- NEW: Identify area features with significantly more outliers ---
-# Using the IQR method: features with count > Q3 + 1.5 * IQR are flagged.
+# Using the IQR method with the new threshold multiplier:
 area_q1 <- quantile(area_feature_counts, 0.25)
 area_q3 <- quantile(area_feature_counts, 0.75)
 area_iqr <- area_q3 - area_q1
-area_threshold <- area_q3 + 1.5 * area_iqr
+area_threshold <- area_q3 + outlier_feature_threshold_multiplier * area_iqr
 
 sig_area_features <- area_feature_counts[area_feature_counts > area_threshold]
 
@@ -195,6 +221,26 @@ if(length(sig_area_features) > 0) {
   print(sig_area_features)
 } else {
   cat("None found.\n")
+}
+
+# --- NEW: Optionally recalculate subject-level area outlier counts excluding problematic features ---
+if (exclude_outlier_features_from_count) {
+  area_feature_names <- names(dat_area)[-1]
+  non_prob_idx_area <- which(!(area_feature_names %in% names(sig_area_features)))
+
+  area_outlier_counts_new <- numeric(nrow(dat_area))
+  for(i in 1:nrow(dat_area)) {
+    subject_vals <- as.numeric(dat_area[i, -1])
+    selected_vals <- subject_vals[non_prob_idx_area]
+    selected_lower <- lower_area[non_prob_idx_area]
+    selected_upper <- upper_area[non_prob_idx_area]
+    low_count <- sum(selected_vals < selected_lower, na.rm = TRUE)
+    up_count <- sum(selected_vals > selected_upper, na.rm = TRUE)
+    area_outlier_counts_new[i] <- low_count + up_count
+  }
+  df_area$area_outliers <- area_outlier_counts_new
+  num_features_area <- length(non_prob_idx_area)
+  cat("\nRecalculated area outlier counts excluding problematic features.\n")
 }
 
 # ----------------------------
@@ -211,12 +257,16 @@ df_out[is.na(df_out)] <- 0
 # Calculate total outliers per subject
 df_out$total_outliers <- df_out$thickness_outliers + df_out$area_outliers
 
-# Total number of features assessed
+# Total number of features assessed (using the updated feature counts if problematic features were excluded)
 total_features <- num_features_thick + num_features_area
 
 # Create an "exclude" flag:
-# If more than exclusion_rate of all features are outliers, then exclude = 1 (TRUE), else 0 (FALSE)
-df_out$exclude <- ifelse(df_out$total_outliers > exclusion_rate * total_features, 1, 0)
+# If exclusion_rate is set to 0.0, then a fixed threshold (exclusion_threshold) is used.
+if(exclusion_rate <= 0.0) {
+  df_out$exclude <- ifelse(df_out$total_outliers > exclusion_threshold, 1, 0)
+} else {
+  df_out$exclude <- ifelse(df_out$total_outliers > exclusion_rate * total_features, 1, 0)
+}
 
 # If duplicates are not being handled, check for duplicate identifiers and exit gracefully if found.
 if(!handle_duplicates) {
