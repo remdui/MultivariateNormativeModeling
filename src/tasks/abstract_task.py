@@ -6,6 +6,7 @@ from logging import Logger
 import torch
 
 from data.factory import get_dataloader
+from entities.experiment_manager import ExperimentManager
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from model.models.abstract_model import AbstractModel
@@ -25,6 +26,7 @@ class AbstractTask(ABC):
         self.properties = Properties.get_instance()
         self.device = self.properties.system.device
         self.model: AbstractModel
+        self.experiment_manager = ExperimentManager.get_instance()
 
         # Set up the task
         self.__setup_task()

@@ -169,7 +169,7 @@ class ValidateTask(AbstractTask):
 
         # Decide where to save
         output_extension = get_internal_file_extension()
-        output_file_path = f"{self.properties.system.output_dir}/reconstructions/{self.model_name}_validation_data.{output_extension}"
+        output_file_path = f"{self.properties.system.output_dir}/reconstructions/validation_data.{output_extension}"
 
         # Use your custom `save_data` function to handle CSV/HDF format
         self.logger.info(f"Saving validation data to {output_file_path}...")
@@ -286,7 +286,7 @@ class ValidateTask(AbstractTask):
         output_extension = get_internal_file_extension()
         latent_output_path = (
             f"{self.properties.system.output_dir}/model/"
-            f"{self.model_name}_latent_space_{data}.{output_extension}"
+            f"latent_space_{data}.{output_extension}"
         )
         self.logger.info(
             f"Saving {data} latent space parameters to {latent_output_path}..."

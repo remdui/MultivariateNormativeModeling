@@ -3,7 +3,6 @@
 import json
 import os
 import shutil
-from datetime import datetime
 from typing import Any, Literal
 
 import pandas as pd
@@ -28,10 +27,9 @@ def write_results_to_file(
     logger = LogManager.get_logger(__name__)
     properties = Properties.get_instance()
     output_dir = properties.system.output_dir
-    model_name = properties.model_name
 
     # Define the filename
-    filename = f"{output_dir}/metrics/{model_name}_{task}_{output_identifier}.json"
+    filename = f"{output_dir}/metrics/{task}_{output_identifier}.json"
 
     # Convert TaskResult data to a dictionary
     result_data = task_result.get_data()
@@ -85,33 +83,20 @@ def copy_artifact(
     logger.info(f"Copied artifact: {src_path} -> {dest_path}")
 
 
-def create_experiment_directory(task: str) -> str:
+def create_experiment_directory(path: str) -> None:
     """Create a new experiment directory in 'experiments' folder with the naming convention:
 
     "<task>_<model_name>_<date>_<time>"
 
     Args:
-        task (str): The task name (e.g., 'train', 'validate', 'inference', 'tune').
-
-    Returns:
-        str: The path to the newly created experiment directory.
+        path (str): The dir path
     """
     properties = Properties.get_instance()
 
-    # Ensure experiments directory exists
+    # Ensure main experiments directory exists
     experiments_dir = properties.system.experiment_dir
     os.makedirs(experiments_dir, exist_ok=True)
-
-    # Format current date and time
-    now = datetime.now()
-    date_str = now.strftime("%Y%m%d")
-    time_str = now.strftime("%H%M%S")  # Avoid colons for file naming compatibility
-
-    experiment_dir_name = f"{task}_{properties.model_name}_{date_str}_{time_str}"
-    experiment_path = os.path.join(experiments_dir, experiment_dir_name)
-    os.makedirs(experiment_path, exist_ok=True)
-
-    return experiment_path
+    os.makedirs(path, exist_ok=True)
 
 
 def save_zip_folder(folder_path: str, dest_dir: str, zip_name: str) -> None:

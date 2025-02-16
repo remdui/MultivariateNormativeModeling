@@ -13,7 +13,7 @@ general:
 meta:
   config_version: 2
   description: Variational Autoencoder for Normative Modeling
-  name: vae_hbn_baseline
+  name: test_2
   version: 1
 dataset:
   unique_identifier_column: "EID"
@@ -34,8 +34,8 @@ dataset:
   pin_memory: false
   shuffle: true
   test_split: 0.2
-  train_split: 0.8
-  val_split: 0.2
+  train_split: 0.9
+  val_split: 0.1
   enable_transforms: true
   transforms:
   - name: SiteFilterTransform
@@ -83,7 +83,7 @@ data_analysis:
         components: 2
         neighbors: 15
 train:
-  batch_size: 32
+  batch_size: 64
   cross_validation: false
   cross_validation_folds: 10
   cross_validation_method: kfold
@@ -116,7 +116,7 @@ train:
     mse_vae:
       reduction: sum
       beta_start: 0.0
-      beta_end: 0.5
+      beta_end: 0.1
       kl_anneal_start: 5
       kl_anneal_end: 50
     l1:
@@ -476,7 +476,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: 'vae_hbn_baseline_v1_best.safetensors'
+  model: 'test_2_v1_best.safetensors'
   data_representation: tabular
   image:
     length: 28

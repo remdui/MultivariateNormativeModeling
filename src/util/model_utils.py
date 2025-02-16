@@ -93,9 +93,8 @@ def visualize_model_arch(model: nn.Module, input_size: int) -> None:
     properties = Properties.get_instance()
     batch_size = properties.train.batch_size
     output_dir = properties.system.output_dir + "/model_arch"
-    model_name = properties.model_name
 
-    file_name = f"{model_name}_model_arch"
+    file_name = "model_arch"
 
     # Check if the GPU supports CUDA compilation, torchview does not support JIT for all GPUs
     if gpu_supported_by_triton_compiler():

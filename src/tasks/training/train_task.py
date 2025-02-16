@@ -15,7 +15,8 @@ from optimization.regularizers.early_stopping import EarlyStopping
 from optimization.schedulers.factory import get_scheduler
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
-from util.model_utils import save_model
+from util.file_utils import write_results_to_file
+from util.model_utils import save_model, visualize_model_arch
 
 
 class TrainTask(AbstractTask):
@@ -27,10 +28,12 @@ class TrainTask(AbstractTask):
         self.logger.info("Initializing TrainTask.")
         self.__init_train_task()
         self.trial = trial
+        self.experiment_manager.clear_output_directory()
 
     def __init_train_task(self) -> None:
         """Setup the train task."""
         self.task_name = "train"
+        self.experiment_manager.create_new_experiment(self.task_name)
         self.__setup_optimizer()
         self.__setup_scheduler()
         self.__setup_amp()
@@ -148,6 +151,11 @@ class TrainTask(AbstractTask):
             )
 
         self.logger.info("Training completed.")
+        results.validate_results()
+        results.process_results()
+        write_results_to_file(results, "metrics", self.get_task_name())
+        visualize_model_arch(self.get_model(), self.get_input_size())
+        self.experiment_manager.finalize_experiment()
         return results
 
     def __run_cross_validation_training(

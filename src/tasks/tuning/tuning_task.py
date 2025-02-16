@@ -18,7 +18,7 @@ class TuningTask(AbstractTask):
 
     def __init__(self) -> None:
         super().__init__(LogManager.get_logger(__name__))
-        self.logger.info("Initializing TrainTask.")
+        self.logger.info("Initializing ExperimentTask.")
         self.task_name = "tune"
 
     def run(self) -> TaskResult:

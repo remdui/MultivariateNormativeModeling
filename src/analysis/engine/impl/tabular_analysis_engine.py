@@ -104,7 +104,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         output_extension = get_internal_file_extension()
         recon_file_path = (
             f"{self.properties.system.output_dir}/reconstructions/"
-            f"{self.properties.model_name}_validation_data.{output_extension}"
+            f"validation_data.{output_extension}"
         )
 
         self.logger.info(f"Loading reconstruction data from {recon_file_path}...")
@@ -116,7 +116,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         # ---------------------------------------------------------
         latent_test_file_path = (
             f"{self.properties.system.output_dir}/model/"
-            f"{self.properties.model_name}_latent_space_test.{output_extension}"
+            f"latent_space_test.{output_extension}"
         )
 
         self.logger.info(
@@ -127,7 +127,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
 
         latent_train_file_path = (
             f"{self.properties.system.output_dir}/model/"
-            f"{self.properties.model_name}_latent_space_train.{output_extension}"
+            f"latent_space_train.{output_extension}"
         )
 
         self.logger.info(
@@ -562,9 +562,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
                 self.properties.system.output_dir, "visualizations"
             )
             os.makedirs(output_folder, exist_ok=True)
-            plot_filename = (
-                f"{self.properties.model_name}_latent_distributions_{split}.png"
-            )
+            plot_filename = f"latent_distributions_{split}.png"
             plot_filepath = os.path.join(output_folder, plot_filename)
             plt.savefig(plot_filepath)
             self.logger.info(f"Plot saved to {plot_filepath}")
@@ -714,9 +712,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             )
             os.makedirs(output_folder, exist_ok=True)
 
-            plot_filename = (
-                f"{self.properties.model_name}_latent_{method.lower()}_{n_components}d"
-            )
+            plot_filename = f"latent_{method.lower()}_{n_components}d"
             if color_covariate:
                 plot_filename += f"_{color_covariate}"
             plot_filename += ".png"
@@ -766,7 +762,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             )
             os.makedirs(output_folder, exist_ok=True)
 
-            plot_filename = f"{self.properties.model_name}_latent_zmean_pairplot.png"
+            plot_filename = "latent_zmean_pairplot.png"
             plot_filepath = os.path.join(output_folder, plot_filename)
             grid.fig.savefig(plot_filepath, dpi=300, bbox_inches="tight")
             self.logger.info(f"Latent z_mean pairplot saved to {plot_filepath}")
@@ -917,7 +913,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
                     self.properties.system.output_dir, "visualizations"
                 )
                 os.makedirs(output_folder, exist_ok=True)
-                plot_filename = f"{self.properties.model_name}_latent_sampled_participant_{participant_id}.png"
+                plot_filename = f"latent_sampled_participant_{participant_id}.png"
                 plot_filepath = os.path.join(output_folder, plot_filename)
                 plt.savefig(plot_filepath, dpi=300, bbox_inches="tight")
                 self.logger.info(
@@ -976,7 +972,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
                 self.properties.system.output_dir, "visualizations"
             )
             os.makedirs(output_folder, exist_ok=True)
-            plot_filename = f"{self.properties.model_name}_kl_divergence_per_dim.png"
+            plot_filename = "kl_divergence_per_dim.png"
             plot_filepath = os.path.join(output_folder, plot_filename)
             plt.savefig(plot_filepath, dpi=300, bbox_inches="tight")
             self.logger.info(f"KL divergence plot saved to {plot_filepath}")
@@ -1045,7 +1041,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
                 self.properties.system.output_dir, "visualizations"
             )
             os.makedirs(output_folder, exist_ok=True)
-            plot_filename = f"{self.properties.model_name}_feature_distributions.png"
+            plot_filename = "feature_distributions.png"
             plot_filepath = os.path.join(output_folder, plot_filename)
             plt.savefig(plot_filepath, dpi=300, bbox_inches="tight")
             self.logger.info(f"Reconstruction histograms saved to {plot_filepath}")

@@ -1,4 +1,4 @@
-"""Task for hyperparameter tuning using Optuna."""
+"""Task for experiments."""
 
 import time
 
@@ -13,16 +13,16 @@ from tasks.training.train_task import TrainTask
 from tasks.validation.validate_task import ValidateTask
 
 
-class TuningTask(AbstractTask):
-    """Task for hyperparameter tuning using Optuna."""
+class ExperimentTask(AbstractTask):
+    """Task for experiment."""
 
     def __init__(self) -> None:
         super().__init__(LogManager.get_logger(__name__))
-        self.logger.info("Initializing TrainTask.")
-        self.task_name = "tune"
+        self.logger.info("Initializing ExperimentTask.")
+        self.task_name = "experiment"
 
     def run(self) -> TaskResult:
-        self.logger.info("Starting hyperparameter tuning using Optuna.")
+        self.logger.info("Starting Experiment.")
 
         # Create a study with no pruning or random sampling
         study = optuna.create_study(

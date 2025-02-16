@@ -9,7 +9,7 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "3.11.3" # Python version
+python = ">=3.11.3,<3.12"
 torch = "2.5.1" # deep learning library
 pandas = "2.2.3" # data manipulation library
 numpy = "2.1.3" # numerical computing library
