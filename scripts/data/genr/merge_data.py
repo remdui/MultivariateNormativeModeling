@@ -73,9 +73,7 @@ def apply_qc_filter(merged_df, qc_data):
       - Removes duplicate rows (by idc and wave) flagged with duplicate_removed == 1 (keeping the first occurrence).
       - Drops the QC columns before returning.
     """
-    # Ensure the types are consistent.
-    merged_df["idc"] = merged_df["idc"].astype(str)
-    qc_data["idc"] = qc_data["idc"].astype(str)
+    qc_data["idc"] = qc_data["idc"].astype(np.float64)
     qc_data["wave"] = qc_data["wave"].astype(np.float64)
     qc_data["exclude"] = qc_data["exclude"].astype(np.int32)
 
@@ -369,19 +367,12 @@ def main():
     aparc_data = load_and_process_files(APARC_FILES, WAVE_MAPPING)
     aseg_data = load_and_process_files(ASEG_FILES, WAVE_MAPPING, is_aseg=True)
 
-    # Convert idc columns to string to ensure consistency when merging.
-    covariates["idc"] = covariates["idc"].astype(str)
-    aparc_data["idc"] = aparc_data["idc"].astype(str)
-    aseg_data["idc"] = aseg_data["idc"].astype(str)
-
     logging.info(
         f"Initial counts: covariates: {covariates.shape[0]}, aparc: {aparc_data.shape[0]}, aseg: {aseg_data.shape[0]}"
     )
 
     # Load QC data (once) and ensure its key columns have the correct types.
     qc_data = pyreadr.read_r(QC_FILE)[None]
-    qc_data["idc"] = qc_data["idc"].astype(str)
-    qc_data["wave"] = qc_data["wave"].astype(np.float64)
 
     # Merge aparc and aseg to form the full dataset.
     full_data = pd.merge(aparc_data, aseg_data, on=["idc", "wave"], how="inner")

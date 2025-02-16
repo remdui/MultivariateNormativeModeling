@@ -70,8 +70,8 @@ num_features_thick <- ncol(dat_thick) - 1
 lower_thick <- rep(NA, num_features_thick)
 upper_thick <- rep(NA, num_features_thick)
 for(x in 2:ncol(dat_thick)) {
-  lower_thick[x - 1] <- mean(dat_thick[, x], na.rm = TRUE) - 2.698 * sd(dat_thick[, x], na.rm = TRUE)
-  upper_thick[x - 1] <- mean(dat_thick[, x], na.rm = TRUE) + 2.698 * sd(dat_thick[, x], na.rm = TRUE)
+  lower_thick[x - 1] <- mean(dat_thick[, x], na.rm = TRUE) - 4 * sd(dat_thick[, x], na.rm = TRUE)
+  upper_thick[x - 1] <- mean(dat_thick[, x], na.rm = TRUE) + 4 * sd(dat_thick[, x], na.rm = TRUE)
 }
 
 # For each subject, count the number of thickness outliers (initially using all features)
@@ -182,8 +182,8 @@ num_features_area <- ncol(dat_area) - 1
 lower_area <- rep(NA, num_features_area)
 upper_area <- rep(NA, num_features_area)
 for(x in 2:ncol(dat_area)) {
-  lower_area[x - 1] <- mean(dat_area[, x], na.rm = TRUE) - 2.698 * sd(dat_area[, x], na.rm = TRUE)
-  upper_area[x - 1] <- mean(dat_area[, x], na.rm = TRUE) + 2.698 * sd(dat_area[, x], na.rm = TRUE)
+  lower_area[x - 1] <- mean(dat_area[, x], na.rm = TRUE) - 4 * sd(dat_area[, x], na.rm = TRUE)
+  upper_area[x - 1] <- mean(dat_area[, x], na.rm = TRUE) + 4 * sd(dat_area[, x], na.rm = TRUE)
 }
 
 # For each subject, count the number of area outliers (initially using all features)
