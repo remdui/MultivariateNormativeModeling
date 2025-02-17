@@ -112,15 +112,29 @@ class AbstractTask(ABC):
 
     def __setup_loss_function(self) -> None:
         """Get the loss function based on the configuration."""
-        # Retrieve the name of the loss function (e.g., "mse")
         loss_function_name = self.properties.train.loss_function
-
-        # Retrieve the parameters specific to the selected loss function from loss_function_params
         loss_function_params = self.properties.train.loss_function_params.get(
             loss_function_name, {}
         )
 
-        # Initialize the loss function with the unpacked loss function parameters
+        self.logger.info(f"Base loss params from config: {loss_function_params}")
+
+        model_components = self.properties.model.components.get(
+            self.properties.model.architecture, {}
+        )
+        self.covariate_embedding_technique = model_components.get(
+            "covariate_embedding", "no_embedding"
+        )
+        covariate_dim = len(self.properties.dataset.covariates) - len(
+            self.properties.dataset.skipped_covariates
+        )
+
+        loss_function_params["covariate_embedding_technique"] = (
+            self.covariate_embedding_technique
+        )
+        loss_function_params["cov_dim"] = covariate_dim
+
+        # 3) Instantiate the loss function
         self.loss = get_loss_function(loss_function_name, **loss_function_params)
 
         self.logger.info(

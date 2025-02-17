@@ -101,6 +101,10 @@ def visualize_model_arch(model: nn.Module, input_size: int) -> None:
         logger.warning("Visualizing model architecture is not supported for this GPU.")
         return
 
+    num_covariates = len(properties.dataset.covariates) - len(
+        properties.dataset.skipped_covariates
+    )
+
     # Draw the model architecture and save to output directory
     draw_graph(
         model,
@@ -109,6 +113,9 @@ def visualize_model_arch(model: nn.Module, input_size: int) -> None:
         save_graph=True,
         directory=output_dir,
         filename=file_name,
+        covariates=torch.empty((batch_size, num_covariates)).to(
+            properties.system.device
+        ),
     )
 
     logger.info(

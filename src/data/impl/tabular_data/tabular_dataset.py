@@ -12,12 +12,11 @@ from util.file_utils import load_data
 class TabularDataset(AbstractDataset):
     """Dataset class to load the Tabular dataset."""
 
-    def __init__(self, file_path: str, covariates: list[str]) -> None:
+    def __init__(self, file_path: str) -> None:
         """Constructor for the TabularDataset class.
 
         Args:
             file_path (str): Path to the file containing the dataset.
-            covariates (list[str]): List of covariates.
         """
         super().__init__()
         self.logger = LogManager.get_logger(__name__)
@@ -26,23 +25,29 @@ class TabularDataset(AbstractDataset):
         self.data = load_data(file_path)
 
         self.skipped_columns = self.properties.dataset.skipped_columns or []
+        self.all_covariates = self.properties.dataset.covariates
+        self.skipped_covariates = self.properties.dataset.skipped_covariates
 
         if self.skipped_columns:
             self.logger.info(f"Removing skipped columns: {self.skipped_columns}")
             self.skipped_data = self.data[self.skipped_columns].copy()
-            self.data.drop(columns=self.skipped_columns, inplace=True)
 
-        self.covariates = covariates
+        self.data.drop(columns=self.skipped_columns, inplace=True)
 
         # Ensure covariate names exist in the dataset
-        missing_covariates = set(self.covariates) - set(self.data.columns)
+        missing_covariates = set(self.all_covariates) - set(self.data.columns)
         if missing_covariates:
             raise ValueError(
                 f"Covariate columns not found in dataset: {missing_covariates}"
             )
 
-        # Identify feature columns (excluding covariates and skipped columns)
-        self.features = [col for col in self.data.columns if col not in covariates]
+        # Identify feature columns (excluding covariates)
+        self.features = [
+            col for col in self.data.columns if col not in self.all_covariates
+        ]
+        self.covariates = [
+            item for item in self.all_covariates if item not in self.skipped_covariates
+        ]
 
         # If debug mode is enabled, log the dataset details
         self.logger.debug(f"Features: {self.features}")

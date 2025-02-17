@@ -28,6 +28,7 @@ class TabularDataloader(AbstractDataloader):
         self.batch_size = self.properties.train.batch_size
         self.num_workers = self.properties.system.num_workers
         self.covariates = self.properties.dataset.covariates
+        self.skipped_covariates = self.properties.dataset.skipped_covariates
         self.targets = self.properties.dataset.targets
         self.pin_memory = self.properties.dataset.pin_memory
         self.shuffle = self.properties.dataset.shuffle
@@ -81,9 +82,7 @@ class TabularDataloader(AbstractDataloader):
     def __load__dataset(self, file_path: str) -> TabularDataset:
         """Load the dataset from the provided file path."""
         try:
-            dataset = TabularDataset(
-                file_path=str(file_path), covariates=self.covariates
-            )
+            dataset = TabularDataset(file_path=str(file_path))
             self.logger.info(f"Dataset loaded from {file_path}")
         except Exception as e:
             self.logger.exception("Failed to initialize the tabular dataset.")
@@ -251,7 +250,7 @@ class TabularDataloader(AbstractDataloader):
 
     def get_covariate_labels(self) -> list[str]:
         """Get the labels of the covariates in the dataset."""
-        return self.covariates
+        return [item for item in self.covariates if item not in self.skipped_covariates]
 
     def get_target_labels(self) -> list[str]:
         """Get the labels of the targets in the dataset."""

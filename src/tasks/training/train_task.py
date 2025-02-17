@@ -361,16 +361,22 @@ class TrainTask(AbstractTask):
 
     def __train_batch(self, batch: Any, step: int) -> tuple[float, int]:
         """Perform a single training step."""
-        data, _ = batch  # Unpack batch (features, covariates)
+        data, covariates = batch  # Unpack batch (features, covariates)
         data = data.to(self.device)  # Move data to device
+        covariates = covariates.to(self.device)
 
         # Mixed precision training support with autocast
         with autocast(
             enabled=self.properties.train.mixed_precision, device_type=self.device
         ):
-            recon_batch, z_mean, z_logvar = self.model(data)  # Forward pass
+            recon_batch, z_mean, z_logvar = self.model(data, covariates)  # Forward pass
             loss = self.loss(
-                recon_batch, data, z_mean, z_logvar, current_epoch=self.epoch
+                recon_batch,
+                data,
+                z_mean,
+                z_logvar,
+                current_epoch=self.epoch,
+                covariates=covariates,
             )  # Compute loss
 
         # Store original loss value before further processing
@@ -456,16 +462,18 @@ class TrainTask(AbstractTask):
         # Disable gradient computation in validation
         with torch.no_grad():
             for batch in self.val_dataloader:
-                data, _ = batch
+                data, covariates = batch
                 data = data.to(self.device)
-
+                covariates = covariates.to(self.device)
                 # Use autocast in validation for mixed precision
                 with autocast(
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
                 ):
-                    recon_batch, z_mean, z_logvar = self.model(data)
-                    loss = self.loss(recon_batch, data, z_mean, z_logvar)
+                    recon_batch, z_mean, z_logvar = self.model(data, covariates)
+                    loss = self.loss(
+                        recon_batch, data, z_mean, z_logvar, covariates=covariates
+                    )
 
                 total_val_loss += loss.item()
                 total_val_samples += data.size(0)

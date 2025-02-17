@@ -21,6 +21,7 @@ dataset:
   unique_identifier_column: ''
   row_data_leakage_columns: []
   covariates: []
+  skipped_covariates: []
   targets: []
   input_data: generated_data.rds
   data_type: tabular

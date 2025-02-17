@@ -23,9 +23,12 @@ dataset:
   row_data_leakage_columns:
   - EID
   covariates:
-  - Sex
-  - site
   - Age
+  - site
+  - Sex
+  skipped_covariates:
+  - site
+  - Sex
   targets: []
   input_data: hbn_aparc_volume.rds
   data_type: tabular

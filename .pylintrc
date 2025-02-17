@@ -113,6 +113,8 @@ disable=
     duplicate-code,
     too-complex,
     too-many-locals,
+    too-many-positional-arguments,
+    too-many-arguments
 
 
 [REPORTS]

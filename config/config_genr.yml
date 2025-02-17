@@ -23,7 +23,9 @@ dataset:
   - wave
   row_data_leakage_columns:
   - idc
-  covariates: []
+  covariates:
+  - Age
+  skipped_covariates: []
   targets: []
   input_data: genr_aparc.rds
   data_type: tabular
@@ -360,7 +362,7 @@ model:
       encoder: mlp
       decoder: mlp
       latent_dim: 5
-      covariate_embedding: input_embedding
+      covariate_embedding: input_feature
   hidden_layers:
   - 128
   - 64

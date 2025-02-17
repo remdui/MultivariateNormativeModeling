@@ -74,16 +74,17 @@ class ValidateTask(AbstractTask):
             for batch in tqdm(
                 self.train_dataloader, desc="Calculating latent parameters"
             ):
-                data, _ = (
+                data, covariates = (
                     batch  # (inputs, labels) but for unsupervised this may be empty
                 )
                 data = data.to(self.device)
+                covariates = covariates.to(self.device)
 
                 with autocast(
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
                 ):
-                    _, z_mean, z_logvar = self.model(data)
+                    _, z_mean, z_logvar = self.model(data, covariates)
 
                 # Move data to CPU for concatenation
                 latent_mean_list.append(z_mean.cpu().numpy())
@@ -109,16 +110,17 @@ class ValidateTask(AbstractTask):
 
         with torch.no_grad():
             for batch in tqdm(self.test_dataloader, desc="Collecting recon data"):
-                data, _ = (
+                data, covariates = (
                     batch  # (inputs, labels) but for unsupervised this may be empty
                 )
                 data = data.to(self.device)
+                covariates = covariates.to(self.device)
 
                 with autocast(
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
                 ):
-                    recon_batch, z_mean, z_logvar = self.model(data)
+                    recon_batch, z_mean, z_logvar = self.model(data, covariates)
 
                 # Move data to CPU for concatenation
                 original_data_list.append(data.cpu().numpy())
@@ -150,6 +152,7 @@ class ValidateTask(AbstractTask):
 
         # Obtain the feature names from your dataloader
         feature_names = self.dataloader.get_feature_labels()
+        covariate_names = self.dataloader.get_covariate_labels()
 
         # Original columns
         original_col_names = [f"orig_{col}" for col in feature_names]
@@ -165,9 +168,22 @@ class ValidateTask(AbstractTask):
         combined_data = np.concatenate(
             [original_data, reconstruction_data, z_mean_data, z_logvar_data], axis=1
         )
-        all_columns = (
-            original_col_names + recon_col_names + z_mean_col_names + z_logvar_col_names
-        )
+
+        if self.covariate_embedding_technique == "no_embedding":
+            all_columns = (
+                original_col_names
+                + recon_col_names
+                + z_mean_col_names
+                + z_logvar_col_names
+            )
+        else:
+            all_columns = (
+                original_col_names
+                + covariate_names
+                + recon_col_names
+                + z_mean_col_names
+                + z_logvar_col_names
+            )
         df = pd.DataFrame(combined_data, columns=all_columns)
 
         # Prepend skipped columns if available

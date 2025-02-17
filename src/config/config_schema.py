@@ -105,6 +105,7 @@ class DatasetConfig(BaseModel):
     unique_identifier_column: str = ""
     row_data_leakage_columns: list[str] = []
     covariates: list[str] = []
+    skipped_covariates: list[str] = []
     targets: list[str] = []
     input_data: str = "generated_data.rds"
     data_type: str = "tabular"
