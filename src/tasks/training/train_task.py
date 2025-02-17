@@ -153,7 +153,7 @@ class TrainTask(AbstractTask):
         self.logger.info("Training completed.")
         results.validate_results()
         results.process_results()
-        write_results_to_file(results, "metrics", self.get_task_name())
+        write_results_to_file(results, "metrics")
         visualize_model_arch(self.get_model(), self.get_input_size())
         self.experiment_manager.finalize_experiment()
         return results

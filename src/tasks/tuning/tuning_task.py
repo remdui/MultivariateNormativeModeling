@@ -72,6 +72,10 @@ class TuningTask(AbstractTask):
             float: The validation loss for the current trial.
         """
         trial_id = trial.number
+        self.experiment_manager.clear_output_directory()
+        self.experiment_manager.create_new_experiment(self.task_name)
+        self.experiment_manager.add_experiment_group_identifier(str(trial_id))
+
         self.logger.info(f"Starting trial {trial_id}.")
         start_time = time.time()
 

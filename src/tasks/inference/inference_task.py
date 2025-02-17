@@ -3,6 +3,7 @@
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
+from util.file_utils import write_results_to_file
 
 
 class InferenceTask(AbstractTask):
@@ -17,8 +18,14 @@ class InferenceTask(AbstractTask):
     def __init_inference_task(self) -> None:
         """Setup the inference task."""
         self.task_name = "inference"
+        self.experiment_manager.clear_output_directory()
+        self.experiment_manager.create_new_experiment(self.task_name)
 
     def run(self) -> TaskResult:
         """Run the inference task."""
         results = TaskResult()
+        results.validate_results()
+        results.process_results()
+        write_results_to_file(results, "metrics")
+        self.experiment_manager.finalize_experiment()
         return results

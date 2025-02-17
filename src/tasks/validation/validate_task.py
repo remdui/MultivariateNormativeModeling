@@ -10,7 +10,11 @@ from analysis.engine.factory import create_analysis_engine
 from entities.log_manager import LogManager
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
-from util.file_utils import get_internal_file_extension, save_data
+from util.file_utils import (
+    get_internal_file_extension,
+    save_data,
+    write_results_to_file,
+)
 from util.model_utils import load_model
 
 
@@ -21,13 +25,13 @@ class ValidateTask(AbstractTask):
         """Initialize the Validator class."""
         super().__init__(LogManager.get_logger(__name__))
         self.logger.info("Initializing ValidateTask.")
-
         self.__init_validation_task()
 
     def __init_validation_task(self) -> None:
         """Setup the validation task."""
         self.task_name = "validate"
-
+        self.experiment_manager.clear_output_directory()
+        self.experiment_manager.create_new_experiment(self.task_name)
         # Get the validation properties
         self.data_representation = self.properties.validation.data_representation
         self.model_file = self.properties.validation.model
@@ -53,7 +57,10 @@ class ValidateTask(AbstractTask):
 
         # 3) Analyze the results using the newly saved data
         results = self.__analyze_results()
-
+        results.validate_results()
+        results.process_results()
+        write_results_to_file(results, "metrics")
+        self.experiment_manager.finalize_experiment()
         return results
 
     def __save_training_distribution(self) -> None:

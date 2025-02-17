@@ -197,7 +197,7 @@ class ExperimentManager:
         # 2a) Copy final model named e.g. my_model, ignoring extension
         possible_extensions = [".pt", ".safetensors"]
         for ext in possible_extensions:
-            final_model_name = f"{self.properties.model_name}{ext}"
+            final_model_name = f"{self.properties.model_name}_best{ext}"
             final_model_src = os.path.join(model_dir, final_model_name)
             if os.path.exists(final_model_src):
                 final_model_dest = os.path.join(model_subdir, final_model_name)

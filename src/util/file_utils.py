@@ -3,7 +3,7 @@
 import json
 import os
 import shutil
-from typing import Any, Literal
+from typing import Any
 
 import pandas as pd
 
@@ -15,21 +15,19 @@ from tasks.task_result import TaskResult
 def write_results_to_file(
     task_result: TaskResult,
     output_identifier: str = "metrics",
-    task: Literal["train", "validate", "inference"] = "train",
 ) -> None:
     """Write the TaskResult content to a JSON file.
 
     Args:
         task_result (TaskResult): The TaskResult object containing the data to output.
         output_identifier (str): Identifier for the output, used in the filename.
-        task (str): The task type (train, validate, or inference).
     """
     logger = LogManager.get_logger(__name__)
     properties = Properties.get_instance()
     output_dir = properties.system.output_dir
 
     # Define the filename
-    filename = f"{output_dir}/metrics/{task}_{output_identifier}.json"
+    filename = f"{output_dir}/metrics/{output_identifier}.json"
 
     # Convert TaskResult data to a dictionary
     result_data = task_result.get_data()

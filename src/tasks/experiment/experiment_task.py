@@ -49,6 +49,9 @@ class ExperimentTask(AbstractTask):
     def objective(self, trial: optuna.Trial) -> float:
         """Objective function to iterate through all latent_dim values."""
         trial_id = trial.number
+        self.experiment_manager.clear_output_directory()
+        self.experiment_manager.add_experiment_group_identifier(str(trial_id))
+
         self.logger.info(f"Starting trial {trial_id}.")
         start_time = time.time()
         latent_dim_values = [1, 2, 3, 4, 5, 8, 16, 24, 32]
