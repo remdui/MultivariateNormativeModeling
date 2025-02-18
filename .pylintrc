@@ -114,7 +114,8 @@ disable=
     too-complex,
     too-many-locals,
     too-many-positional-arguments,
-    too-many-arguments
+    too-many-arguments,
+    unused-argument
 
 
 [REPORTS]

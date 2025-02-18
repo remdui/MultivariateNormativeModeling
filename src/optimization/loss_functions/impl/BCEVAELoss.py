@@ -7,6 +7,8 @@ from torch import Tensor
 from torch.nn import functional as F
 from torch.nn.modules.loss import _WeightedLoss
 
+from optimization.loss_functions.util.kl_annealing import KLAnnealing
+
 
 class BCEVAELoss(_WeightedLoss):
     """Binary Cross Entropy + KL Divergence loss for VAE with beta-VAE and KL annealing."""
@@ -38,103 +40,95 @@ class BCEVAELoss(_WeightedLoss):
             kl_anneal_end (int):
                 Epoch to complete beta annealing.
             covariate_embedding_technique (str):
-                "no_embedding", "input_embedding", "input_feature", "encoder_embedding".
+               <>
             cov_dim (int):
                 # of covariate features if you reconstruct them.
         """
         super().__init__(weight, size_average, reduce, reduction)
 
-        self.beta_start = beta_start
-        self.beta_end = beta_end
-        self.kl_anneal_start = kl_anneal_start
-        self.kl_anneal_end = kl_anneal_end
+        self.kl_annealer = KLAnnealing(
+            beta_start=beta_start,
+            beta_end=beta_end,
+            kl_anneal_start=kl_anneal_start,
+            kl_anneal_end=kl_anneal_end,
+        )
         self.covariate_embedding_technique = covariate_embedding_technique
         self.cov_dim = cov_dim
 
-    def _compute_beta(self, current_epoch: int) -> float:
-        """Linearly anneal beta from beta_start to beta_end over [kl_anneal_start, kl_anneal_end]."""
-        if self.kl_anneal_end <= self.kl_anneal_start:
-            return self.beta_end
-        if current_epoch < self.kl_anneal_start:
-            return self.beta_start
-        if current_epoch >= self.kl_anneal_end:
-            return self.beta_end
-
-        progress = (current_epoch - self.kl_anneal_start) / float(
-            self.kl_anneal_end - self.kl_anneal_start
-        )
-        return self.beta_start + progress * (self.beta_end - self.beta_start)
-
     def forward(
         self,
-        recon_x: Tensor,
+        model_outputs: dict[str, Tensor],
         x: Tensor,
-        z_mean: Tensor,
-        z_logvar: Tensor,
-        current_epoch: int | None = None,
         covariates: Tensor | None = None,
+        current_epoch: int | None = None,
     ) -> Tensor:
         """
-        :param recon_x: Reconstructed input.
+        Compute the VAE-style loss (e.g., reconstruction + KL) given the model outputs and input data.
 
-        :param x: Original data [_, data_dim].
-        :param z_mean: [_, latent_dim], for the KL part.
-        :param z_logvar: [_, latent_dim], for the KL part.
-        :param current_epoch: epoch for beta annealing. If None, use self.beta_end directly.
-        :param covariates: [_, cov_dim], if used in reconstruction.
+        This method expects a dictionary of model outputs, which may contain entries such as:
+        - "x_recon": The reconstructed input (torch.Tensor).
+        - "z_mean" and "z_logvar": The posterior mean/log-variance for the latent variable.
+        - "z": A sampled latent vector.
+        - "prior_mu" and "prior_logvar": (Optional) Mean and log-variance of a learned conditional prior,
+                                         if the model implements age- or covariate-based priors.
+
+        Args:
+            model_outputs (dict[str, torch.Tensor]): Dictionary from the model's forward pass,
+                containing any relevant intermediate or final tensors needed for the loss.
+            x (torch.Tensor): The original input data (e.g., features or images) for calculating
+                reconstruction error.
+            covariates (torch.Tensor | None, optional): Additional covariate data (such as age or sex),
+                which may be used by some model variants. Defaults to None if not required.
+            current_epoch (int | None, optional): Current training epoch for scheduling or annealing
+                purposes (e.g., gradually increasing KL weight). Defaults to None if not used.
+
+        Returns:
+            torch.Tensor: A scalar loss value that typically combines a reconstruction term
+            (e.g., MSE or BCE) and one or more KL terms (standard or conditional prior).
         """
-        # 1) Beta for KL
-        if current_epoch is not None:
-            beta = self._compute_beta(current_epoch)
-        else:
-            beta = self.beta_end
+        recon_x = model_outputs["x_recon"]
+        z_mean = model_outputs.get("z_mean", None)
+        z_logvar = model_outputs.get("z_logvar", None)
 
-        # 2) BCE reconstruction
+        if current_epoch is not None:
+            beta = self.kl_annealer.compute_beta(current_epoch)
+        else:
+            beta = self.kl_annealer.beta_end
+
         _, data_dim = x.shape
 
         if self.covariate_embedding_technique == "no_embedding":
-            # 2a) Just data => recon_x is shape [B, data_dim]
-            BCE_data = F.binary_cross_entropy(recon_x, x, reduction=self.reduction)
-            BCE_cov = 0.0
+            recon_loss = F.binary_cross_entropy(recon_x, x, reduction=self.reduction)
+            cov_loss = 0.0
 
-        elif self.covariate_embedding_technique in {"input_embedding", "input_feature"}:
-            # 2b) recon_x is [B, data_dim + cov_dim]. We must split
-            if covariates is None:
-                raise ValueError(
-                    f"covariates must be provided for '{self.covariate_embedding_technique}'"
-                )
+        elif self.covariate_embedding_technique == "input_feature":
             recon_data = recon_x[:, :data_dim]
             recon_cov = recon_x[:, data_dim : data_dim + self.cov_dim]
 
-            # BCE for data
-            BCE_data = F.binary_cross_entropy(recon_data, x, reduction=self.reduction)
-            # BCE for cov
-            BCE_cov = F.binary_cross_entropy(
+            recon_loss = F.binary_cross_entropy(recon_data, x, reduction=self.reduction)
+            cov_loss = F.binary_cross_entropy(
                 recon_cov, covariates, reduction=self.reduction
             )
 
         elif self.covariate_embedding_technique == "encoder_embedding":
-            # 2c) Typically recon_x is only data. So do BCE with x
-            BCE_data = F.binary_cross_entropy(recon_x, x, reduction=self.reduction)
-            BCE_cov = 0.0
+            recon_loss = F.binary_cross_entropy(recon_x, x, reduction=self.reduction)
+            cov_loss = 0.0
 
         else:
             raise ValueError(
                 f"Unknown covariate_embedding_technique: {self.covariate_embedding_technique}"
             )
 
-        bce_loss = BCE_data + BCE_cov
+        bce_loss = recon_loss + cov_loss
 
-        # 3) KL Divergence
         if self.reduction == "mean":
-            # sum across latent dims, then mean over batch
-            KLD_per_sample = -0.5 * torch.sum(
+            kld_per_sample = -0.5 * torch.sum(
                 1 + z_logvar - z_mean.pow(2) - z_logvar.exp(), dim=1
             )
-            KLD = KLD_per_sample.mean()
+            kld = kld_per_sample.mean()
         else:
-            KLD = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
+            kld = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
 
-        # 4) Weighted final loss
-        loss = bce_loss + beta * KLD
+        loss = bce_loss + beta * kld
+
         return loss

@@ -1,4 +1,4 @@
-"""Custom loss function for VAE model with beta-VAE and KL annealing."""
+"""Custom loss function."""
 
 from typing import Any
 
@@ -10,8 +10,8 @@ from torch.nn.modules.loss import _WeightedLoss
 from optimization.loss_functions.util.kl_annealing import KLAnnealing
 
 
-class MSEVAELoss(_WeightedLoss):
-    """Mean Squared Error + KL Divergence loss for VAE with beta-VAE and KL annealing options."""
+class AgePriorKL(_WeightedLoss):
+    """Custom loss function."""
 
     def __init__(
         self,
@@ -27,15 +27,15 @@ class MSEVAELoss(_WeightedLoss):
         covariate_embedding_technique: str = "no_embedding",
         cov_dim: int = 0,
     ) -> None:
-        """Initialize the MSEVAELoss class with beta-VAE, KL annealing, and covariate logic.
-
+        """
         Args:
+
             weight, size_average, reduce, reduction: inherited from PyTorch _WeightedLoss.
             beta_start (float): initial KL weight.
             beta_end (float): final KL weight.
             kl_anneal_start (int): epoch to begin annealing.
             kl_anneal_end (int): epoch to finish annealing.
-            covariate_embedding_technique (str): <>
+            covariate_embedding_technique (str): the technique used for embedding covariates.
             cov_dim (int): number of covariate features if we reconstruct them.
         """
         super().__init__(weight, size_average, reduce, reduction)
@@ -83,51 +83,39 @@ class MSEVAELoss(_WeightedLoss):
         recon_x = model_outputs["x_recon"]
         z_mean = model_outputs.get("z_mean", None)
         z_logvar = model_outputs.get("z_logvar", None)
+        prior_mu = model_outputs.get("prior_mu", None)
+        prior_logvar = model_outputs.get("prior_logvar", None)
 
         if current_epoch is not None:
             beta = self.kl_annealer.compute_beta(current_epoch)
         else:
             beta = self.kl_annealer.beta_end
 
-        _, data_dim = x.shape
-
-        if self.covariate_embedding_technique in {
-            "no_embedding",
-            "encoder_embedding",
-            "decoder_embedding",
-        }:
-            mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
-            mse_cov = 0.0
-
-        elif self.covariate_embedding_technique == "input_feature":
-            x = torch.cat([x, covariates], dim=1)
-            mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
-            mse_cov = 0.0
-
-        elif self.covariate_embedding_technique == "conditional_embedding":
-            if covariates is None:
-                raise ValueError(
-                    f"covariates must be provided for '{self.covariate_embedding_technique}' mode."
-                )
-            recon_data = recon_x[:, :data_dim]
-            recon_cov = recon_x[:, data_dim : data_dim + self.cov_dim]
-            mse_data = F.mse_loss(recon_data, x, reduction=self.reduction)
-            mse_cov = F.mse_loss(recon_cov, covariates, reduction=self.reduction)
-
-        else:
-            raise ValueError(
-                f"Unknown covariate_embedding_technique: {self.covariate_embedding_technique}"
-            )
-
-        recon_loss = mse_data + mse_cov
+        # x = torch.cat([x, covariates], dim=1)
+        recon_loss = F.mse_loss(recon_x, x, reduction=self.reduction)
 
         if self.reduction == "mean":
-            kld_per_sample = -0.5 * torch.sum(
-                1 + z_logvar - z_mean.pow(2) - z_logvar.exp(), dim=1
+            kl_per_sample = 0.5 * torch.sum(
+                prior_logvar
+                - z_logvar
+                + (torch.exp(z_logvar) + (z_mean - prior_mu) ** 2)
+                / torch.exp(prior_logvar)
+                - 1,
+                dim=1,
             )
-            kld = kld_per_sample.mean()
-        else:
-            kld = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
+            kl_div = kl_per_sample.mean()
 
-        loss = recon_loss + beta * kld
-        return loss
+        elif self.reduction == "sum":
+            kl_div = 0.5 * torch.sum(
+                prior_logvar
+                - z_logvar
+                + (torch.exp(z_logvar) + (z_mean - prior_mu) ** 2)
+                / torch.exp(prior_logvar)
+                - 1
+            )
+        else:
+            raise ValueError("Reduction must be 'mean' or 'sum'")
+
+        total_loss = recon_loss + beta * kl_div
+
+        return total_loss

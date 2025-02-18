@@ -395,7 +395,7 @@ model:
       encoder: mlp
       decoder: mlp
       latent_dim: 32
-      covariate_embedding: input_embedding
+      covariate_embedding: no_embedding
   hidden_layers:
   - 1024
   - 512

@@ -369,15 +369,13 @@ class TrainTask(AbstractTask):
         with autocast(
             enabled=self.properties.train.mixed_precision, device_type=self.device
         ):
-            recon_batch, z_mean, z_logvar = self.model(data, covariates)  # Forward pass
+            model_outputs = self.model(data, covariates)
             loss = self.loss(
-                recon_batch,
-                data,
-                z_mean,
-                z_logvar,
+                model_outputs=model_outputs,
+                x=data,
                 current_epoch=self.epoch,
                 covariates=covariates,
-            )  # Compute loss
+            )
 
         # Store original loss value before further processing
         loss_value = loss.item()
@@ -470,9 +468,12 @@ class TrainTask(AbstractTask):
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
                 ):
-                    recon_batch, z_mean, z_logvar = self.model(data, covariates)
+                    model_outputs = self.model(data, covariates)
                     loss = self.loss(
-                        recon_batch, data, z_mean, z_logvar, covariates=covariates
+                        model_outputs=model_outputs,
+                        x=data,
+                        current_epoch=self.epoch,
+                        covariates=covariates,
                     )
 
                 total_val_loss += loss.item()

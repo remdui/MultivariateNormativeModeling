@@ -21,7 +21,7 @@ class MLPDecoder(BaseDecoder):
             prev_dim = h_dim
         self.model = nn.Sequential(*layers)
         self.final_layer = nn.Linear(prev_dim, output_dim)
-        self.output_activation = self.final_activation_function
+        # self.output_activation = self.final_activation_function
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.model(x)

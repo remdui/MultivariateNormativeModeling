@@ -198,7 +198,7 @@ class ModelConfig(BaseModel):
                 "encoder": "mlp",
                 "decoder": "mlp",
                 "latent_dim": 32,
-                "covariate_embedding": "input_embedding",
+                "covariate_embedding": "no_embedding",
             },
             # "cnn_vae": {
             #     "encoder": "cnn",

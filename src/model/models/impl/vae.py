@@ -6,6 +6,7 @@ from torch import Tensor
 from entities.log_manager import LogManager
 from model.components.factory import get_decoder, get_encoder
 from model.models.abstract_model import AbstractModel
+from model.models.util.priors import CovariatePriorNet
 
 
 def reparameterize(z_mean: Tensor, z_logvar: Tensor) -> Tensor:
@@ -46,6 +47,7 @@ class VAE(AbstractModel):
             "input_feature",
             "conditional_embedding",
             "encoder_embedding",
+            # "age_prior_embedding"
         }:
             self.encoder_input_dim = self.input_dim + self.cov_dim
             self.encoder_output_dim = latent_dim
@@ -57,6 +59,7 @@ class VAE(AbstractModel):
         if self.covariate_embedding_technique in {
             "input_feature",
             "conditional_embedding",
+            # "age_prior_embedding"
         }:
             self.decoder_input_dim = latent_dim
             self.decoder_output_dim = self.output_dim + self.cov_dim
@@ -66,6 +69,9 @@ class VAE(AbstractModel):
         else:
             self.decoder_input_dim = latent_dim
             self.decoder_output_dim = self.output_dim
+
+        # 1) Age‐conditional prior
+        self.age_prior_net = CovariatePriorNet(latent_dim, [32, 16], num_covariates=1)
 
         # Create encoder
         self.encoder = get_encoder(
@@ -83,54 +89,95 @@ class VAE(AbstractModel):
             output_dim=self.decoder_output_dim,
         )
 
-    def forward(
-        self, x: Tensor, covariates: Tensor | None = None
-    ) -> tuple[Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor, covariates: Tensor | None = None) -> dict[str, Tensor]:
         """
-        Forward pass of the VAE model.
+        Forward pass of the VAE model, returning a dictionary of outputs.
 
-        :param x: Input data (shape: [B, data_dim])
-        :param covariates: Covariates (shape: [B, cov_dim]) or None
+        Args:
+            x (Tensor): Input data of shape [B, data_dim].
+            covariates (Tensor | None): Covariates of shape [B, cov_dim], or None.
+
+        Returns:
+            dict[str, Tensor]: A dictionary with keys:
+                - "x_recon": Reconstructed output (always present).
+                - "z_mean", "z_logvar": Posterior mean/logvar of shape [B, latent_dim].
+                - "z": Reparameterized sample from q(z|x, ...).
+                - "prior_mu", "prior_logvar": (Optional) If using age_prior_embedding.
+                  The learned conditional prior parameters of shape [B, latent_dim].
         """
+        outputs = {}
 
-        if self.covariate_embedding_technique == "no_embedding":
+        if self.covariate_embedding_technique == "age_prior_embedding":
+            # x_cat = torch.cat([x, covariates], dim=1)
             z_mean, z_logvar = self.encoder(x)
             z = reparameterize(z_mean, z_logvar)
-            x_recon = self.decoder(z)  # shape [B, output_dim]
-            return x_recon, z_mean, z_logvar
-
-        if self.covariate_embedding_technique == "input_feature":
-            # Concat inputs before the encoder
-            encoder_input = torch.cat([x, covariates], dim=1)
-            z_mean, z_logvar = self.encoder(encoder_input)
-            z = reparameterize(z_mean, z_logvar)
             x_recon = self.decoder(z)
-            return x_recon, z_mean, z_logvar
+            prior_mu, prior_logvar = self.age_prior_net(covariates)
 
-        if self.covariate_embedding_technique == "conditional_embedding":
-            # Concat inputs before the encoder
-            encoder_input = torch.cat([x, covariates], dim=1)
-            z_mean, z_logvar = self.encoder(encoder_input)
-            z = reparameterize(z_mean, z_logvar)
-            x_recon = self.decoder(z)
-            return x_recon, z_mean, z_logvar
+            outputs["x_recon"] = x_recon
+            outputs["z_mean"] = z_mean
+            outputs["z_logvar"] = z_logvar
+            outputs["z"] = z
+            outputs["prior_mu"] = prior_mu
+            outputs["prior_logvar"] = prior_logvar
 
-        if self.covariate_embedding_technique == "encoder_embedding":
-            # Concat inputs before the encoder
-            encoder_input = torch.cat([x, covariates], dim=1)
-            z_mean, z_logvar = self.encoder(encoder_input)
-            z = reparameterize(z_mean, z_logvar)
-            x_recon = self.decoder(z)
-            return x_recon, z_mean, z_logvar
-
-        if self.covariate_embedding_technique == "decoder_embedding":
+        elif self.covariate_embedding_technique == "no_embedding":
             z_mean, z_logvar = self.encoder(x)
             z = reparameterize(z_mean, z_logvar)
-            # Decoder sees z + covariates
+            x_recon = self.decoder(z)
+
+            outputs["x_recon"] = x_recon
+            outputs["z_mean"] = z_mean
+            outputs["z_logvar"] = z_logvar
+            outputs["z"] = z
+
+        elif self.covariate_embedding_technique == "input_feature":
+            encoder_input = torch.cat([x, covariates], dim=1)
+            z_mean, z_logvar = self.encoder(encoder_input)
+            z = reparameterize(z_mean, z_logvar)
+            x_recon = self.decoder(z)
+
+            outputs["x_recon"] = x_recon
+            outputs["z_mean"] = z_mean
+            outputs["z_logvar"] = z_logvar
+            outputs["z"] = z
+
+        elif self.covariate_embedding_technique == "conditional_embedding":
+            encoder_input = torch.cat([x, covariates], dim=1)
+            z_mean, z_logvar = self.encoder(encoder_input)
+            z = reparameterize(z_mean, z_logvar)
+            x_recon = self.decoder(z)
+
+            outputs["x_recon"] = x_recon
+            outputs["z_mean"] = z_mean
+            outputs["z_logvar"] = z_logvar
+            outputs["z"] = z
+
+        elif self.covariate_embedding_technique == "encoder_embedding":
+            encoder_input = torch.cat([x, covariates], dim=1)
+            z_mean, z_logvar = self.encoder(encoder_input)
+            z = reparameterize(z_mean, z_logvar)
+            x_recon = self.decoder(z)
+
+            outputs["x_recon"] = x_recon
+            outputs["z_mean"] = z_mean
+            outputs["z_logvar"] = z_logvar
+            outputs["z"] = z
+
+        elif self.covariate_embedding_technique == "decoder_embedding":
+            z_mean, z_logvar = self.encoder(x)
+            z = reparameterize(z_mean, z_logvar)
             decoder_input = torch.cat([z, covariates], dim=1)
             x_recon = self.decoder(decoder_input)
-            return x_recon, z_mean, z_logvar
 
-        raise ValueError(
-            f"Unknown covariate_embedding technique: {self.covariate_embedding_technique}"
-        )
+            outputs["x_recon"] = x_recon
+            outputs["z_mean"] = z_mean
+            outputs["z_logvar"] = z_logvar
+            outputs["z"] = z
+
+        else:
+            raise ValueError(
+                f"Unknown covariate_embedding technique: {self.covariate_embedding_technique}"
+            )
+
+        return outputs

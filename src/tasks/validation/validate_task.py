@@ -84,7 +84,9 @@ class ValidateTask(AbstractTask):
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
                 ):
-                    _, z_mean, z_logvar = self.model(data, covariates)
+                    model_outputs = self.model(data, covariates)
+                    z_mean = model_outputs.get("z_mean", None)
+                    z_logvar = model_outputs.get("z_logvar", None)
 
                 # Move data to CPU for concatenation
                 latent_mean_list.append(z_mean.cpu().numpy())
@@ -104,6 +106,7 @@ class ValidateTask(AbstractTask):
         self.logger.info("Saving latent and reconstruction data per sample.")
 
         original_data_list = []
+        original_covariates_list = []
         reconstruction_data_list = []
         latent_mean_list = []
         latent_logvar_list = []
@@ -120,16 +123,21 @@ class ValidateTask(AbstractTask):
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
                 ):
-                    recon_batch, z_mean, z_logvar = self.model(data, covariates)
+                    model_outputs = self.model(data, covariates)
+                    recon_batch = model_outputs["x_recon"]
+                    z_mean = model_outputs.get("z_mean", None)
+                    z_logvar = model_outputs.get("z_logvar", None)
 
                 # Move data to CPU for concatenation
                 original_data_list.append(data.cpu().numpy())
+                original_covariates_list.append(covariates.cpu().numpy())
                 reconstruction_data_list.append(recon_batch.cpu().numpy())
                 latent_mean_list.append(z_mean.cpu().numpy())
                 latent_logvar_list.append(z_logvar.cpu().numpy())
 
         # Concatenate all batches into final arrays
         original_data = np.concatenate(original_data_list, axis=0)
+        original_covariates = np.concatenate(original_covariates_list, axis=0)
         reconstruction_data = np.concatenate(reconstruction_data_list, axis=0)
         z_mean_data = np.concatenate(latent_mean_list, axis=0)
         z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
@@ -156,30 +164,46 @@ class ValidateTask(AbstractTask):
 
         # Original columns
         original_col_names = [f"orig_{col}" for col in feature_names]
+        original_covariate_names = [f"orig_{col}" for col in covariate_names]
 
         # Reconstruction columns
         recon_col_names = [f"recon_{col}" for col in feature_names]
+        recon_covariate_names = [f"recon_{col}" for col in covariate_names]
 
         # Latent columns
         z_mean_col_names = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
         z_logvar_col_names = [f"z_logvar_{i}" for i in range(z_mean_data.shape[1])]
 
-        # Combine all into a single np.array
-        combined_data = np.concatenate(
-            [original_data, reconstruction_data, z_mean_data, z_logvar_data], axis=1
-        )
-
-        if self.covariate_embedding_technique == "no_embedding":
+        if self.covariate_embedding_technique in {
+            "input_feature",
+            "conditional_embedding",
+        }:
+            # Combine all into a single np.array
+            combined_data = np.concatenate(
+                [
+                    original_data,
+                    original_covariates,
+                    reconstruction_data,
+                    z_mean_data,
+                    z_logvar_data,
+                ],
+                axis=1,
+            )
             all_columns = (
                 original_col_names
+                + original_covariate_names
                 + recon_col_names
+                + recon_covariate_names
                 + z_mean_col_names
                 + z_logvar_col_names
             )
         else:
+            # Combine all into a single np.array
+            combined_data = np.concatenate(
+                [original_data, reconstruction_data, z_mean_data, z_logvar_data], axis=1
+            )
             all_columns = (
                 original_col_names
-                + covariate_names
                 + recon_col_names
                 + z_mean_col_names
                 + z_logvar_col_names

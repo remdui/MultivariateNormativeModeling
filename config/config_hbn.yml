@@ -90,7 +90,7 @@ train:
   cross_validation: false
   cross_validation_folds: 10
   cross_validation_method: kfold
-  epochs: 200
+  epochs: 500
   mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
@@ -107,8 +107,8 @@ train:
     enabled: true
     metric: loss
     min_delta: 0.001
-    patience: 50
-  loss_function: mse_vae
+    patience: 100
+  loss_function: age_prior_kl
   loss_function_params:
     bce_vae:
       reduction: sum
@@ -121,7 +121,13 @@ train:
       beta_start: 0.0
       beta_end: 0.5
       kl_anneal_start: 5
-      kl_anneal_end: 50
+      kl_anneal_end: 100
+    age_prior_kl:
+      reduction: sum
+      beta_start: 0.0
+      beta_end: 1.0
+      kl_anneal_start: 5
+      kl_anneal_end: 100
     l1:
       reduction: sum
     mse:
@@ -374,8 +380,8 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 2
-      covariate_embedding: input_feature
+      latent_dim: 5
+      covariate_embedding: age_prior_embedding
   hidden_layers:
   - 128
   - 64

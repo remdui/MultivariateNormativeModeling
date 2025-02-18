@@ -6,10 +6,12 @@ from model.components.decoder.base_decoder import BaseDecoder
 from model.components.decoder.impl.mlp_decoder import MLPDecoder
 from model.components.encoder.base_encoder import BaseEncoder
 from model.components.encoder.impl.mlp_encoder import MLPEncoder
+from model.components.encoder.impl.mlp_encoder_ba import MLPEncoderBA
 
 # Mapping for available encoders
 ENCODER_MAPPING: dict[str, type[BaseEncoder]] = {
     "mlp": MLPEncoder,
+    "mlp_ba": MLPEncoderBA,
 }
 
 # Mapping for available decoders

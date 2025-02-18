@@ -27,6 +27,7 @@ from torch.nn import (
     TripletMarginWithDistanceLoss,
 )
 
+from optimization.loss_functions.impl.AgePriorKL import AgePriorKL
 from optimization.loss_functions.impl.BCEVAELoss import BCEVAELoss
 from optimization.loss_functions.impl.MSEVAELoss import MSEVAELoss
 
@@ -35,6 +36,7 @@ LOSS_FUNCTION_MAPPING: dict[str, Any] = {
     # Custom loss function implementations
     "bce_vae": BCEVAELoss,
     "mse_vae": MSEVAELoss,
+    "age_prior_kl": AgePriorKL,
     # PyTorch loss functions
     "l1": L1Loss,
     "nll": NLLLoss,
