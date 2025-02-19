@@ -1,4 +1,4 @@
-"""Command line utility functions."""
+"""Command line utility functions for the VAE pipeline."""
 
 import argparse
 
@@ -6,11 +6,34 @@ from entities.log_manager import LogManager
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command line arguments."""
+    """
+    Parse command line arguments for the VAE pipeline.
 
+    This function sets up an argument parser, defines required and optional
+    arguments, and returns the parsed arguments as an argparse.Namespace object.
+
+    Returns:
+        argparse.Namespace: An object containing the parsed command line arguments.
+
+    Command line arguments:
+        --mode: Action to perform; choices are "train", "validate", "inference", or "tune".
+        --config: Path to the configuration file.
+        --device: Device to use (e.g., "cpu" or "cuda").
+        --num_workers: Number of workers for data loading.
+        --checkpoint: Path to the model checkpoint (for inference or resuming training).
+        --checkpoint_interval: Interval for saving checkpoints.
+        --log_dir: Directory to save logs and outputs.
+        --output_dir: Directory to store inference results.
+        --models_dir: Directory to save models.
+        --data_dir: Directory to store data.
+        --seed: Random seed.
+        --log_level: Logging level; choices are "DEBUG", "INFO", "WARNING", "ERROR", or "CRITICAL".
+        --verbose: Enable verbose output.
+        --debug: Enable debug mode.
+        --skip-preprocessing: If set, skip the preprocessing stage.
+    """
     logger = LogManager.get_logger(__name__)
 
-    # Define the argument parser
     parser = argparse.ArgumentParser(description="Run VAE Pipeline")
 
     # Required parameters
@@ -61,11 +84,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     parser.add_argument(
-        "--skip-preprocessing", action="store_true", help="Run preprocessing pipeline"
+        "--skip-preprocessing",
+        action="store_true",
+        help="Skip the preprocessing stage",
     )
-    # Parse arguments using argparse
-    args = parser.parse_args()
 
+    args = parser.parse_args()
     logger.info("Command line arguments parsed successfully.")
 
     return args

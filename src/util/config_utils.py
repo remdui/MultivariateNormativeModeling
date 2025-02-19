@@ -16,27 +16,49 @@ from config.config_schema import (
 )
 from entities.log_manager import LogManager
 
+# Constants for configuration directory and default file path.
+CONFIG_DIR = os.path.join(".", "config")
+CONFIG_DEFAULT_FILE = os.path.join(CONFIG_DIR, "config_default.yml")
+
 
 def extract_config(section_class: type) -> dict:
-    """Extract configuration for a given section."""
+    """
+    Extract configuration from a given schema section.
+
+    This function instantiates the provided configuration schema class
+    and returns its dictionary representation using the `model_dump()` method.
+
+    Args:
+        section_class (Type): A configuration schema class with a `model_dump()` method.
+
+    Returns:
+        dict: The configuration data as a dictionary.
+    """
     instance = section_class()
     return instance.model_dump()
 
 
 def create_default_config() -> None:
-    """Create a default configuration file based on the schema."""
+    """
+    Generate a default configuration YAML file based on the defined schema.
 
+    Aggregates configuration from various schema sections (system, general,
+    meta, dataset, data_analysis, train, model, and validation) and writes the
+    combined configuration to a default YAML file located at:
+        './config/config_default.yml'
+
+    The configuration directory is created if it does not already exist.
+
+    Raises:
+        OSError: If there is an issue creating the directory or writing the file.
+    """
     logger = LogManager.get_logger(__name__)
 
-    # If config directory does not exist, create it
-    if not os.path.exists("./config"):
-        os.makedirs("./config")
-        logger.info("Created config directory")
+    # Ensure the configuration directory exists.
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    logger.info("Ensured config directory exists")
 
-    # Define the default configuration file path
-    file_path = "./config/config_default.yml"
-
-    # Extract configuration for each section from the schema
+    # Aggregate configuration sections.
     default_config = {
         "system": extract_config(SystemConfig),
         "general": extract_config(GeneralConfig),
@@ -48,6 +70,10 @@ def create_default_config() -> None:
         "validation": extract_config(ValidationConfig),
     }
 
-    with open(file_path, "w", encoding="utf-8") as file:
-        yaml.dump(default_config, file, sort_keys=False)
-        logger.info(f"Generated default configuration file from schema: {file_path}")
+    # Write the default configuration to a YAML file using safe_dump.
+    with open(CONFIG_DEFAULT_FILE, "w", encoding="utf-8") as file:
+        yaml.safe_dump(default_config, file, sort_keys=False)
+
+    logger.info(
+        f"Generated default configuration file from schema: {CONFIG_DEFAULT_FILE}"
+    )

@@ -17,54 +17,70 @@ from util.system_utils import gpu_supported_by_triton_compiler
 
 
 class AbstractTask(ABC):
-    """Abstract Task class for all tasks."""
+    """
+    Abstract Task class for all tasks.
+
+    This class provides a template for tasks within the VAE pipeline by setting up
+    common components such as data loaders, model initialization, and loss function
+    configuration. Subclasses must implement the `run()` method to define task-specific
+    behavior.
+    """
 
     def __init__(self, logger: Logger = LogManager.get_logger(__name__)) -> None:
-        """Initialize the Task class."""
-        # Define task attributes
+        """
+        Initialize the AbstractTask.
+
+        Sets up the task by initializing data loaders, input/output dimensions,
+        model, and loss function.
+        """
         self.logger = logger
         self.properties = Properties.get_instance()
         self.device = self.properties.system.device
-        self.model: AbstractModel
+        self.model: AbstractModel  # To be defined in __build_model
         self.experiment_manager = ExperimentManager.get_instance()
 
-        # Set up the task
         self.__setup_task()
 
     @abstractmethod
     def run(self) -> TaskResult:
-        """Run the task."""
-        raise NotImplementedError("Method run() must be implemented in subclass.")
+        """
+        Execute the task.
+
+        Subclasses must implement this method to define the main logic of the task.
+
+        Returns:
+            TaskResult: The result of executing the task.
+        """
 
     def get_task_name(self) -> str:
-        """Return the task name."""
+        """
+        Get the name of the task.
+
+        Returns:
+            str: The task name.
+        """
         return self.task_name
 
     def __setup_task(self) -> None:
-        """Setup the components of a general task."""
-        # Task name
+        """Set up all components of the task."""
+        # Default task name (should be overridden in subclasses)
         self.task_name = "unset"
 
-        # Model save info
+        # Model saving information
         self.model_save_dir = self.properties.system.models_dir
         self.model_name = f"{self.properties.meta.name}_v{self.properties.meta.version}"
 
-        # Initialize data loader
+        # Initialize data loader and dimensions
         self.__initialize_dataloader()
-
-        # Setup input and output dimensions
         self.__initialize_dimensions()
 
-        # Build model
+        # Build model and set up loss function
         self.__build_model()
-
-        # Setup loss function
         self.__setup_loss_function()
 
     def __initialize_dataloader(self) -> None:
-        """Initialize the data loader."""
+        """Initialize the data loader and assign train, test, and (if applicable) validation loaders."""
         self.dataloader = get_dataloader(self.properties.dataset.data_type)
-
         self.train_dataloader = self.dataloader.train_dataloader()
         self.test_dataloader = self.dataloader.test_dataloader()
 
@@ -74,14 +90,18 @@ class AbstractTask(ABC):
         self.logger.info(f"Initialized Dataloader: {self.dataloader}")
 
     def __initialize_dimensions(self) -> None:
-        """Initialize the input and output dimensions."""
+        """
+        Initialize input and output dimensions based on the training dataset.
+
+        Assumes the first sample's data tensor defines the input dimension.
+        """
         self.input_dim = self.train_dataloader.dataset[0][0].shape[0]
         self.output_dim = self.input_dim
         self.batch_size = self.properties.train.batch_size
 
     def __build_model(self) -> None:
-        """Build the model based on the configuration."""
-        # Get the model based on the configuration
+        """Build and initialize the model based on the configuration."""
+        # Get the model using the factory
         model = get_model(
             self.properties.model.architecture, self.input_dim, self.output_dim
         )
@@ -95,56 +115,62 @@ class AbstractTask(ABC):
         else:
             self.model = model
 
-        # print model architecture and parameters
-        self.logger.info(
-            f"Activation function: {self.properties.model.activation_function} with parameters {self.properties.model.activation_function_params.get(self.model.properties.model.activation_function, {})}"
+        # Extract and log model configuration details
+        activation = self.properties.model.activation_function
+        activation_params = self.properties.model.activation_function_params.get(
+            activation, {}
         )
-        self.logger.info(
-            f"Final Activation function: {self.properties.model.final_activation_function} with parameters {self.properties.model.activation_function_params.get(self.model.properties.model.final_activation_function, {})}"
+        final_activation = self.properties.model.final_activation_function
+        final_activation_params = self.properties.model.activation_function_params.get(
+            final_activation, {}
         )
-        self.logger.info(
-            f"Normalization layer: {self.properties.model.normalization_layer} with parameters {self.properties.model.normalization_layer_params.get(self.model.properties.model.normalization_layer, {})}"
-        )
-        self.logger.info(f"Initialized model: {self.model}")
-        self.logger.info(
-            f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}"
+        normalization = self.properties.model.normalization_layer
+        normalization_params = self.properties.model.normalization_layer_params.get(
+            normalization, {}
         )
 
+        self.logger.info(
+            f"Activation function: {activation} with parameters {activation_params}"
+        )
+        self.logger.info(
+            f"Final Activation function: {final_activation} with parameters {final_activation_params}"
+        )
+        self.logger.info(
+            f"Normalization layer: {normalization} with parameters {normalization_params}"
+        )
+        self.logger.info(f"Initialized model: {self.model}")
+        trainable_params = sum(
+            p.numel() for p in self.model.parameters() if p.requires_grad
+        )
+        self.logger.info(f"Model Parameters: {trainable_params}")
+
     def __setup_loss_function(self) -> None:
-        """Get the loss function based on the configuration."""
+        """Configure the loss function based on the training configuration."""
         loss_function_name = self.properties.train.loss_function
         loss_function_params = self.properties.train.loss_function_params.get(
             loss_function_name, {}
         )
 
         self.logger.info(f"Base loss params from config: {loss_function_params}")
-
-        model_components = self.properties.model.components.get(
-            self.properties.model.architecture, {}
-        )
-        self.covariate_embedding_technique = model_components.get(
-            "covariate_embedding", "no_embedding"
-        )
-        covariate_dim = len(self.properties.dataset.covariates) - len(
-            self.properties.dataset.skipped_covariates
-        )
-
-        loss_function_params["covariate_embedding_technique"] = (
-            self.covariate_embedding_technique
-        )
-        loss_function_params["cov_dim"] = covariate_dim
-
-        # 3) Instantiate the loss function
         self.loss = get_loss_function(loss_function_name, **loss_function_params)
-
         self.logger.info(
             f"Initialized loss function {self.loss} with parameters: {loss_function_params}"
         )
 
     def get_model(self) -> AbstractModel:
-        """Return the trained model."""
+        """
+        Retrieve the initialized model.
+
+        Returns:
+            AbstractModel: The model used for the task.
+        """
         return self.model
 
     def get_input_size(self) -> int:
-        """Return the input size of the model."""
+        """
+        Get the input dimension size of the model.
+
+        Returns:
+            int: The size of the input dimension.
+        """
         return self.input_dim

@@ -31,8 +31,11 @@ from optimization.loss_functions.impl.AgePriorKL import AgePriorKL
 from optimization.loss_functions.impl.BCEVAELoss import BCEVAELoss
 from optimization.loss_functions.impl.MSEVAELoss import MSEVAELoss
 
-# Mapping for available loss functions
-LOSS_FUNCTION_MAPPING: dict[str, Any] = {
+# Type alias for loss function classes (subclasses of torch.nn.Module)
+LossFunctionClass = type[Module]
+
+# Mapping for available loss functions (private)
+_LOSS_FUNCTION_MAPPING: dict[str, LossFunctionClass] = {
     # Custom loss function implementations
     "bce_vae": BCEVAELoss,
     "mse_vae": MSEVAELoss,
@@ -63,20 +66,22 @@ LOSS_FUNCTION_MAPPING: dict[str, Any] = {
 
 
 def get_loss_function(loss_type: str, *args: Any, **kwargs: Any) -> Module:
-    """Factory method to get the loss function based on config.
+    """
+    Factory method to create a loss function instance based on configuration.
 
     Args:
-        loss_type (str): The type of loss function (e.g., 'bce_kld', 'mse_kld').
-        *args: Positional arguments for the loss function.
-        **kwargs: Additional keyword arguments for loss function initialization.
+        loss_type (str): The type of loss function (e.g., 'bce_vae', 'mse', 'ctc').
+                         The lookup is case-insensitive.
+        *args: Additional positional arguments for the loss function's constructor.
+        **kwargs: Additional keyword arguments for the loss function's constructor.
 
     Returns:
-        Module: The loss function instance.
+        Module: An instance of the specified loss function.
 
     Raises:
         ValueError: If the loss function type is not supported.
     """
-    loss_function_class = LOSS_FUNCTION_MAPPING.get(loss_type.lower())
-    if not loss_function_class:
+    loss_function_class = _LOSS_FUNCTION_MAPPING.get(loss_type.lower())
+    if loss_function_class is None:
         raise ValueError(f"Unknown loss function type: {loss_type}")
     return loss_function_class(*args, **kwargs)

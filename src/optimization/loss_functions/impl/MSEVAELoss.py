@@ -1,4 +1,9 @@
-"""Custom loss function for VAE model with beta-VAE and KL annealing."""
+"""Custom loss function for VAE with beta-VAE and KL annealing (MSE variant).
+
+This module defines the MSEVAELoss class, which computes the loss for a variational autoencoder (VAE)
+by combining a Mean Squared Error (MSE) reconstruction term with a KL divergence term. The KL weight is
+annealed over training epochs using a KLAnnealing schedule. Covariate embedding options are supported.
+"""
 
 from typing import Any
 
@@ -7,15 +12,25 @@ from torch import Tensor
 from torch.nn import functional as F
 from torch.nn.modules.loss import _WeightedLoss
 
+from model.models.util.covariates import (
+    get_embedding_technique,
+    get_enabled_covariate_count,
+)
 from optimization.loss_functions.util.kl_annealing import KLAnnealing
+from util.errors import UnsupportedCovariateEmbeddingTechniqueError
 
 
 class MSEVAELoss(_WeightedLoss):
-    """Mean Squared Error + KL Divergence loss for VAE with beta-VAE and KL annealing options."""
+    """
+    MSE + KL Divergence loss for VAE with beta-VAE and KL annealing.
+
+    Computes reconstruction loss using MSE and adds a KL divergence penalty weighted by an annealed beta.
+    Depending on the covariate embedding technique, the reconstruction loss may be computed directly or
+    after processing covariate data.
+    """
 
     def __init__(
         self,
-        # Standard VAE fields:
         weight: Tensor | None = None,
         size_average: Any = None,
         reduce: Any = None,
@@ -24,30 +39,26 @@ class MSEVAELoss(_WeightedLoss):
         beta_end: float = 1.0,
         kl_anneal_start: int = 0,
         kl_anneal_end: int = 0,
-        covariate_embedding_technique: str = "no_embedding",
-        cov_dim: int = 0,
     ) -> None:
-        """Initialize the MSEVAELoss class with beta-VAE, KL annealing, and covariate logic.
+        """
+        Initialize the MSEVAELoss.
 
         Args:
-            weight, size_average, reduce, reduction: inherited from PyTorch _WeightedLoss.
-            beta_start (float): initial KL weight.
-            beta_end (float): final KL weight.
-            kl_anneal_start (int): epoch to begin annealing.
-            kl_anneal_end (int): epoch to finish annealing.
-            covariate_embedding_technique (str): <>
-            cov_dim (int): number of covariate features if we reconstruct them.
+            weight, size_average, reduce, reduction: Inherited from _WeightedLoss.
+            beta_start (float): Initial KL weight.
+            beta_end (float): Final KL weight.
+            kl_anneal_start (int): Epoch to begin annealing.
+            kl_anneal_end (int): Epoch to finish annealing.
         """
         super().__init__(weight, size_average, reduce, reduction)
-
         self.kl_annealer = KLAnnealing(
             beta_start=beta_start,
             beta_end=beta_end,
             kl_anneal_start=kl_anneal_start,
             kl_anneal_end=kl_anneal_end,
         )
-        self.covariate_embedding_technique = covariate_embedding_technique
-        self.cov_dim = cov_dim
+        self.covariate_embedding_technique = get_embedding_technique()
+        self.cov_dim = get_enabled_covariate_count()
 
     def forward(
         self,
@@ -57,37 +68,29 @@ class MSEVAELoss(_WeightedLoss):
         current_epoch: int | None = None,
     ) -> Tensor:
         """
-        Compute the VAE-style loss (e.g., reconstruction + KL) given the model outputs and input data.
-
-        This method expects a dictionary of model outputs, which may contain entries such as:
-        - "x_recon": The reconstructed input (torch.Tensor).
-        - "z_mean" and "z_logvar": The posterior mean/log-variance for the latent variable.
-        - "z": A sampled latent vector.
-        - "prior_mu" and "prior_logvar": (Optional) Mean and log-variance of a learned conditional prior,
-                                         if the model implements age- or covariate-based priors.
+        Compute the VAE loss as the sum of MSE reconstruction loss and a weighted KL divergence term.
 
         Args:
-            model_outputs (dict[str, torch.Tensor]): Dictionary from the model's forward pass,
-                containing any relevant intermediate or final tensors needed for the loss.
-            x (torch.Tensor): The original input data (e.g., features or images) for calculating
-                reconstruction error.
-            covariates (torch.Tensor | None, optional): Additional covariate data (such as age or sex),
-                which may be used by some model variants. Defaults to None if not required.
-            current_epoch (int | None, optional): Current training epoch for scheduling or annealing
-                purposes (e.g., gradually increasing KL weight). Defaults to None if not used.
+            model_outputs (dict[str, Tensor]): Dictionary from the model's forward pass containing:
+                - "x_recon": The reconstructed input.
+                - "z_mean": The posterior mean.
+                - "z_logvar": The posterior log-variance.
+            x (Tensor): Original input tensor.
+            covariates (Tensor | None, optional): Covariate data required for certain embedding modes.
+            current_epoch (int | None, optional): Current epoch for KL annealing; if None, final beta is used.
 
         Returns:
-            torch.Tensor: A scalar loss value that typically combines a reconstruction term
-            (e.g., MSE or BCE) and one or more KL terms (standard or conditional prior).
+            Tensor: A scalar loss value.
         """
         recon_x = model_outputs["x_recon"]
-        z_mean = model_outputs.get("z_mean", None)
-        z_logvar = model_outputs.get("z_logvar", None)
+        z_mean = model_outputs.get("z_mean")
+        z_logvar = model_outputs.get("z_logvar")
 
-        if current_epoch is not None:
-            beta = self.kl_annealer.compute_beta(current_epoch)
-        else:
-            beta = self.kl_annealer.beta_end
+        beta = (
+            self.kl_annealer.compute_beta(current_epoch)
+            if current_epoch is not None
+            else self.kl_annealer.beta_end
+        )
 
         _, data_dim = x.shape
 
@@ -98,25 +101,26 @@ class MSEVAELoss(_WeightedLoss):
         }:
             mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
             mse_cov = 0.0
-
         elif self.covariate_embedding_technique == "input_feature":
-            x = torch.cat([x, covariates], dim=1)
-            mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
+            if covariates is None:
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    "Covariates must be provided for 'input_feature' mode."
+                )
+            x_combined = torch.cat([x, covariates], dim=1)
+            mse_data = F.mse_loss(recon_x, x_combined, reduction=self.reduction)
             mse_cov = 0.0
-
         elif self.covariate_embedding_technique == "conditional_embedding":
             if covariates is None:
-                raise ValueError(
-                    f"covariates must be provided for '{self.covariate_embedding_technique}' mode."
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    "Covariates must be provided for 'conditional_embedding' mode."
                 )
             recon_data = recon_x[:, :data_dim]
             recon_cov = recon_x[:, data_dim : data_dim + self.cov_dim]
             mse_data = F.mse_loss(recon_data, x, reduction=self.reduction)
             mse_cov = F.mse_loss(recon_cov, covariates, reduction=self.reduction)
-
         else:
-            raise ValueError(
-                f"Unknown covariate_embedding_technique: {self.covariate_embedding_technique}"
+            raise UnsupportedCovariateEmbeddingTechniqueError(
+                f"Unknown covariate embedding technique: {self.covariate_embedding_technique}"
             )
 
         recon_loss = mse_data + mse_cov
@@ -129,5 +133,4 @@ class MSEVAELoss(_WeightedLoss):
         else:
             kld = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
 
-        loss = recon_loss + beta * kld
-        return loss
+        return recon_loss + beta * kld

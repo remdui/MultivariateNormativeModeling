@@ -35,9 +35,11 @@ from torch.nn import (
     Threshold,
 )
 
-# Mapping for available activation functions
-ACTIVATION_FUNCTION_MAPPING: dict[str, Any] = {
-    # PyTorch activation functions (weighted sum, non-linearity)
+# Type alias for activation function classes (subclasses of torch.nn.Module)
+ActivationFunctionClass = type[Module]
+
+# Mapping for available activation functions (private)
+_ACTIVATION_FUNCTION_MAPPING: dict[str, ActivationFunctionClass] = {
     "elu": ELU,
     "gelu": GELU,
     "glu": GLU,
@@ -62,7 +64,6 @@ ACTIVATION_FUNCTION_MAPPING: dict[str, Any] = {
     "threshold": Threshold,
     "silu": SiLU,
     "mish": Mish,
-    # Pytorch activation functions (other)
     "adaptivelogsoftmaxwithloss": AdaptiveLogSoftmaxWithLoss,
     "softmax": Softmax,
     "softmax2d": Softmax2d,
@@ -72,20 +73,24 @@ ACTIVATION_FUNCTION_MAPPING: dict[str, Any] = {
 
 
 def get_activation_function(activation_type: str, *args: Any, **kwargs: Any) -> Module:
-    """Factory method to get the activation function based on config.
+    """
+    Factory method to create an activation function instance based on configuration.
 
     Args:
         activation_type (str): The type of activation function (e.g., 'relu', 'tanh').
-        *args: Positional arguments for the activation function.
+                               The lookup is case-insensitive.
+        *args: Positional arguments for the activation function's constructor.
         **kwargs: Additional keyword arguments for activation function initialization.
 
     Returns:
-        Module: The activation function instance.
+        Module: An instance of the specified activation function.
 
     Raises:
         ValueError: If the activation function type is not supported.
     """
-    activation_function_class = ACTIVATION_FUNCTION_MAPPING.get(activation_type.lower())
-    if not activation_function_class:
+    activation_function_class = _ACTIVATION_FUNCTION_MAPPING.get(
+        activation_type.lower()
+    )
+    if activation_function_class is None:
         raise ValueError(f"Unknown activation function type: {activation_type}")
     return activation_function_class(*args, **kwargs)

@@ -1,4 +1,9 @@
-"""Task for hyperparameter tuning using Optuna."""
+"""
+Module for hyperparameter tuning using Optuna.
+
+This module defines the TuningTask class, which runs hyperparameter tuning
+for a model training task using the Optuna library.
+"""
 
 import time
 
@@ -14,56 +19,67 @@ from tasks.training.train_task import TrainTask
 
 
 class TuningTask(AbstractTask):
-    """Task for hyperparameter tuning using Optuna."""
+    """
+    TuningTask performs hyperparameter tuning with Optuna by:
+
+      - Defining an objective function that runs training with suggested hyperparameters.
+      - Using a TPE sampler and Hyperband pruner for efficient search.
+      - Reporting and storing the best hyperparameters and corresponding validation loss.
+    """
 
     def __init__(self) -> None:
+        """Initialize the TuningTask with a logger and set the task name."""
         super().__init__(LogManager.get_logger(__name__))
-        self.logger.info("Initializing ExperimentTask.")
+        self.logger.info("Initializing TuningTask.")
         self.task_name = "tune"
 
     def run(self) -> TaskResult:
-        """Run the hyperparameter tuning task using Optuna.
+        """
+        Run the hyperparameter tuning task.
+
+        Configures Optuna's sampler and pruner, creates a study, and optimizes the
+        objective function over a number of trials.
 
         Returns:
-            TaskResult: The task result object containing the best hyperparameters and validation loss.
+            TaskResult: Contains the best hyperparameters and the associated validation loss.
         """
-
-        # https://optuna.readthedocs.io/en/stable/reference/samplers.html
+        # Configure sampler and pruner for the study.
         sampler = TPESampler(seed=self.properties.general.seed, n_startup_trials=10)
-
-        # https://optuna.readthedocs.io/en/stable/reference/pruners.html
         pruner = HyperbandPruner(min_resource=25, max_resource=200, reduction_factor=3)
 
-        # Create a study with a pruner and a sampler
         self.logger.info(
-            f"Starting hyperparameter tuning using Optuna with {sampler.__class__.__name__} + {pruner.__class__.__name__})."
+            f"Starting hyperparameter tuning using {sampler.__class__.__name__} + {pruner.__class__.__name__}."
         )
+
+        # Create an Optuna study to minimize the validation loss.
         study = optuna.create_study(
             direction="minimize", sampler=sampler, pruner=pruner
         )
-
-        # Increase n_trials for a more comprehensive search
         study.optimize(self.objective, n_trials=100)
 
-        # Logging best trial results
         self.logger.info("Hyperparameter tuning completed.")
         self.logger.info(f"Best trial parameters: {study.best_trial.params}")
         self.logger.info(f"Best trial value (val_loss): {study.best_trial.value:.4f}")
 
-        # Store results
         results = TaskResult()
         results["best_params"] = study.best_trial.params
         results["best_val_loss"] = study.best_trial.value
 
-        # Optional: Use best hyperparameters to retrain a final model
-        # for stable and reproducible final performance. Example:
-        # self.logger.info("Retraining best model with found hyperparameters...")
+        # Optionally, retrain the final model with the best hyperparameters.
         # self._retrain_best_model(study.best_trial.params)
 
         return results
 
     def objective(self, trial: optuna.Trial) -> float:
-        """Objective function for Optuna to optimize.
+        """
+        Objective function for Optuna's optimization process.
+
+        This function:
+          - Clears and sets up a new experiment for each trial.
+          - Suggests hyperparameters for the training task.
+          - Updates properties accordingly.
+          - Runs the training task and retrieves the validation loss.
+          - Reports pruning if the trial is not promising.
 
         Args:
             trial (optuna.Trial): The current trial object.
@@ -72,6 +88,8 @@ class TuningTask(AbstractTask):
             float: The validation loss for the current trial.
         """
         trial_id = trial.number
+
+        # Reset experiment environment for a clean trial.
         self.experiment_manager.clear_output_directory()
         self.experiment_manager.create_new_experiment(self.task_name)
         self.experiment_manager.add_experiment_group_identifier(str(trial_id))
@@ -79,55 +97,20 @@ class TuningTask(AbstractTask):
         self.logger.info(f"Starting trial {trial_id}.")
         start_time = time.time()
 
-        # Set epochs for trial
+        # Define fixed number of epochs for each trial.
         epochs = 200
 
-        # Set hyperparameters to tune
-        latent_dim = trial.suggest_categorical(
-            "latent_dim",
-            [
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15,
-                16,
-                17,
-                18,
-                19,
-                20,
-                21,
-                22,
-                23,
-                24,
-                25,
-                26,
-                27,
-                28,
-                29,
-                30,
-                31,
-                32,
-            ],
-        )
+        # Hyperparameter suggestions.
+        latent_dim = trial.suggest_categorical("latent_dim", list(range(2, 33)))
         batch_size = trial.suggest_categorical("batch_size", [4, 8, 16, 32, 64, 128])
         gradient_clipping = trial.suggest_categorical(
             "gradient_clipping", [False, True]
         )
-        gradient_clipping_value = None
-        if gradient_clipping:
-            gradient_clipping_value = trial.suggest_float(
-                "gradient_clipping_value", 1.0, 10.0
-            )
+        gradient_clipping_value = (
+            trial.suggest_float("gradient_clipping_value", 1.0, 10.0)
+            if gradient_clipping
+            else None
+        )
         optimizer = trial.suggest_categorical("optimizer", ["adam", "adamw"])
         activation_function = trial.suggest_categorical(
             "activation_function", ["silu", "relu", "leakyrelu"]
@@ -136,30 +119,26 @@ class TuningTask(AbstractTask):
         start_size = trial.suggest_categorical("hidden_start_size", [256, 128, 64])
         lr = trial.suggest_categorical("learning_rate", [0.01, 0.001, 0.0001])
 
-        # Construct hidden layers based on depth and start_size
-        # For depth 2: [start_size, start_size/2]
-        # For depth 3: [start_size, start_size/2, start_size/4]
+        # Construct hidden layers based on depth and starting size.
         hidden_layers = [start_size]
         for _ in range(depth - 1):
             hidden_layers.append(hidden_layers[-1] // 2)
 
-        # Log chosen hyperparameters
         self.logger.info(
             f"Trial {trial_id} hyperparameters:\n"
-            f"  latent_dim={latent_dim}\n"
-            f"  batch_size={batch_size}\n"
-            f"  epochs={epochs}\n"
-            f"  gradient_clipping={gradient_clipping}\n"
-            f"  gradient_clipping_value={gradient_clipping_value}\n"
-            f"  optimizer={optimizer}\n"
-            f"  activation_function={activation_function}\n"
-            f"  hidden_layers={hidden_layers}\n"
-            f"  learning_rate={lr}"
+            f"  latent_dim: {latent_dim}\n"
+            f"  batch_size: {batch_size}\n"
+            f"  epochs: {epochs}\n"
+            f"  gradient_clipping: {gradient_clipping}\n"
+            f"  gradient_clipping_value: {gradient_clipping_value}\n"
+            f"  optimizer: {optimizer}\n"
+            f"  activation_function: {activation_function}\n"
+            f"  hidden_layers: {hidden_layers}\n"
+            f"  learning_rate: {lr}"
         )
 
-        # Overwrite properties
+        # Overwrite properties with suggested hyperparameters.
         properties = Properties.get_instance()
-
         properties.model.components["vae"]["latent_dim"] = latent_dim
         properties.train.batch_size = batch_size
         properties.train.epochs = epochs
@@ -174,44 +153,35 @@ class TuningTask(AbstractTask):
         else:
             properties.train.optimizer_params["adamw"]["lr"] = lr
 
-        # Set the weight initializer based on activation function
+        # Use an initializer suited for ReLU-based activations.
         if activation_function in {"relu", "leakyrelu"}:
             properties.model.weight_initializer = "he_normal"
 
         Properties.overwrite_instance(properties)
 
-        # Now run the training task with these updated properties
-        # Assume TrainTask can accept a callback or we modify TrainTask to call `trial.report(val_loss, epoch)`
-        # at the end of each epoch. If not, we only have final val_loss.
-
-        # If TrainTask supports intermediate reporting:
-        # Example modification in TrainTask: pass the trial object and do trial.report(val_loss, epoch).
-        # Then Optuna can prune mid-training if val_loss isn't improving.
-
-        train_task = TrainTask(trial=trial)  # If we modify TrainTask to accept trial
+        # Run training with the current hyperparameters.
+        train_task = TrainTask(
+            trial=trial
+        )  # TrainTask is assumed to support a trial callback.
         results = train_task.run()
-
         val_loss = results["reconstruction_loss"]["val_loss"]
-
         runtime = time.time() - start_time
 
-        # Check if the trial was pruned
+        # Check for pruning: if the trial is not promising, Optuna can prune it.
         if trial.should_prune():
             self.logger.info(
-                f"Trial {trial_id} is pruned at val_loss={val_loss:.4f}, Runtime={runtime:.2f} seconds."
+                f"Trial {trial_id} pruned at val_loss={val_loss:.4f}, runtime={runtime:.2f} seconds."
             )
             raise optuna.TrialPruned()
 
-        # Log final results for this trial
         self.logger.info(
-            f"Trial {trial_id} completed. "
-            f"Val_loss={val_loss:.4f}, Runtime={runtime:.2f} seconds."
+            f"Trial {trial_id} completed. Val_loss={val_loss:.4f}, runtime={runtime:.2f} seconds."
         )
-
         return val_loss
 
     def get_task_name(self) -> str:
-        """Get the task name.
+        """
+        Get the name of this task.
 
         Returns:
             str: The task name.
@@ -219,25 +189,30 @@ class TuningTask(AbstractTask):
         return self.task_name
 
     def _retrain_best_model(self, best_params: dict) -> None:
-        """Optional: Retrain the model using the best hyperparameters for a stable final model."""
+        """
+        (Optional) Retrain the model using the best hyperparameters for reproducible final performance.
+
+        Args:
+            best_params (dict): The best hyperparameters found during tuning.
+        """
         properties = Properties.get_instance()
-        # Overwrite properties with best_params
+
+        # Update properties with the best hyperparameters.
         properties.model.components["vae"]["latent_dim"] = best_params["latent_dim"]
-        properties.train.loss_function_params["mse_vae"]["beta_end"] = best_params[
+        properties.train.loss_function_params["mse_vae"]["beta_end"] = best_params.get(
             "beta_end"
-        ]
+        )
         properties.train.optimizer_params["adam"]["lr"] = best_params["lr"]
         properties.train.batch_size = best_params["batch_size"]
 
-        # Potentially increase epochs for a final run
+        # Optionally, set a lower epoch count for the final run.
         properties.train.epochs = 50
         Properties.overwrite_instance(properties)
 
         final_train_task = TrainTask()
         final_results = final_train_task.run()
-        self.logger.info(
-            "Final model retraining completed with best found hyperparameters."
-        )
+
+        self.logger.info("Final model retraining completed with best hyperparameters.")
         self.logger.info(
             f"Final model validation loss: {final_results['reconstruction_loss']['val_loss']:.4f}"
         )

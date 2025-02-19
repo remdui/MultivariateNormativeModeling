@@ -4,8 +4,11 @@ from typing import Any
 
 from torch.optim import lr_scheduler
 
-# Mapping for available learning rate schedulers
-SCHEDULER_MAPPING: dict[str, type[lr_scheduler.LRScheduler]] = {
+# Type alias for scheduler classes
+SchedulerClass = type[lr_scheduler.LRScheduler]
+
+# Mapping for available learning rate schedulers (private)
+_SCHEDULER_MAPPING: dict[str, SchedulerClass] = {
     "default": lr_scheduler.LRScheduler,
     "lambda": lr_scheduler.LambdaLR,
     "multiplicative": lr_scheduler.MultiplicativeLR,
@@ -26,12 +29,13 @@ SCHEDULER_MAPPING: dict[str, type[lr_scheduler.LRScheduler]] = {
 def get_scheduler(
     scheduler_type: str, *args: Any, **kwargs: Any
 ) -> lr_scheduler.LRScheduler:
-    """Factory method to get the learning rate scheduler based on config.
+    """
+    Factory method to get the learning rate scheduler based on configuration.
 
     Args:
-        scheduler_type (str): The type of scheduler.
-        *args: Additional arguments specific to the scheduler.
-        **kwargs: Additional parameters specific to the scheduler.
+        scheduler_type (str): The type of scheduler (case-insensitive).
+        *args: Additional positional arguments for the scheduler's constructor.
+        **kwargs: Additional keyword arguments for the scheduler's constructor.
 
     Returns:
         lr_scheduler.LRScheduler: An instance of the specified learning rate scheduler.
@@ -39,7 +43,7 @@ def get_scheduler(
     Raises:
         ValueError: If the scheduler type is not supported.
     """
-    scheduler_class = SCHEDULER_MAPPING.get(scheduler_type.lower())
-    if not scheduler_class:
+    scheduler_class = _SCHEDULER_MAPPING.get(scheduler_type.lower())
+    if scheduler_class is None:
         raise ValueError(f"Unknown scheduler type: {scheduler_type}")
     return scheduler_class(*args, **kwargs)

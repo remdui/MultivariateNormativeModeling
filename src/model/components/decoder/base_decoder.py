@@ -8,15 +8,31 @@ from model.components.abstract_component import AbstractComponent
 
 
 class BaseDecoder(AbstractComponent):
-    """Base class for decoders."""
+    """
+    Abstract base class for decoders.
+
+    Subclasses must implement the forward() method to define the decoding logic.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize the decoder."""
+        """
+        Initialize the decoder.
+
+        Calls the initializer of the parent AbstractComponent.
+        """
         super().__init__()
 
     def forward(self, x: Tensor) -> Any:
-        """Forward pass of the decoder.
-
-        This method should be implemented in the child class.
         """
-        raise NotImplementedError("Forward method not implemented in BaseDecoder.")
+        Execute the forward pass of the decoder.
+
+        Args:
+            x (Tensor): Input tensor to be decoded.
+
+        Returns:
+            Any: Decoded output.
+
+        Raises:
+            NotImplementedError: Must be implemented in the subclass.
+        """
+        raise NotImplementedError("Forward method must be implemented in child class.")

@@ -8,15 +8,31 @@ from model.components.abstract_component import AbstractComponent
 
 
 class BaseEncoder(AbstractComponent):
-    """Base class for encoders."""
+    """
+    Abstract base class for encoders.
+
+    Subclasses must override the forward() method to implement the encoder's logic.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize the encoder."""
+        """
+        Initialize the encoder.
+
+        Calls the initializer of the parent AbstractComponent.
+        """
         super().__init__()
 
     def forward(self, x: Tensor) -> Any:
-        """Forward pass of the encoder.
+        """
+        Execute the forward pass of the encoder.
 
-        This method should be implemented in the child class.
+        Args:
+            x (Tensor): Input tensor to be encoded.
+
+        Returns:
+            Any: The encoded representation.
+
+        Raises:
+            NotImplementedError: If the method is not implemented in a subclass.
         """
         raise NotImplementedError("Forward method not implemented in BaseEncoder.")

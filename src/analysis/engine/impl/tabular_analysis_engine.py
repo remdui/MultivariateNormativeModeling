@@ -657,9 +657,6 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         # 5) Plot
         fig = plt.figure(figsize=(8, 8))
 
-        # We'll store the scatter artist in sc so we can add colorbars, etc.
-        sc = None
-
         if n_components == 2:
             # 2D scatter
             sc = plt.scatter(

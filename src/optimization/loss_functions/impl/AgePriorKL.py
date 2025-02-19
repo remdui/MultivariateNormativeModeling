@@ -1,4 +1,10 @@
-"""Custom loss function."""
+"""Custom loss function for VAE with age-based prior KL divergence.
+
+This module defines the AgePriorKL loss function, which combines a Mean Squared Error (MSE)
+reconstruction loss with a KL divergence term comparing the latent posterior (z_mean, z_logvar)
+to a learned conditional prior (prior_mu, prior_logvar). The KL divergence is weighted by a beta
+factor that is annealed over training epochs.
+"""
 
 from typing import Any
 
@@ -7,15 +13,24 @@ from torch import Tensor
 from torch.nn import functional as F
 from torch.nn.modules.loss import _WeightedLoss
 
+from model.models.util.covariates import (
+    get_embedding_technique,
+    get_enabled_covariate_count,
+)
 from optimization.loss_functions.util.kl_annealing import KLAnnealing
 
 
 class AgePriorKL(_WeightedLoss):
-    """Custom loss function."""
+    """
+    Loss function for VAE with a conditional (age-based) prior.
+
+    Combines an MSE reconstruction loss with a KL divergence term that measures the difference
+    between the latent posterior and a learned conditional prior. The KL term is weighted by an
+    annealed beta factor.
+    """
 
     def __init__(
         self,
-        # Standard VAE fields:
         weight: Tensor | None = None,
         size_average: Any = None,
         reduce: Any = None,
@@ -24,30 +39,26 @@ class AgePriorKL(_WeightedLoss):
         beta_end: float = 1.0,
         kl_anneal_start: int = 0,
         kl_anneal_end: int = 0,
-        covariate_embedding_technique: str = "no_embedding",
-        cov_dim: int = 0,
     ) -> None:
         """
-        Args:
+        Initialize the AgePriorKL loss function.
 
-            weight, size_average, reduce, reduction: inherited from PyTorch _WeightedLoss.
-            beta_start (float): initial KL weight.
-            beta_end (float): final KL weight.
-            kl_anneal_start (int): epoch to begin annealing.
-            kl_anneal_end (int): epoch to finish annealing.
-            covariate_embedding_technique (str): the technique used for embedding covariates.
-            cov_dim (int): number of covariate features if we reconstruct them.
+        Args:
+            weight, size_average, reduce, reduction: Parameters inherited from _WeightedLoss.
+            beta_start (float): Initial KL weight.
+            beta_end (float): Final KL weight.
+            kl_anneal_start (int): Epoch to begin KL annealing.
+            kl_anneal_end (int): Epoch to finish KL annealing.
         """
         super().__init__(weight, size_average, reduce, reduction)
-
         self.kl_annealer = KLAnnealing(
             beta_start=beta_start,
             beta_end=beta_end,
             kl_anneal_start=kl_anneal_start,
             kl_anneal_end=kl_anneal_end,
         )
-        self.covariate_embedding_technique = covariate_embedding_technique
-        self.cov_dim = cov_dim
+        self.covariate_embedding_technique = get_embedding_technique()
+        self.cov_dim = get_enabled_covariate_count()
 
     def forward(
         self,
@@ -57,41 +68,39 @@ class AgePriorKL(_WeightedLoss):
         current_epoch: int | None = None,
     ) -> Tensor:
         """
-        Compute the VAE-style loss (e.g., reconstruction + KL) given the model outputs and input data.
+        Compute the VAE loss combining MSE reconstruction loss with a weighted KL divergence term.
 
-        This method expects a dictionary of model outputs, which may contain entries such as:
-        - "x_recon": The reconstructed input (torch.Tensor).
-        - "z_mean" and "z_logvar": The posterior mean/log-variance for the latent variable.
-        - "z": A sampled latent vector.
-        - "prior_mu" and "prior_logvar": (Optional) Mean and log-variance of a learned conditional prior,
-                                         if the model implements age- or covariate-based priors.
+        For a conditional prior (e.g., age-based), the KL divergence is computed between the latent posterior
+        (z_mean, z_logvar) and a learned prior (prior_mu, prior_logvar). The overall loss is given by:
+
+            loss = MSE_loss + beta * KL_divergence
 
         Args:
-            model_outputs (dict[str, torch.Tensor]): Dictionary from the model's forward pass,
-                containing any relevant intermediate or final tensors needed for the loss.
-            x (torch.Tensor): The original input data (e.g., features or images) for calculating
-                reconstruction error.
-            covariates (torch.Tensor | None, optional): Additional covariate data (such as age or sex),
-                which may be used by some model variants. Defaults to None if not required.
-            current_epoch (int | None, optional): Current training epoch for scheduling or annealing
-                purposes (e.g., gradually increasing KL weight). Defaults to None if not used.
+            model_outputs (dict[str, Tensor]): Dictionary from the model's forward pass containing:
+                - "x_recon": Reconstructed input.
+                - "z_mean": Latent posterior mean.
+                - "z_logvar": Latent posterior log-variance.
+                - "prior_mu": Prior mean for the conditional prior.
+                - "prior_logvar": Prior log-variance for the conditional prior.
+            x (Tensor): Original input tensor.
+            covariates (Tensor | None, optional): Covariate data (if required). Defaults to None.
+            current_epoch (int | None, optional): Current epoch for KL annealing. If None, final beta is used.
 
         Returns:
-            torch.Tensor: A scalar loss value that typically combines a reconstruction term
-            (e.g., MSE or BCE) and one or more KL terms (standard or conditional prior).
+            Tensor: A scalar loss value.
         """
         recon_x = model_outputs["x_recon"]
-        z_mean = model_outputs.get("z_mean", None)
-        z_logvar = model_outputs.get("z_logvar", None)
-        prior_mu = model_outputs.get("prior_mu", None)
-        prior_logvar = model_outputs.get("prior_logvar", None)
+        z_mean = model_outputs.get("z_mean")
+        z_logvar = model_outputs.get("z_logvar")
+        prior_mu = model_outputs.get("prior_mu")
+        prior_logvar = model_outputs.get("prior_logvar")
 
-        if current_epoch is not None:
-            beta = self.kl_annealer.compute_beta(current_epoch)
-        else:
-            beta = self.kl_annealer.beta_end
+        beta = (
+            self.kl_annealer.compute_beta(current_epoch)
+            if current_epoch is not None
+            else self.kl_annealer.beta_end
+        )
 
-        # x = torch.cat([x, covariates], dim=1)
         recon_loss = F.mse_loss(recon_x, x, reduction=self.reduction)
 
         if self.reduction == "mean":
@@ -104,7 +113,6 @@ class AgePriorKL(_WeightedLoss):
                 dim=1,
             )
             kl_div = kl_per_sample.mean()
-
         elif self.reduction == "sum":
             kl_div = 0.5 * torch.sum(
                 prior_logvar
@@ -116,6 +124,4 @@ class AgePriorKL(_WeightedLoss):
         else:
             raise ValueError("Reduction must be 'mean' or 'sum'")
 
-        total_loss = recon_loss + beta * kl_div
-
-        return total_loss
+        return recon_loss + beta * kl_div

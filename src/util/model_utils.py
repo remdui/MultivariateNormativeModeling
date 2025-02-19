@@ -1,4 +1,4 @@
-"""Model utilities."""
+"""Utilities for saving, loading, and visualizing PyTorch models."""
 
 import os
 from datetime import datetime
@@ -24,100 +24,144 @@ def save_model(
     save_as_checkpoint: bool = False,
 ) -> None:
     """
-    Save the model to the specified directory.
+    Saves a PyTorch model to disk in the specified format.
 
     Args:
-        model (nn.Module): Model to save.
+        model (nn.Module): The PyTorch model to save.
+        epoch (Optional[int]): Epoch number to include in the filename (for checkpoints).
+        save_dir (str): Directory where the model should be saved.
+        model_name (str): Base name of the model file.
+        use_date (bool): If True, appends the current date to the filename.
+        save_as_checkpoint (bool): If True, saves as an intermediate checkpoint in a subdirectory.
 
-        epoch (Optional[int]): Epoch number; None for final save.
-        save_dir (str): Directory to save the model.
-        model_name (str): Base name for the model file.
-        use_date (bool): Whether to include the current date in the file name.
-        save_as_checkpoint (bool): If True, save as an intermediate checkpoint.
+    Raises:
+        ValueError: If an unsupported model file format is specified.
+        OSError: If there is an issue saving the model file.
+        TypeError: If the model instance is not a pytorch model object
     """
     logger = LogManager.get_logger(__name__)
-    if model is None:
-        raise ValueError("Model cannot be None.")
+
+    if not isinstance(model, nn.Module):
+        raise TypeError("Expected 'model' to be an instance of nn.Module.")
 
     if save_as_checkpoint:
         save_dir = os.path.join(save_dir, "checkpoints")
 
-    # Set up the file naming
-    file_name = f"{save_dir}/{model_name}"
+    os.makedirs(save_dir, exist_ok=True)  # Ensure the directory exists
 
-    # Add epoch number for checkpoints
+    # Construct file name
+    file_name = f"{model_name}"
     if epoch is not None:
         file_name += f"_{epoch}"
-
-    # Add date if required
     if use_date:
-        date_str = datetime.now().strftime("%Y%m%d")
-        file_name += f"_{date_str}"
+        file_name += f"_{datetime.now().strftime('%Y%m%d')}"
 
     properties = Properties.get_instance()
     file_format = properties.train.save_format
 
-    if file_format == "pt":
-        file_name += ".pt"
-        torch.save(model.state_dict(), file_name)
-    elif file_format == "safetensors":
-        file_name += ".safetensors"
-        st_save_model(model, file_name)
-    else:
-        raise ValueError(f"Model file format not supported: {file_format}")
+    try:
+        if file_format == "pt":
+            file_name += ".pt"
+            torch.save(model.state_dict(), os.path.join(save_dir, file_name))
+        elif file_format == "safetensors":
+            file_name += ".safetensors"
+            st_save_model(model, os.path.join(save_dir, file_name))
+        else:
+            raise ValueError(f"Unsupported model file format: {file_format}")
 
-    logger.info(f"Model state saved to: {file_name}")
+        logger.info(f"Model saved successfully: {os.path.join(save_dir, file_name)}")
+    except OSError as e:
+        logger.error(f"Failed to save model to {save_dir}: {e}")
+        raise
 
 
 def load_model(model: AbstractModel, model_path: str, device: str) -> AbstractModel:
-    """Load a PyTorch state dict from a file into the model."""
+    """
+    Loads a model from disk and initializes it on the specified device.
+
+    Args:
+        model (AbstractModel): The model instance to load the state into.
+        model_path (str): Path to the saved model file.
+        device (str): The device ('cpu' or 'cuda') to load the model on.
+
+    Returns:
+        AbstractModel: The model with loaded state.
+
+    Raises:
+        FileNotFoundError: If the specified model file does not exist.
+        ValueError: If the file format is unsupported.
+        RuntimeError: If loading fails due to an invalid state dict.
+    """
     logger = LogManager.get_logger(__name__)
 
-    if model_path.endswith(".pt"):
-        model.load_state_dict(torch.load(model_path, weights_only=True))
-    if model_path.endswith(".safetensors"):
-        st_load_model(model, model_path)
-    else:
-        raise ValueError(f"Model file extension not supported: {model_path}")
+    if not os.path.isfile(model_path):
+        raise FileNotFoundError(f"Model file not found: {model_path}")
 
-    model.to(device)
-    model.eval()
-    logger.info(f"Model state loaded from: {model_path}")
-    return model
+    try:
+        if model_path.endswith(".pt"):
+            model.load_state_dict(torch.load(model_path, map_location=device))
+        elif model_path.endswith(".safetensors"):
+            st_load_model(model, model_path)
+        else:
+            raise ValueError(f"Unsupported model file format: {model_path}")
+
+        model.to(device)
+        model.eval()
+        logger.info(f"Model loaded successfully from: {model_path}")
+        return model
+
+    except RuntimeError as e:
+        logger.error(f"Error loading model from {model_path}: {e}")
+        raise
 
 
 def visualize_model_arch(model: nn.Module, input_size: int) -> None:
-    """Visualize the model architecture."""
+    """
+    Generates a visualization of the model architecture and saves it as an image.
+
+    Args:
+        model (nn.Module): The PyTorch model to visualize.
+        input_size (int): The input size for the visualization.
+
+    Raises:
+        NotImplementedError: If visualization is not supported on the current GPU.
+        OSError: If there is an issue saving the visualization file.
+    """
     logger = LogManager.get_logger(__name__)
 
     properties = Properties.get_instance()
     batch_size = properties.train.batch_size
-    output_dir = properties.system.output_dir + "/model_arch"
-
+    output_dir = os.path.join(properties.system.output_dir, "model_arch")
     file_name = "model_arch"
 
-    # Check if the GPU supports CUDA compilation, torchview does not support JIT for all GPUs
+    # Check if GPU visualization is supported
     if gpu_supported_by_triton_compiler():
-        logger.warning("Visualizing model architecture is not supported for this GPU.")
-        return
+        logger.warning("Model visualization is not supported on this GPU.")
+        raise NotImplementedError("Torchview does not support JIT on all GPUs.")
 
+    # Compute number of covariates (used in visualization input)
     num_covariates = len(properties.dataset.covariates) - len(
         properties.dataset.skipped_covariates
     )
 
-    # Draw the model architecture and save to output directory
-    draw_graph(
-        model,
-        input_size=(batch_size, input_size),
-        graph_name=file_name,
-        save_graph=True,
-        directory=output_dir,
-        filename=file_name,
-        covariates=torch.empty((batch_size, num_covariates)).to(
-            properties.system.device
-        ),
-    )
+    os.makedirs(output_dir, exist_ok=True)  # Ensure output directory exists
 
-    logger.info(
-        f"Visualized model architecture and saved to: {output_dir}/{file_name}.png"
-    )
+    try:
+        # Generate and save the model visualization
+        draw_graph(
+            model,
+            input_size=(batch_size, input_size),
+            graph_name=file_name,
+            save_graph=True,
+            directory=output_dir,
+            filename=file_name,
+            covariates=torch.empty((batch_size, num_covariates)).to(
+                properties.system.device
+            ),
+        )
+        logger.info(
+            f"Model architecture visualization saved: {os.path.join(output_dir, file_name)}.png"
+        )
+    except OSError as e:
+        logger.error(f"Failed to save model visualization: {e}")
+        raise

@@ -1,4 +1,4 @@
-"""Entry point for the application, handling initialization and control flow."""
+"""Entry point for the application, handling initialization, configuration, and task execution."""
 
 import logging
 import time
@@ -18,7 +18,7 @@ from util.config_utils import create_default_config
 from util.file_utils import create_storage_directories
 from util.system_utils import log_system_info
 
-# Task selection and execution
+# Mapping of available tasks
 TASK_MAP = {
     "train": TrainTask,
     "validate": ValidateTask,
@@ -27,11 +27,16 @@ TASK_MAP = {
     "experiment": ExperimentTask,
 }
 
+# Parse command-line arguments
 ARGS = parse_args()
 
 
 def setup_basic_logging() -> None:
-    """Sets up a basic temporary logging configuration."""
+    """
+    Sets up a basic logging configuration.
+
+    This is used as a fallback before the application-specific logging setup is configured.
+    """
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -40,77 +45,96 @@ def setup_basic_logging() -> None:
 
 
 def initialize_application() -> None:
-    """Initializes the application by setting up configuration, properties, and logging."""
+    """
+    Initializes the application by setting up configuration, properties, and logging.
+
+    This function:
+    - Ensures a default configuration file exists.
+    - Loads the configuration and validates compatibility.
+    - Initializes the experiment and logging system.
+
+    Raises:
+        FileNotFoundError: If the configuration file is missing.
+        ValueError: If the configuration is incompatible.
+        RuntimeError: If an unexpected error occurs during initialization.
+    """
     try:
-        # Create a default configuration file if it does not exist
         create_default_config()
 
-        # Initialize the ConfigManager with the configuration file and command-line arguments
+        # Load and validate configuration
         config_manager = ConfigManager(config_file=ARGS.config, command_line_args=ARGS)
-
-        # Check if the configuration file is compatible with the current software version
         config_manager.is_version_compatible()
-
-        # Validate the configuration
         config_manager.validate_config()
 
-        # Initialize the Properties object with the merged configuration
-        config = config_manager.get_config()
-        Properties.initialize(config)
+        # Initialize properties from the configuration
+        Properties.initialize(config_manager.get_config())
 
-        # Create storage directories if they do not exist
+        # Ensure necessary directories exist
         create_storage_directories()
 
         # Setup experiment directory
         experiment_manager = ExperimentManager.get_instance()
         experiment_manager.set_config_path(ARGS.config)
 
-        # Reconfigure logging with the actual properties
+        # Reconfigure logging with the loaded properties
         LogManager.reconfigure_logging()
 
-    except Exception as e:
-        logging.error(f"Error during application initialization: {e}", exc_info=True)
+    except FileNotFoundError as e:
+        logging.error(f"Configuration file not found: {e}")
         raise
+    except ValueError as e:
+        logging.error(f"Configuration validation failed: {e}")
+        raise
+    except Exception as e:
+        logging.error(f"Unexpected error during initialization: {e}", exc_info=True)
+        raise RuntimeError("Application initialization failed.") from e
 
 
 def log_application_info() -> None:
-    """Logs initial information about application and system."""
+    """Logs application metadata, system configuration, and environment details."""
     logger = LogManager.get_logger(__name__)
     properties = Properties.get_instance()
 
-    # Display application version and experiment information
     logger.info(f"Application (v{properties.meta.version}) initialized successfully")
     logger.info(
-        f"Configuration file: {ARGS.config} (v{properties.meta.config_version})"
+        f"Using configuration file: {ARGS.config} (v{properties.meta.config_version})"
     )
     logger.info(f"Model/Experiment Name: {properties.meta.name}")
     logger.info(f"Description: {properties.meta.description}")
 
-    # Log system information
+    # Log system and hardware details
     log_system_info()
 
-    # Log the application properties
+    # Log detailed configuration
     logger.debug(properties)
 
 
 def apply_preprocessing() -> None:
-    """Apply the preprocessing pipeline to the input data."""
+    """
+    Executes the preprocessing pipeline based on the dataset type.
+
+    Raises:
+        RuntimeError: If preprocessing fails.
+    """
     logger = logging.getLogger(__name__)
     try:
         properties = Properties.get_instance()
-        data_type = properties.dataset.data_type
-        pipeline = create_preprocessing_pipeline(data_type)
+        pipeline = create_preprocessing_pipeline(properties.dataset.data_type)
         pipeline.run()
     except Exception as e:
         logger.error(f"Preprocessing failed: {e}", exc_info=True)
-        raise
+        raise RuntimeError("Preprocessing pipeline execution failed.") from e
 
 
 def run_task(task_class: type) -> None:
-    """Generalized function to run a training, validation, or inference task.
+    """
+    Executes a specified task such as training, validation, or inference.
 
     Args:
-        task_class: The class of the task to execute (e.g., TrainTask, ValidateTask).
+        task_class (type): The task class to be executed.
+
+    Raises:
+        RuntimeError: If the task execution fails.
     """
     logger = LogManager.get_logger(__name__)
 
@@ -122,57 +146,64 @@ def run_task(task_class: type) -> None:
     try:
         task_instance.run()
     except Exception as e:
-        logger.error(f"Task {task_name} failed: {e}", exc_info=True)
-        raise
+        logger.error(f"Task '{task_name}' failed: {e}", exc_info=True)
+        raise RuntimeError(f"Task '{task_name}' encountered an error.") from e
 
     runtime = time.time() - start_time
-    logger.info(f"Task {task_name} completed in {runtime:.2f} seconds.")
+    logger.info(f"Task '{task_name}' completed in {runtime:.2f} seconds.")
 
 
 def main() -> None:
-    """Main function to control application flow based on command-line arguments."""
+    """
+    Main function to control the application workflow.
+
+    - Initializes the application and its components.
+    - Executes preprocessing if enabled.
+    - Runs the selected task based on command-line arguments.
+
+    Raises:
+        ValueError: If an invalid task mode is provided.
+        RuntimeError: If any execution step fails.
+    """
     setup_basic_logging()
     logger = logging.getLogger(__name__)
 
     try:
-        logger.info("Loading application...")
-        start_time = time.time()
+        logger.info("Starting application...")
+        total_start_time = time.time()
 
-        # Initialize the application
+        # Step 1: Application Initialization
         initialize_application()
 
-        # Reconfigure logger after full initialization
-        logger = LogManager.get_logger(__name__)
+        # Step 2: Log application details
         log_application_info()
 
-        # Preprocessing pipeline
-        preprocessing_runtime = 0.0
+        # Step 3: Execute Preprocessing Pipeline
         if not ARGS.skip_preprocessing:
-            start_time_preprocessing = time.time()
+            start_preprocessing_time = time.time()
             apply_preprocessing()
-            preprocessing_runtime = time.time() - start_time_preprocessing
+            logger.info(
+                f"Preprocessing completed in {time.time() - start_preprocessing_time:.2f} seconds."
+            )
         else:
             logger.info("Skipping preprocessing pipeline.")
 
-        # Run the selected task
-        task = TASK_MAP.get(ARGS.mode)
-        if task:
-            logger.info(f"Starting {ARGS.mode} process...")
-            run_task(task)
-        else:
-            logger.error(f"Unimplemented mode specified: {ARGS.mode}")
-            return
-
-        # Report runtime information
-        if preprocessing_runtime > 0:
-            logger.info(
-                f"Preprocessing completed in {preprocessing_runtime:.2f} seconds."
+        # Step 4: Run Selected Task
+        task_class = TASK_MAP.get(ARGS.mode)
+        if not task_class:
+            logger.error(f"Invalid task mode specified: {ARGS.mode}")
+            raise ValueError(
+                f"Unsupported mode '{ARGS.mode}'. Available modes: {list(TASK_MAP.keys())}"
             )
-        total_runtime = time.time() - start_time
+
+        logger.info(f"Executing task: {ARGS.mode}")
+        run_task(task_class)
+
+        total_runtime = time.time() - total_start_time
         logger.info(f"Application completed in {total_runtime:.2f} seconds.")
 
-    except Exception as e:
-        logger.error(f"An unhandled error occurred: {e}", exc_info=True)
+    except (ValueError, RuntimeError) as e:
+        logger.error(f"Critical error: {e}", exc_info=True)
         raise
 
 

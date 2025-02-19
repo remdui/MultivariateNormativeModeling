@@ -18,8 +18,11 @@ from torch.nn import (
     SyncBatchNorm,
 )
 
-# Mapping for available normalization layers
-NORMALIZATION_LAYER_MAPPING: dict[str, Callable] = {
+# Type alias for normalization layer classes (callables returning a torch.nn.Module)
+NormalizationLayerClass = Callable[..., Module]
+
+# Mapping for available normalization layers (private)
+_NORMALIZATION_LAYER_MAPPING: dict[str, NormalizationLayerClass] = {
     "batchnorm1d": BatchNorm1d,
     "batchnorm2d": BatchNorm2d,
     "batchnorm3d": BatchNorm3d,
@@ -35,21 +38,22 @@ NORMALIZATION_LAYER_MAPPING: dict[str, Callable] = {
 
 
 def get_normalization_layer(layer_type: str, *args: Any, **kwargs: Any) -> Module:
-    """Factory method to get the normalization layer based on configuration.
+    """
+    Factory method to create a normalization layer instance based on configuration.
 
     Args:
         layer_type (str): The type of normalization layer (e.g., 'batchnorm1d', 'layernorm').
-        *args: Positional arguments for the normalization layer.
+                          The lookup is case-insensitive.
+        *args: Positional arguments for the normalization layer's constructor.
         **kwargs: Additional keyword arguments for layer initialization.
 
     Returns:
-        Module: The normalization layer instance.
+        Module: An instance of the specified normalization layer.
 
     Raises:
         ValueError: If the layer type is not supported.
     """
-    layer_class = NORMALIZATION_LAYER_MAPPING.get(layer_type.lower())
-    if not layer_class:
+    layer_class = _NORMALIZATION_LAYER_MAPPING.get(layer_type.lower())
+    if layer_class is None:
         raise ValueError(f"Unknown normalization layer type: {layer_type}")
-
     return layer_class(*args, **kwargs)

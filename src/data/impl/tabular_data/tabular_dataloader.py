@@ -1,4 +1,8 @@
-"""FreeSurferDataloader class."""
+"""TabularDataloader for loading tabular datasets.
+
+This class implements the AbstractDataloader interface for tabular data. It loads processed
+datasets, sets up training, validation, and test splits, and supports cross-validation.
+"""
 
 from typing import Any
 
@@ -15,14 +19,25 @@ from util.file_utils import get_processed_file_path, is_data_file
 
 
 class TabularDataloader(AbstractDataloader):
-    """Dataloader for Tabular datasets."""
+    """
+    Dataloader for Tabular datasets.
 
-    def __init__(self) -> None:
-        """Initialize the TabularDataloader using properties."""
+    Loads processed tabular data, splits it into training, validation, and test sets,
+    and optionally sets up cross-validation folds.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Initialize the TabularDataloader using configuration properties.
+
+        Retrieves paths, batch size, and other parameters from the global Properties.
+        Sets up the datasets and cross-validation indices (if enabled).
+        """
+        super().__init__(*args, **kwargs)
         self.logger = LogManager.get_logger(__name__)
         self.properties = Properties.get_instance()
 
-        # Access configuration directly from properties
+        # Retrieve configuration settings.
         self.data_dir = self.properties.system.data_dir
         self.input_data = self.properties.dataset.input_data
         self.batch_size = self.properties.train.batch_size
@@ -36,13 +51,17 @@ class TabularDataloader(AbstractDataloader):
         self.val_split = self.properties.dataset.val_split
         self.seed = self.properties.general.seed
 
-        # Set up the dataloader
         self.__setup_file_paths()
         self.__initialize_datasets()
         self.__initialize_cross_validation()
 
     def __setup_file_paths(self) -> None:
-        """Set up the file paths for the training/validation, and test datasets."""
+        """
+        Set up file paths for processed training/validation and test datasets.
+
+        Uses get_processed_file_path() to derive paths. Raises ValueError if the input
+        data format is invalid.
+        """
         if is_data_file(self.input_data):
             self.train_data_path = get_processed_file_path(
                 self.data_dir, self.input_data, "train"
@@ -54,14 +73,17 @@ class TabularDataloader(AbstractDataloader):
             raise ValueError(f"Invalid data format: {self.input_data}")
 
     def __initialize_datasets(self) -> None:
-        """Set up the datasets for training, validation, and testing."""
+        """
+        Load and initialize datasets for training, validation, and testing.
+
+        Loads the training and test datasets from their processed paths.
+        If cross-validation is not enabled, splits the training data into training and validation sets.
+        """
         self.logger.info("Initializing TabularDataloader...")
 
-        # Load the datasets
         train_dataset = self.__load__dataset(self.train_data_path)
         self.test_dataset = self.__load__dataset(self.test_data_path)
 
-        # Get and log dataset sizes
         self.logger.info(
             f"Train dataset: {len(train_dataset)} samples, {train_dataset.get_num_features()} features"
         )
@@ -69,18 +91,27 @@ class TabularDataloader(AbstractDataloader):
             f"Test dataset: {len(self.test_dataset)} samples, {self.test_dataset.get_num_features()} features"
         )
 
-        # If debugging, display the first few rows of the dataset
-        self.logger.debug(f"Train dataset: {train_dataset.data.head()}")
-        self.logger.debug(f"Test dataset: {self.test_dataset.data.head()}")
+        self.logger.debug(f"Train dataset head:\n{train_dataset.data.head()}")
+        self.logger.debug(f"Test dataset head:\n{self.test_dataset.data.head()}")
 
-        # Split the training dataset into training and validation sets according to the configuration
         if self.properties.train.cross_validation:
             self.train_dataset = train_dataset
         else:
             self.__split_train_val(train_dataset)
 
     def __load__dataset(self, file_path: str) -> TabularDataset:
-        """Load the dataset from the provided file path."""
+        """
+        Load a TabularDataset from the specified file path.
+
+        Args:
+            file_path (str): Path to the processed dataset file.
+
+        Returns:
+            TabularDataset: The loaded dataset.
+
+        Raises:
+            Exception: Propagates any exception encountered during loading.
+        """
         try:
             dataset = TabularDataset(file_path=str(file_path))
             self.logger.info(f"Dataset loaded from {file_path}")
@@ -89,17 +120,17 @@ class TabularDataloader(AbstractDataloader):
             raise e
 
         self.features = dataset.features
-
         return dataset
 
     def train_dataloader(self) -> DataLoader:
-        """Get the DataLoader for the training dataset.
+        """
+        Get the DataLoader for the training dataset.
 
         Returns:
             DataLoader: DataLoader for training data.
 
         Raises:
-            ValueError: If the training dataset has not been initialized.
+            ValueError: If the training dataset is not initialized or empty.
         """
         if self.train_dataset is None or len(self.train_dataset) == 0:
             self.logger.error("Train dataset not correctly initialized.")
@@ -113,13 +144,14 @@ class TabularDataloader(AbstractDataloader):
         )
 
     def val_dataloader(self) -> DataLoader:
-        """Get the DataLoader for the validation dataset.
+        """
+        Get the DataLoader for the validation dataset.
 
         Returns:
             DataLoader: DataLoader for validation data.
 
         Raises:
-            ValueError: If the validation dataset has not been initialized.
+            ValueError: If the validation dataset is not initialized or empty.
         """
         if self.val_dataset is None or len(self.val_dataset) == 0:
             self.logger.error("Validation dataset not correctly initialized.")
@@ -133,13 +165,14 @@ class TabularDataloader(AbstractDataloader):
         )
 
     def test_dataloader(self) -> DataLoader:
-        """Get the DataLoader for the test dataset.
+        """
+        Get the DataLoader for the test dataset.
 
         Returns:
-            Optional[DataLoader]: DataLoader for test data, or None if test data is not available.
+            DataLoader: DataLoader for test data.
 
         Raises:
-            ValueError: If the test dataset has not been initialized.
+            ValueError: If the test dataset is not initialized or empty.
         """
         if self.test_dataset is None or len(self.test_dataset) == 0:
             self.logger.error("Test dataset not correctly initialized.")
@@ -153,34 +186,31 @@ class TabularDataloader(AbstractDataloader):
         )
 
     def fold_dataloader(self, fold: int) -> tuple[DataLoader, DataLoader]:
-        """Get the DataLoader for the training and validation datasets for a given fold.
+        """
+        Get DataLoaders for training and validation data for a specific cross-validation fold.
 
         Args:
             fold (int): The fold index.
 
         Returns:
-            tuple[DataLoader, DataLoader]: DataLoader for training and validation data.
+            tuple[DataLoader, DataLoader]: DataLoaders for training and validation.
 
         Raises:
-            ValueError: If the training dataset has not been initialized.
+            ValueError: If cross-validation is not enabled or fold indices are uninitialized.
         """
         if not self.properties.train.cross_validation:
             raise ValueError("Cross-validation not enabled.")
-
         if fold >= self.properties.train.cross_validation_folds:
             raise ValueError(
                 f"Fold index {fold} out of range for {self.properties.train.cross_validation_folds}-fold cross-validation."
             )
-
         if self.train_val_indices is None:
             self.logger.error("Fold indices not correctly initialized.")
             raise ValueError("Fold indices not correctly initialized.")
 
         train_idx, val_idx = self.train_val_indices[fold]
-
         train_dataset = Subset(self.train_dataset, train_idx)
         val_dataset = Subset(self.train_dataset, val_idx)
-
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.batch_size,
@@ -195,67 +225,88 @@ class TabularDataloader(AbstractDataloader):
             shuffle=False,
             num_workers=self.num_workers,
         )
-
         return train_loader, val_loader
 
     def __initialize_cross_validation(self) -> None:
-        """Initialize the cross-validation folds if enabled."""
+        """
+        Initialize cross-validation folds if enabled.
+
+        Uses the method specified in configuration (kfold, stratifiedkfold, or groupkfold)
+        to split the training dataset into folds.
+        """
         if self.properties.train.cross_validation:
-            cross_validation_method = self.properties.train.cross_validation_method
+            method = self.properties.train.cross_validation_method
             num_folds = self.properties.train.cross_validation_folds
             self.logger.info(
-                f"Cross-validation enabled: splitting training data into {num_folds} folds using {cross_validation_method}"
+                f"Cross-validation enabled: {num_folds} folds using {method}"
             )
-            if cross_validation_method == "kfold":
+            if method == "kfold":
                 splitter = KFold(
                     n_splits=num_folds, shuffle=True, random_state=self.seed
                 )
-            elif cross_validation_method == "stratifiedkfold":
+            elif method == "stratifiedkfold":
                 splitter = StratifiedKFold(
                     n_splits=num_folds, shuffle=True, random_state=self.seed
                 )
-            elif cross_validation_method == "groupkfold":
+            elif method == "groupkfold":
                 splitter = GroupKFold(n_splits=num_folds)
-
             else:
-                raise ValueError(
-                    f"Invalid cross-validation method: {cross_validation_method}"
-                )
+                raise ValueError(f"Invalid cross-validation method: {method}")
 
-            # Store the indices of the training and validation sets for each fold
             self.train_val_indices = []
             for train_idx, val_idx in splitter.split(self.train_dataset):
                 self.train_val_indices.append((train_idx, val_idx))
 
     def __split_train_val(self, train_dataset: Any) -> None:
-        """Split the training dataset into training and validation sets.
+        """
+        Split the training dataset into training and validation sets.
+
+        Uses random_split with a fixed seed to ensure reproducibility.
 
         Args:
-            train_dataset (Any): The training dataset.
+            train_dataset (Any): The training dataset to split.
         """
-        # Split the dataset into training and validation sets
-        self.train_dataset, self.val_dataset = random_split(  # type: ignore
+        self.train_dataset, self.val_dataset = random_split(
             train_dataset,
             [self.train_split, self.val_split],
             generator=torch.Generator().manual_seed(self.seed),
         )
-
         self.logger.info(
             f"Splitting train dataset: {len(self.train_dataset)} train samples, {len(self.val_dataset)} validation samples"
         )
 
     def get_feature_labels(self) -> list[str]:
-        """Get the labels of the features in the dataset."""
+        """
+        Get the feature labels of the dataset.
+
+        Returns:
+            list[str]: List of feature column names.
+        """
         return self.features
 
     def get_covariate_labels(self) -> list[str]:
-        """Get the labels of the covariates in the dataset."""
+        """
+        Get the covariate labels of the dataset.
+
+        Returns:
+            list[str]: List of covariate column names (excluding skipped covariates).
+        """
         return [item for item in self.covariates if item not in self.skipped_covariates]
 
     def get_target_labels(self) -> list[str]:
-        """Get the labels of the targets in the dataset."""
+        """
+        Get the target labels of the dataset.
+
+        Returns:
+            list[str]: List of target column names.
+        """
         return self.targets
 
     def get_skipped_data(self) -> pd.DataFrame:
-        """Get the skipped data as dataframe."""
+        """
+        Retrieve the skipped data as a DataFrame.
+
+        Returns:
+            pd.DataFrame: DataFrame containing the skipped columns.
+        """
         return self.test_dataset.get_skipped_data()

@@ -90,7 +90,7 @@ train:
   cross_validation: false
   cross_validation_folds: 10
   cross_validation_method: kfold
-  epochs: 500
+  epochs: 10
   mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10

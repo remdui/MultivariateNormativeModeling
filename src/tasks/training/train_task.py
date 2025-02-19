@@ -1,4 +1,11 @@
-"""Train the model using the configuration."""
+"""
+Train the model using the configuration.
+
+This module defines the TrainTask class which handles model training,
+including optimizer and scheduler setup, weight initialization, early stopping,
+cross-validation, mixed precision training, gradient accumulation, checkpointing,
+and reporting of training metrics.
+"""
 
 from typing import Any
 
@@ -20,10 +27,23 @@ from util.model_utils import save_model, visualize_model_arch
 
 
 class TrainTask(AbstractTask):
-    """Trainer class to train the model."""
+    """
+    TrainTask handles the training of the model based on configuration settings.
+
+    This includes:
+      - Setting up optimizer, scheduler, and automatic mixed precision (AMP).
+      - Initializing model weights and early stopping.
+      - Running training and validation loops, with support for cross-validation,
+        gradient accumulation, and checkpointing.
+    """
 
     def __init__(self, trial: optuna.Trial | None = None) -> None:
-        """Initialize the Trainer class."""
+        """
+        Initialize the TrainTask.
+
+        Args:
+            trial (optuna.Trial | None): Optional trial for hyperparameter tuning.
+        """
         super().__init__(LogManager.get_logger(__name__))
         self.logger.info("Initializing TrainTask.")
         self.__init_train_task()
@@ -31,7 +51,7 @@ class TrainTask(AbstractTask):
         self.experiment_manager.clear_output_directory()
 
     def __init_train_task(self) -> None:
-        """Setup the train task."""
+        """Set up the training task components and report enabled optimizations."""
         self.task_name = "train"
         self.experiment_manager.create_new_experiment(self.task_name)
         self.__setup_optimizer()
@@ -42,23 +62,22 @@ class TrainTask(AbstractTask):
         self.__report_enabled_optimizations()
 
     def __reinitialize_train_task(self) -> None:
-        """Reinitialize the training task."""
+        """Reinitialize components for subsequent cross-validation folds."""
         self.__setup_optimizer()
         self.__setup_scheduler()
         self.__initialize_weights()
         self.early_stopping.reset()
 
     def __setup_optimizer(self) -> None:
-        """Get the optimizer based on the configuration."""
-        # Retrieve the name of the optimizer (e.g., "adam")
-        optimizer_name = self.properties.train.optimizer
+        """
+        Initialize the optimizer based on configuration.
 
-        # Retrieve the parameters specific to the selected optimizer from optimizer_params
+        Retrieves the optimizer name and parameters, then creates an optimizer.
+        """
+        optimizer_name = self.properties.train.optimizer
         optimizer_params = self.properties.train.optimizer_params.get(
             optimizer_name, {}
         )
-
-        # Initialize the optimizer with model parameters and the unpacked optimizer parameters
         self.optimizer = get_optimizer(
             optimizer_name, self.model.parameters(), **optimizer_params
         )
@@ -67,34 +86,26 @@ class TrainTask(AbstractTask):
         )
 
     def __setup_scheduler(self) -> None:
-        """Get the scheduler based on the configuration."""
-        # Retrieve the scheduler method (e.g., "step")
-        scheduler_method = self.properties.train.scheduler
+        """
+        Initialize the learning rate scheduler based on configuration.
 
-        # Retrieve the parameters specific to the selected scheduler from scheduler_params
+        Sets up the scheduler and determines if stepping occurs per batch.
+        """
+        scheduler_method = self.properties.train.scheduler
         scheduler_params = self.properties.train.scheduler_params.get(
             scheduler_method, {}
         )
-
-        # TODO: Better integrate these settings for onecycle and cyclic schedulers
-        # scheduler_params["steps_per_epoch"] = len(self.train_dataloader)
-        # scheduler_params["epochs"] = self.properties.train.epochs
-
         self.scheduler = get_scheduler(
-            self.properties.train.scheduler,
-            self.optimizer,
-            **scheduler_params,
+            scheduler_method, self.optimizer, **scheduler_params
         )
-
-        # Determine if scheduler steps per batch
+        # Schedulers like cyclic, onecycle, or cosineannealingwarmrestarts step per batch.
         self.scheduler_step_per_batch = self.properties.train.scheduler in {
             "cyclic",
             "onecycle",
             "cosineannealingwarmrestarts",
         }
-
         self.logger.info(
-            f"Initialized scheduler {scheduler_method} with parameters: {self.scheduler.state_dict()}"  # type: ignore
+            f"Initialized scheduler {scheduler_method} with parameters: {self.scheduler.state_dict()}"
         )
         self.logger.info(f"Scheduler steps per batch: {self.scheduler_step_per_batch}")
 
@@ -103,32 +114,34 @@ class TrainTask(AbstractTask):
         self.scaler = GradScaler()
 
     def __initialize_weights(self) -> None:
-        """Weight initialization of the model.
-
-        Weight initialization improves the convergence of the model during training.
-        See this paper for more details: https://arxiv.org/abs/1704.08863
-        He initialization is commonly used for ReLU activation functions, see https://arxiv.org/pdf/1502.01852
         """
-        # Reset the model parameters
+        Initialize model weights.
+
+        Resets model parameters and applies the weight initialization method specified
+        in the configuration.
+        """
+        # Reset parameters for layers that implement reset_parameters.
         for layer in self.model.children():
             if hasattr(layer, "reset_parameters"):
                 layer.reset_parameters()
-
-        # Retrieve the weight initializer from the configuration
         weight_initializer = self.properties.model.weight_initializer
-
-        # Initialize the model weights
         initialize_weights(self.model, weight_initializer)
-
         self.logger.info(f"Initialized weights using {weight_initializer}")
 
     def __initialize_early_stopping(self) -> None:
-        """Initialize early stopping."""
+        """Initialize the early stopping mechanism."""
         self.early_stopping = EarlyStopping()
 
     def run(self) -> TaskResult:
-        """Train the model."""
-        # Initialize the training result
+        """
+        Execute the training process.
+
+        Handles standard training or cross-validation, saves the final model,
+        writes results to file, visualizes the model architecture, and finalizes the experiment.
+
+        Returns:
+            TaskResult: Object containing training metrics and loss values.
+        """
         results = TaskResult()
         epochs = self.properties.train.epochs
 
@@ -141,7 +154,7 @@ class TrainTask(AbstractTask):
         else:
             self.__run_training(epochs, results)
 
-        # Save the final model
+        # Save the final model if enabled.
         if self.properties.train.save_model:
             save_model(
                 model=self.model,
@@ -161,32 +174,29 @@ class TrainTask(AbstractTask):
     def __run_cross_validation_training(
         self, epochs: int, results: TaskResult
     ) -> TaskResult:
-        """Run cross-validation training.
+        """
+        Run cross-validation training across multiple folds.
 
         Args:
-            epochs (int): Number of epochs to train.
-            results (TaskResult): TaskResult object to store the results.
+            epochs (int): Number of epochs per fold.
+            results (TaskResult): Object to store training results.
 
         Returns:
-            TaskResult: TaskResult object with the training results.
+            TaskResult: Updated results with cross-validation metrics.
         """
         for fold in range(self.properties.train.cross_validation_folds):
             self.logger.info(
                 f"Starting fold {fold + 1} of {self.properties.train.cross_validation_folds}"
             )
-
-            # Get the training and validation dataloaders for the current fold
+            # Retrieve fold-specific dataloaders.
             train_dataloader, val_dataloader = self.dataloader.fold_dataloader(fold)
-
-            # Overwrite the dataloaders for the current fold
             self.train_dataloader = train_dataloader
             self.val_dataloader = val_dataloader
 
-            # Reinitialize the training task if not the first fold
+            # Reinitialize for folds beyond the first.
             if fold > 0:
                 self.__reinitialize_train_task()
 
-            # Run the training loop
             self.__run_training(epochs, results, fold + 1)
 
         return results
@@ -194,60 +204,59 @@ class TrainTask(AbstractTask):
     def __run_training(
         self, epochs: int, results: TaskResult, fold: int | None = None
     ) -> TaskResult:
-        """Run the training loop.
+        """
+        Run the main training loop.
 
         Args:
             epochs (int): Number of epochs to train.
-            results (TaskResult): TaskResult object to store the results.
-            fold (int | None): The fold number if using cross-validation, None otherwise.
+            results (TaskResult): Object to store training metrics.
+            fold (int | None): Fold number if using cross-validation, None otherwise.
 
         Returns:
-            TaskResult: TaskResult object with the training results.
+            TaskResult: Updated results after training.
         """
         current_learning_rate = self.scheduler.get_last_lr()[0]
-        best_val_loss = float("inf")  # Initialize with infinity
+        best_val_loss = float("inf")  # Initialize best validation loss.
 
         for epoch in range(epochs):
             self.epoch = epoch
-            self.model.train()  # Set model to training mode
-
-            # Process the training data for the current epoch
+            self.model.train()  # Set model to training mode.
             avg_loss = self.__process_training_epoch(epoch, epochs)
             avg_val_loss = self.__process_validation_epoch(epoch)
 
-            # If using Optuna, report the intermediate result
-            if self.trial is not None:
-                if epoch > 100:  # start reporting after warm-up
-                    self.trial.report(avg_val_loss, step=epoch)
-                    # If the trial should be pruned, raise an exception
-                    if self.trial.should_prune():
-                        self.logger.info(
-                            f"Trial {self.trial.number} pruned at epoch {epoch + 1} with val_loss={avg_val_loss:.4f}"
-                        )
-                        raise optuna.TrialPruned()
+            # Report intermediate results to Optuna if applicable.
+            if self.trial is not None and epoch > 50:  # Skip warm-up period.
+                self.trial.report(avg_val_loss, step=epoch)
+                if self.trial.should_prune():
+                    self.logger.info(
+                        f"Trial {self.trial.number} pruned at epoch {epoch + 1} with val_loss={avg_val_loss:.4f}"
+                    )
+                    raise optuna.TrialPruned()
 
-            # Update best model if validation loss improves
             best_val_loss = self.__update_best_model(avg_val_loss, best_val_loss)
-
-            # Store the results in the TaskResult
             self.__store_results(results, fold, avg_loss, avg_val_loss)
-
-            # Step the scheduler if not using per-batch steps
             current_learning_rate = self.__step_scheduler(
                 current_learning_rate, avg_val_loss
             )
 
-            # Early stopping check
             if self.__check_early_stopping(avg_val_loss):
                 break
 
-            # Save model checkpoint if checkpointing is enabled and interval is reached
             self.__save_checkpoint(epoch)
 
         return results
 
     def __process_training_epoch(self, epoch: int, epochs: int) -> float:
-        """Process the training data for the current epoch."""
+        """
+        Process a single training epoch.
+
+        Args:
+            epoch (int): Current epoch number.
+            epochs (int): Total number of epochs.
+
+        Returns:
+            float: Average training loss for the epoch.
+        """
         tqdm_loader = tqdm(self.train_dataloader, desc=f"Epoch {epoch + 1}/{epochs}")
         avg_loss = self.__train_epoch(tqdm_loader)
         self.logger.info(
@@ -256,7 +265,15 @@ class TrainTask(AbstractTask):
         return avg_loss
 
     def __process_validation_epoch(self, epoch: int) -> float:
-        """Process the validation data for the current epoch."""
+        """
+        Process validation over the current epoch.
+
+        Args:
+            epoch (int): Current epoch number.
+
+        Returns:
+            float: Average validation loss.
+        """
         avg_val_loss = self.__validate()
         self.logger.info(
             f"Average validation loss after epoch {epoch + 1}: {avg_val_loss:.4f}"
@@ -264,7 +281,16 @@ class TrainTask(AbstractTask):
         return avg_val_loss
 
     def __update_best_model(self, avg_val_loss: float, best_val_loss: float) -> float:
-        """Update the best model if validation loss improves."""
+        """
+        Update and save the best model if the current validation loss improves.
+
+        Args:
+            avg_val_loss (float): Current epoch's average validation loss.
+            best_val_loss (float): Best recorded validation loss so far.
+
+        Returns:
+            float: Updated best validation loss.
+        """
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             save_model(
@@ -285,7 +311,15 @@ class TrainTask(AbstractTask):
         avg_loss: float,
         avg_val_loss: float,
     ) -> None:
-        """Store the results in the TaskResult."""
+        """
+        Store the training and validation results in the TaskResult.
+
+        Args:
+            results (TaskResult): Object to store results.
+            fold (int | None): Fold number if cross-validation is used.
+            avg_loss (float): Average training loss.
+            avg_val_loss (float): Average validation loss.
+        """
         if fold is not None:
             results[f"reconstruction_loss_fold_{fold}"] = {
                 "train_loss": avg_loss,
@@ -300,31 +334,52 @@ class TrainTask(AbstractTask):
     def __step_scheduler(
         self, current_learning_rate: float, avg_val_loss: float
     ) -> float:
-        """Step the scheduler if not using per-batch steps."""
+        """
+        Step the scheduler if not configured for per-batch stepping.
+
+        Args:
+            current_learning_rate (float): Current learning rate.
+            avg_val_loss (float): Average validation loss.
+
+        Returns:
+            float: Updated learning rate.
+        """
         if not self.scheduler_step_per_batch:
             if self.properties.train.scheduler == "plateau":
                 self.scheduler.step(avg_val_loss)  # type: ignore
             else:
                 self.scheduler.step()
-
-            # Update and log the learning rate if it has changed
-            if current_learning_rate != self.scheduler.get_last_lr()[0]:
-                current_learning_rate = self.scheduler.get_last_lr()[0]
-                self.logger.info(
-                    f"Scheduler adjusted the learning rate to: {self.scheduler.get_last_lr()[0]}"
-                )
+            new_lr = self.scheduler.get_last_lr()[0]
+            if current_learning_rate != new_lr:
+                current_learning_rate = new_lr
+                self.logger.info(f"Scheduler adjusted the learning rate to: {new_lr}")
         return current_learning_rate
 
     def __check_early_stopping(self, avg_val_loss: float) -> bool:
-        """Check if early stopping condition is met."""
-        if self.properties.train.early_stopping.enabled:
-            if self.early_stopping.stop_condition_met(avg_val_loss):
-                self.logger.info("Early stopping triggered.")
-                return True
+        """
+        Check whether early stopping conditions are met.
+
+        Args:
+            avg_val_loss (float): Average validation loss.
+
+        Returns:
+            bool: True if early stopping is triggered, else False.
+        """
+        if (
+            self.properties.train.early_stopping.enabled
+            and self.early_stopping.stop_condition_met(avg_val_loss)
+        ):
+            self.logger.info("Early stopping triggered.")
+            return True
         return False
 
     def __save_checkpoint(self, epoch: int) -> None:
-        """Save model checkpoint if checkpointing is enabled and interval is reached."""
+        """
+        Save a model checkpoint if enabled and at the defined interval.
+
+        Args:
+            epoch (int): Current epoch number.
+        """
         if (
             self.properties.train.checkpoint.save_checkpoint
             and (epoch + 1) % self.properties.train.checkpoint.interval == 0
@@ -339,33 +394,48 @@ class TrainTask(AbstractTask):
             )
 
     def __train_epoch(self, tqdm_loader: tqdm) -> float:
-        """Process a batch of data."""
+        """
+        Process the training dataset for one epoch.
+
+        Args:
+            tqdm_loader (tqdm): Dataloader wrapped with a progress bar.
+
+        Returns:
+            float: Average training loss for the epoch.
+        """
         total_loss = 0.0
         total_samples = 0
 
         for step, batch in enumerate(tqdm_loader):
             batch_loss, batch_size = self.__train_batch(batch, step)
-            total_loss += batch_loss  # Accumulate the loss
-            total_samples += batch_size  # Accumulate the number of samples
+            total_loss += batch_loss
+            total_samples += batch_size
 
-            # Update the progress bar and report the average loss
+            # Update progress bar with the current average loss.
             avg_loss = total_loss / total_samples
             tqdm_loader.set_postfix(loss=f"{avg_loss:.4f}")
 
             if self.scheduler_step_per_batch:
                 self.scheduler.step()
 
-        avg_loss = total_loss / total_samples
-
-        return avg_loss
+        return total_loss / total_samples
 
     def __train_batch(self, batch: Any, step: int) -> tuple[float, int]:
-        """Perform a single training step."""
-        data, covariates = batch  # Unpack batch (features, covariates)
-        data = data.to(self.device)  # Move data to device
+        """
+        Perform a single training step on a batch.
+
+        Args:
+            batch (Any): A batch containing inputs and covariates.
+            step (int): Current step index.
+
+        Returns:
+            Tuple[float, int]: Batch loss value and number of samples in the batch.
+        """
+        data, covariates = batch  # Unpack batch data.
+        data = data.to(self.device)
         covariates = covariates.to(self.device)
 
-        # Mixed precision training support with autocast
+        # Use autocast for mixed precision if enabled.
         with autocast(
             enabled=self.properties.train.mixed_precision, device_type=self.device
         ):
@@ -377,93 +447,90 @@ class TrainTask(AbstractTask):
                 covariates=covariates,
             )
 
-        # Store original loss value before further processing
         loss_value = loss.item()
 
-        # Account for gradient accumulation by dividing the loss by the accumulation steps
+        # Account for gradient accumulation.
         if self.properties.train.gradient_accumulation:
             loss = loss / self.properties.train.gradient_accumulation_steps
 
-        # Backpropagation with mixed precision support
+        # Backpropagate using mixed precision if enabled.
         if self.properties.train.mixed_precision:
             self.__backpropagate_with_mixed_precision(loss, step)
-        # Normal backpropagation without mixed precision
         else:
             self.__backpropagate(loss, step)
 
         return loss_value, data.size(0)
 
     def __backpropagate_with_mixed_precision(self, loss: Tensor, step: int) -> None:
-        """Backpropagate the loss through the model with mixed precision support.
+        """
+        Backpropagate the loss with AMP support and gradient accumulation.
 
         Args:
-            loss (Tensor): The loss value.
-            step (int): The current step
+            loss (Tensor): The computed loss.
+            step (int): Current step index.
         """
-        self.scaler.scale(loss).backward()  # type: ignore
+        self.scaler.scale(loss).backward()
 
-        # Gradient clipping
+        # Perform gradient clipping if enabled.
         if self.properties.train.gradient_clipping:
-            # Unscales the gradients, see: https://pytorch.org/docs/main/notes/amp_examples.html#gradient-clipping
             self.scaler.unscale_(self.optimizer)
             clip_grad_norm_(
-                self.model.parameters(),
-                self.properties.train.gradient_clipping_value,
+                self.model.parameters(), self.properties.train.gradient_clipping_value
             )
 
-        # Account for gradient accumulation
         if self.properties.train.gradient_accumulation:
             if (step + 1) % self.properties.train.gradient_accumulation_steps == 0 or (
                 step + 1
             ) == len(self.train_dataloader):
-                self.scaler.step(self.optimizer)  # Update weights
-                self.scaler.update()  # Update scaler
-                self.optimizer.zero_grad()  # Reset gradients
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+                self.optimizer.zero_grad()
         else:
-            self.scaler.step(self.optimizer)  # Update weights
-            self.scaler.update()  # Update scaler
-            self.optimizer.zero_grad()  # Reset gradients
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+            self.optimizer.zero_grad()
 
     def __backpropagate(self, loss: Tensor, step: int) -> None:
-        """Backpropagate the loss through the model.
+        """
+        Backpropagate the loss without AMP.
 
         Args:
-            loss (Tensor): The loss value.
-            step (int): The current step
+            loss (Tensor): The computed loss.
+            step (int): Current step index.
         """
-        loss.backward()  # type: ignore
+        loss.backward()
 
-        # Gradient clipping
         if self.properties.train.gradient_clipping:
             clip_grad_norm_(
-                self.model.parameters(),
-                self.properties.train.gradient_clipping_value,
+                self.model.parameters(), self.properties.train.gradient_clipping_value
             )
 
-        # Account for gradient accumulation
         if self.properties.train.gradient_accumulation:
             if (step + 1) % self.properties.train.gradient_accumulation_steps == 0 or (
                 step + 1
             ) == len(self.train_dataloader):
-                self.optimizer.step()  # Update weights
-                self.optimizer.zero_grad()  # Reset gradients
+                self.optimizer.step()
+                self.optimizer.zero_grad()
         else:
-            self.optimizer.step()  # Update weights
-            self.optimizer.zero_grad()  # Reset gradients
+            self.optimizer.step()
+            self.optimizer.zero_grad()
 
     def __validate(self) -> float:
-        """Validate the model on the validation set."""
-        self.model.eval()  # Set model to evaluation mode
+        """
+        Validate the model on the validation dataset.
+
+        Returns:
+            float: The average validation loss.
+        """
+        self.model.eval()  # Set model to evaluation mode.
         total_val_loss = 0.0
         total_val_samples = 0
 
-        # Disable gradient computation in validation
         with torch.no_grad():
             for batch in self.val_dataloader:
                 data, covariates = batch
                 data = data.to(self.device)
                 covariates = covariates.to(self.device)
-                # Use autocast in validation for mixed precision
                 with autocast(
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
@@ -475,15 +542,13 @@ class TrainTask(AbstractTask):
                         current_epoch=self.epoch,
                         covariates=covariates,
                     )
-
                 total_val_loss += loss.item()
                 total_val_samples += data.size(0)
 
-        avg_val_loss = total_val_loss / total_val_samples
-        return avg_val_loss
+        return total_val_loss / total_val_samples
 
     def __report_enabled_optimizations(self) -> None:
-        """Report the enabled optimizations."""
+        """Log the optimizations enabled in the training configuration."""
         if self.properties.train.cross_validation:
             self.logger.info(
                 f"Enabled cross-validation with {self.properties.train.cross_validation_folds} folds."

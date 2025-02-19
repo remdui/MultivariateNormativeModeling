@@ -109,7 +109,9 @@ def test_save_model_without_date(mocked_torch_save, mocked_properties):
 def test_save_model_invalid_model():
     """Test save_model with an invalid model."""
     epoch = 0
-    with pytest.raises(ValueError, match="Model cannot be None."):
+    with pytest.raises(
+        TypeError, match="Expected 'model' to be an instance of nn.Module."
+    ):
         save_model(model=None, epoch=epoch)
 
 

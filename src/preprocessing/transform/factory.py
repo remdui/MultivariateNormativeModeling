@@ -13,8 +13,11 @@ from preprocessing.transform.impl.sex_filter import SexFilterTransform
 from preprocessing.transform.impl.site_filter import SiteFilterTransform
 from preprocessing.transform.impl.wave_filter import WaveFilterTransform
 
-# Mapping for available transforms, including custom and torchvision transforms
-TRANSFORM_MAPPING: dict[str, type[Any]] = {
+# Type alias for transform classes
+TransformClass = type[Transform]
+
+# Mapping for available transforms, including custom and torchvision transforms.
+_TRANSFORM_MAPPING: dict[str, TransformClass] = {
     # Custom transforms
     "NormalizationTransform": NormalizationTransform,
     "DataCleaningTransform": DataCleaningTransform,
@@ -31,12 +34,13 @@ TRANSFORM_MAPPING: dict[str, type[Any]] = {
 
 
 def get_transform(name: str, *args: Any, **kwargs: Any) -> Transform:
-    """Factory method to get a transform instance by name.
+    """
+    Factory method to get a transform instance by name.
 
     Args:
         name (str): The name of the transform.
-        *args: Additional arguments for the transform.
-        **kwargs: Additional parameters for the transform.
+        *args: Positional arguments passed to the transform's constructor.
+        **kwargs: Keyword arguments passed to the transform's constructor.
 
     Returns:
         Transform: An instance of the requested transform.
@@ -44,7 +48,7 @@ def get_transform(name: str, *args: Any, **kwargs: Any) -> Transform:
     Raises:
         ValueError: If the transform name is not found in the mapping.
     """
-    transform_class = TRANSFORM_MAPPING.get(name)
-    if not transform_class:
+    transform_class = _TRANSFORM_MAPPING.get(name)
+    if transform_class is None:
         raise ValueError(f"Unknown transform: {name}")
     return transform_class(*args, **kwargs)

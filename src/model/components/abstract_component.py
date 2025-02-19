@@ -1,4 +1,9 @@
-"""Abstract base class for encoders."""
+"""Abstract base class for neural network components (e.g., encoders).
+
+This module defines AbstractComponent, which provides a common initialization
+routine for components such as encoders. It automatically sets up activation functions,
+a final activation function, and regularization (e.g., dropout) based on global configuration.
+"""
 
 from typing import Any
 
@@ -12,10 +17,26 @@ from optimization.regularizers.factory import get_regularizer
 
 
 class AbstractComponent(nn.Module):
-    """Base class for encoders."""
+    """
+    Abstract base class for neural network components.
+
+    This class handles common setup tasks:
+      - Initializes an activation function and a final activation function using configuration settings.
+      - Sets up regularization (e.g., dropout) if specified.
+      - Provides a helper to create normalization layers.
+
+    Subclasses must implement the forward() method.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize the encoder."""
+        """
+        Initialize the AbstractComponent.
+
+        Retrieves model configuration from a global Properties instance and sets up:
+          - Activation function (self.activation_function)
+          - Final activation function (self.final_activation_function)
+          - Regularization (self.dropout)
+        """
         super().__init__()
         self.properties = Properties.get_instance()
         self.__initialize_activation_function()
@@ -23,52 +44,63 @@ class AbstractComponent(nn.Module):
         self.__initialize_regularization()
 
     def forward(self, x: Tensor) -> Any:
-        """Forward pass of the encoder.
-
-        This method should be implemented in the child class.
         """
-        raise NotImplementedError("Forward method not implemented in BaseEncoder.")
+        Perform the forward pass.
+
+        This method must be implemented in the subclass.
+
+        Args:
+            x (Tensor): Input tensor.
+
+        Returns:
+            Any: The output of the forward pass.
+
+        Raises:
+            NotImplementedError: If the subclass does not implement the forward method.
+        """
+        raise NotImplementedError("Forward method must be implemented in subclass.")
 
     def __initialize_activation_function(self) -> None:
-        """Initialize the activation function."""
+        """
+        Initialize the main activation function.
 
-        # Retrieve the activation function type from the model components
+        Retrieves the activation function type and its parameters from the model configuration
+        and instantiates the corresponding function.
+        """
         activation_function = self.properties.model.activation_function
-
-        # Retrieve the parameters specific to the selected activation function from activation_params
         activation_function_params = (
             self.properties.model.activation_function_params.get(
                 activation_function, {}
             )
         )
-
-        # Initialize the activation function with the unpacked activation function parameters
         self.activation_function = get_activation_function(
             activation_function, **activation_function_params
         )
 
     def __initialize_final_activation_function(self) -> None:
-        """Initialize the final activation function."""
+        """
+        Initialize the final activation function.
 
-        # Retrieve the activation function type from the model components
+        Retrieves the final activation function type and parameters from configuration and
+        instantiates the corresponding function.
+        """
         final_activation_function = self.properties.model.final_activation_function
-
-        # Retrieve the parameters specific to the selected activation function from activation_params
         final_activation_function_params = (
             self.properties.model.activation_function_params.get(
                 final_activation_function, {}
             )
         )
-
-        # Initialize the activation function with the unpacked activation function parameters
         self.final_activation_function = get_activation_function(
             final_activation_function, **final_activation_function_params
         )
 
     def __initialize_regularization(self) -> None:
-        """Initialize the regularization methods."""
+        """
+        Initialize regularization for the component.
 
-        # Initialize the dropout layer if specified in the model components
+        If dropout is specified in the model configuration, initializes a dropout layer using the
+        specified dropout rate; otherwise, sets dropout to None.
+        """
         if self.properties.model.dropout:
             self.dropout = get_regularizer(
                 "dropout", p=self.properties.model.dropout_rate
@@ -77,24 +109,25 @@ class AbstractComponent(nn.Module):
             self.dropout = None
 
     def _get_normalization_layer(self, *args: Any) -> Module:
-        """Initialize the normalization layer.
+        """
+        Create and return a normalization layer.
+
+        Retrieves the normalization layer type and parameters from the model configuration,
+        and instantiates the layer using the factory function.
 
         Args:
-            *args: Additional arguments specific to the normalization layer.
-        """
-        # Retrieve the normalization layer type from the model components
-        normalization_layer_name = self.properties.model.normalization_layer
+            *args: Additional positional arguments required by the normalization layer.
 
-        # Retrieve the parameters specific to the selected normalization layer from normalization_params
+        Returns:
+            Module: An initialized normalization layer.
+        """
+        normalization_layer_name = self.properties.model.normalization_layer
         normalization_layer_params = (
             self.properties.model.normalization_layer_params.get(
                 normalization_layer_name, {}
             )
         )
-
-        # Initialize the normalization layer with the unpacked normalization layer parameters
         normalization_layer = get_normalization_layer(
             normalization_layer_name, *args, **normalization_layer_params
         )
-
         return normalization_layer
