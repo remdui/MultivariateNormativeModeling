@@ -1,6 +1,6 @@
 system:
   data_dir: ./data
-  device: cpu
+  device: cuda
   log_dir: ./logs
   models_dir: ./models
   num_workers: 4

@@ -13,7 +13,7 @@ remove_exact_duplicates <- TRUE    # If TRUE, remove rows that are exactly the s
 handle_duplicates <- FALSE         # If TRUE, make duplicate (idc, wave) combinations unique and merge duplicate groups
 
 # NEW parameters:
-outlier_feature_threshold_multiplier <- 1.5  # Multiplier for IQR threshold to flag problematic features
+outlier_feature_threshold_multiplier <- 2.698  # Multiplier for IQR threshold to flag problematic features
 exclude_outlier_features_from_count <- TRUE    # If TRUE, exclude features flagged as problematic from subject-level outlier counts
 
 # ----------------------------

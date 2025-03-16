@@ -24,24 +24,38 @@ dataset:
   row_data_leakage_columns:
   - idc
   covariates:
-  - Age
-  skipped_covariates: []
+  - age
+  - sex
+  - site
+  skipped_covariates:
+  - sex
+  - site
   targets: []
-  input_data: genr_aparc.rds
+  input_data: genr_aparc_volume_lh_rh.rds
   data_type: tabular
   image_type: grayscale
-  internal_file_format: hdf
+  internal_file_format: csv
   pin_memory: false
   shuffle: true
   test_split: 0.2
-  train_split: 0.9
-  val_split: 0.1
+  train_split: 0.8
+  val_split: 0.2
   enable_transforms: true
   transforms:
-  - name: NormalizationTransform
+  - name: EncodingTransform
     type: preprocessing
     params:
-      method: z-score
+      default: z-score
+      one_hot_encoding:
+      - site
+      binary_encoding: []
+      ordinal_encoding: []
+      embedding_layer: []
+      z-score:
+      - age
+      min-max: []
+      raw:
+      - sex
 data_analysis:
   features:
     reconstruction_mse: true
@@ -50,7 +64,7 @@ data_analysis:
     latent_space_visualization: true
     sensitivity_analysis: true
     variance_analysis: false
-    distribution_plots: false
+    distribution_plots: true
     correlation_matrix: false
     normality_test: false
     normality_test_method: shapiro
@@ -77,7 +91,7 @@ train:
   cross_validation: false
   cross_validation_folds: 10
   cross_validation_method: kfold
-  epochs: 500
+  epochs: 10
   mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
@@ -108,7 +122,13 @@ train:
       beta_start: 0.0
       beta_end: 0.5
       kl_anneal_start: 5
-      kl_anneal_end: 250
+      kl_anneal_end: 100
+    age_prior_kl:
+      reduction: sum
+      beta_start: 0.0
+      beta_end: 1.0
+      kl_anneal_start: 5
+      kl_anneal_end: 100
     l1:
       reduction: sum
     mse:
@@ -361,7 +381,7 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 5
+      latent_dim: 2
       covariate_embedding: input_feature
   hidden_layers:
   - 128

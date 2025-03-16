@@ -2,8 +2,8 @@
 # User-defined Parameters
 # ----------------------------
 id_col <- "EID"                           # Name of the identifier column
-thickness_suffix <- "_thickness"          # Suffix for thickness features
-area_suffix <- "_area"                    # Suffix for area features
+thickness_suffix <- "_thickavg"          # Suffix for thickness features
+area_suffix <- "_surfarea"                    # Suffix for area features
 dataset_prefix <- "hbn"                   # Dataset prefix (e.g., "hbn"); change as needed
 exclusion_rate <- 0.0                     # Exclusion threshold as a fraction of total features.
                                           # If set to 0.0, a fixed number of features (see exclusion_threshold) will be used.
@@ -12,12 +12,12 @@ remove_exact_duplicates <- TRUE           # If TRUE, remove rows that are exactl
 handle_duplicates <- TRUE                 # If TRUE, make duplicate IDs unique and merge duplicate groups
 
 # NEW parameters:
-outlier_feature_threshold_multiplier <- 1.5 # Multiplier for IQR threshold to flag problematic features
+outlier_feature_threshold_multiplier <- 2.698 # Multiplier for IQR threshold to flag problematic features
 exclude_outlier_features_from_count <- TRUE   # If TRUE, exclude features flagged as problematic from subject-level outlier counts
 
 # Build file names based on the dataset prefix
-thickness_file <- paste0(dataset_prefix, "_aparc_thickness.rds")
-area_file <- paste0(dataset_prefix, "_aparc_area.rds")
+thickness_file <- paste0(dataset_prefix, "_aparc_thickavg.rds")
+area_file <- paste0(dataset_prefix, "_aparc_surfarea.rds")
 
 # ----------------------------
 # STEP 1: Process Thickness Data
