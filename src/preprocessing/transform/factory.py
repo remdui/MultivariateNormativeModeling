@@ -6,8 +6,8 @@ from torchvision.transforms.v2 import Grayscale, Normalize, Transform  # type: i
 
 from preprocessing.transform.impl.age_filter import AgeFilterTransform
 from preprocessing.transform.impl.data_cleaning import DataCleaningTransform
+from preprocessing.transform.impl.encoding import EncodingTransform
 from preprocessing.transform.impl.noise import NoiseTransform
-from preprocessing.transform.impl.normalization import NormalizationTransform
 from preprocessing.transform.impl.sample_limit import SampleLimitTransform
 from preprocessing.transform.impl.sex_filter import SexFilterTransform
 from preprocessing.transform.impl.site_filter import SiteFilterTransform
@@ -19,7 +19,7 @@ TransformClass = type[Transform]
 # Mapping for available transforms, including custom and torchvision transforms.
 _TRANSFORM_MAPPING: dict[str, TransformClass] = {
     # Custom transforms
-    "NormalizationTransform": NormalizationTransform,
+    "EncodingTransform": EncodingTransform,
     "DataCleaningTransform": DataCleaningTransform,
     "NoiseTransform": NoiseTransform,
     "SiteFilterTransform": SiteFilterTransform,

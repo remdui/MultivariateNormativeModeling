@@ -5,17 +5,13 @@ It can drop rows with missing values (NaNs) and remove duplicate rows while pres
 original order.
 """
 
-from typing import Any
-
-import torch
-from torch import Tensor
-from torchvision.transforms.v2 import Transform  # type: ignore
+import pandas as pd
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
 
 
-class DataCleaningTransform(Transform):
+class DataCleaningTransform:
     """
     Transform for cleaning data.
 
@@ -31,13 +27,12 @@ class DataCleaningTransform(Transform):
             drop_na (bool): If True, drop rows that contain any NaN values.
             remove_duplicates (bool): If True, remove duplicate rows, keeping the first occurrence.
         """
-        super().__init__()
         self.logger = LogManager.get_logger(__name__)
         self.properties = Properties.get_instance()
         self.drop_na = drop_na
         self.remove_duplicates = remove_duplicates
 
-    def __call__(self, data: Tensor) -> Tensor:
+    def __call__(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Apply data cleaning transformations.
 
@@ -46,45 +41,27 @@ class DataCleaningTransform(Transform):
           2. Removes duplicate rows while preserving the order of the first occurrences.
 
         Args:
-            data (Tensor): Input tensor with shape [num_rows, num_features].
+            data (pd.DataFrame): Input dataframe.
 
         Returns:
-            Tensor: Cleaned data tensor.
+            pd.DataFrame: Cleaned dataframe.
         """
         self.logger.info("Cleaning data")
-        initial_row_count = data.size(0)
+        initial_row_count = len(data)
 
         # Drop rows with any NaN values if enabled.
         if self.drop_na:
-            na_mask = ~torch.isnan(data).any(dim=1)
-            data = data[na_mask]
-            dropped_na_count = initial_row_count - data.size(0)
+            data = data.dropna()
+            dropped_na_count = initial_row_count - len(data)
             self.logger.info(f"Dropped {dropped_na_count} rows due to NaNs.")
 
         # Remove duplicate rows if enabled.
         if self.remove_duplicates:
-            prev_data_count = data.size(0)
-            _, unique_indices = torch.unique(data, dim=0, return_inverse=True)
-            _, first_occurrence_indices = torch.sort(unique_indices, stable=True)
-            data = data[first_occurrence_indices]
-            dropped_duplicate_count = prev_data_count - data.size(0)
+            prev_data_count = len(data)
+            data = data.drop_duplicates(keep="first")
+            dropped_duplicate_count = prev_data_count - len(data)
             self.logger.info(
                 f"Dropped {dropped_duplicate_count} duplicate rows while preserving order."
             )
 
         return data
-
-    def _transform(self, inpt: Any, params: dict[str, Any]) -> Any:
-        """
-        Internal method to apply the sample limit transformation.
-
-        This method is called by the underlying transformation framework to apply the transform.
-
-        Args:
-            inpt (Any): Input data to be normalized.
-            params (dict[str, Any]): Additional parameters (unused).
-
-        Returns:
-            Any: The normalized data.
-        """
-        return self(inpt)

@@ -5,18 +5,15 @@ min-max range of each feature. Supported noise distributions are 'normal' (Gauss
 and 'uniform'. For reproducibility, the Gaussian noise is generated using a seeded generator.
 """
 
-from typing import Any
-
-import torch
-from torch import Tensor
-from torchvision.transforms.v2 import Transform  # type: ignore
+import numpy as np
+import pandas as pd
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from util.errors import UnsupportedNoiseDistributionError
 
 
-class NoiseTransform(Transform):
+class NoiseTransform:
     """
     Transform that adds noise to data with a specified distribution and clips the output.
 
@@ -38,54 +35,47 @@ class NoiseTransform(Transform):
             std (float): Standard deviation of the Gaussian noise (used if distribution is 'normal').
             distribution (str): Type of noise to add. Supported values: 'normal', 'uniform'.
         """
-        super().__init__()
         self.logger = LogManager.get_logger(__name__)
         self.properties = Properties.get_instance()
         self.mean = mean
         self.std = std
         self.distribution = distribution
 
-    def __call__(self, data: Tensor) -> Tensor:
+    def __call__(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Add noise to the input data and clip the result to the original data range.
 
         Args:
-            data (Tensor): Input tensor to which noise will be added.
+            data (pd.DataFrame): Input dataframe to which noise will be added.
 
         Returns:
-            Tensor: Noisy data tensor, with values clipped to the original min and max per feature.
+            pd.DataFrame: Noisy dataframe, with values clipped to the original min and max per feature.
 
         Raises:
             UnsupportedNoiseDistributionError: If the specified noise distribution is unsupported.
         """
         # Compute per-feature min and max for later clipping.
-        data_min, _ = data.min(dim=0, keepdim=True)
-        data_max, _ = data.max(dim=0, keepdim=True)
+        data_min = data.min()
+        data_max = data.max()
 
         if self.distribution == "normal":
             self.logger.info(
                 f"Adding Gaussian noise sampled from N({self.mean}, {self.std})"
             )
-            # Use a generator with a fixed seed for reproducibility.
-            generator = torch.Generator(device=data.device).manual_seed(
-                self.properties.general.seed
-            )
-            noise = torch.normal(
-                mean=self.mean,
-                std=self.std,
-                size=data.size(),
-                device=data.device,
-                generator=generator,
-            )
+
+            # Use a fixed seed for reproducibility.
+            np.random.seed(self.properties.general.seed)
+            noise = np.random.normal(loc=self.mean, scale=self.std, size=data.shape)
+
             noisy_data = data + noise
 
         elif self.distribution == "uniform":
             self.logger.info("Adding uniform noise")
+
             # Generate uniform noise scaled to the range of the input data.
-            noise = (
-                torch.rand_like(data) * (data_max - data_min)
-                - (data_max - data_min) / 2
-            )
+            range_values = data_max - data_min
+            noise = (np.random.rand(*data.shape) * range_values) - (range_values / 2)
+
             noisy_data = data + noise
 
         else:
@@ -94,20 +84,6 @@ class NoiseTransform(Transform):
             )
 
         # Clip the noisy data to the original per-feature min and max values.
-        noisy_data = torch.clamp(noisy_data, data_min, data_max)
-        return noisy_data
+        noisy_data = np.clip(noisy_data, data_min, data_max)
 
-    def _transform(self, inpt: Any, params: dict[str, Any]) -> Any:
-        """
-        Internal method to apply the sample limit transformation.
-
-        This method is called by the underlying transformation framework to apply the transform.
-
-        Args:
-            inpt (Any): Input data to be normalized.
-            params (dict[str, Any]): Additional parameters (unused).
-
-        Returns:
-            Any: The normalized data.
-        """
-        return self(inpt)
+        return pd.DataFrame(noisy_data, index=data.index, columns=data.columns)

@@ -10,7 +10,6 @@ test sets with optional grouping to avoid data leakage.
 import os
 
 import pandas as pd
-import torch
 from sklearn.model_selection import train_test_split  # type: ignore
 
 from entities.log_manager import LogManager
@@ -48,13 +47,8 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
             self.logger.error(f"Invalid data file: {input_data}")
             raise ValueError(f"Invalid data file: {input_data}")
 
-        # Derive test file name by appending '_test' to the base filename.
-        base_name, ext = input_data.split(".", 1)
-        test_input_data = f"{base_name}_test.{ext}"
-
         # Set full input paths.
         self.train_input_path = os.path.join(data_dir, input_data)
-        self.test_input_path = os.path.join(data_dir, test_input_data)
 
         # Set full output paths for processed data.
         self.train_output_path = get_processed_file_path(data_dir, input_data, "train")
@@ -72,14 +66,9 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
 
         # Process training data.
         self.__load_and_convert_data(str(self.train_input_path), self.train_output_path)
+        self.__split_train_test()
         self.__apply_transforms(self.train_output_path)
-
-        # Process test data if available; otherwise, perform train/test split.
-        if os.path.exists(self.test_input_path):
-            self.__load_and_convert_data(self.test_input_path, self.test_output_path)
-            self.__apply_transforms(self.test_output_path)
-        else:
-            self.__split_train_test()
+        self.__apply_transforms(self.test_output_path)
 
     def __load_and_convert_data(self, input_path: str, output_path: str) -> None:
         """
@@ -124,6 +113,7 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
             return
 
         self.logger.info("Applying data preprocessing methods")
+
         # 1. Load the processed data.
         data = load_data(data_path)
 
@@ -132,51 +122,29 @@ class TabularPreprocessingPipeline(AbstractPreprocessingPipeline):
         skipped_data = data[skipped_columns].copy()
         numeric_data = data.drop(columns=skipped_columns)
 
-        # 3. Preserve original indices for alignment.
-        numeric_indices = numeric_data.index
-
-        # 4. Convert numeric data to a tensor.
-        device = self.properties.system.device
-        data_tensor = torch.tensor(
-            numeric_data.values, dtype=torch.float32, device=device
-        )
-
-        # 5. Apply each transform and drop rows with NaN values immediately.
+        # 3. Apply each transform and drop rows with NaN values immediately.
         for transform in self.transforms:
             self.logger.info(f"Applying transform: {transform.__class__.__name__}")
-            data_tensor = transform(data_tensor)
-            nan_mask = torch.isnan(data_tensor).any(dim=1)
-            num_bad_rows = nan_mask.sum().item()
+
+            numeric_data = transform(numeric_data)
+
+            # Identify and remove rows containing NaN values.
+            nan_mask = numeric_data.isna().any(axis=1)
+            num_bad_rows = nan_mask.sum()
 
             if num_bad_rows > 0:
                 self.logger.warning(
                     f"Found {num_bad_rows} rows with NaN values after {transform.__class__.__name__}. Dropping these rows."
                 )
-                # Identify indices of rows with NaNs.
-                bad_index_positions = nan_mask.nonzero(as_tuple=True)[0]
-                bad_indices = numeric_indices[bad_index_positions.cpu().numpy()]
+                numeric_data = numeric_data[~nan_mask]
+                skipped_data = skipped_data.loc[
+                    numeric_data.index
+                ]  # Align skipped data
 
-                # Remove rows with NaNs.
-                keep_mask = ~nan_mask
-                data_tensor = data_tensor[keep_mask]
-                numeric_indices = numeric_indices[keep_mask.cpu().numpy()]
-                skipped_data.drop(index=bad_indices, inplace=True)
+        # 4. Merge skipped columns back in, aligning by index.
+        transformed_data = numeric_data.join(skipped_data, how="left")
 
-        # 6. Convert the cleaned tensor back to a DataFrame.
-        transformed_numeric_data = pd.DataFrame(
-            data_tensor.cpu().numpy(),
-            index=numeric_indices,
-            columns=numeric_data.columns,
-        )
-
-        # 7. Merge skipped columns back in, aligning by index.
-        transformed_data = transformed_numeric_data.join(skipped_data, how="left")
-        expected_order = list(skipped_data.columns) + list(
-            transformed_numeric_data.columns
-        )
-        transformed_data = transformed_data[expected_order]
-
-        # 8. Save the final cleaned data.
+        # 5. Save the final cleaned data.
         save_data(transformed_data, data_path)
         self.logger.info(
             f"Preprocessing steps applied to data and saved to {data_path}"

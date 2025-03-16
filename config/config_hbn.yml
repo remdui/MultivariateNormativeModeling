@@ -23,14 +23,14 @@ dataset:
   row_data_leakage_columns:
   - EID
   covariates:
-  - Age
+  - age
   - site
-  - Sex
+  - sex
   skipped_covariates:
   - site
-  - Sex
+  - sex
   targets: []
-  input_data: hbn_aparc_volume.rds
+  input_data: hbn_aparc_vol_lh_rh.rds
   data_type: tabular
   image_type: grayscale
   internal_file_format: csv
@@ -45,16 +45,26 @@ dataset:
     type: preprocessing
     params:
       selected_site: 2
-      col_id: 2
-#  - name: SampleLimitTransform
-#    type: preprocessing
-#    params:
-#      max_samples: 1000
-#      shuffle: false
-  - name: NormalizationTransform
+      col_name: site
+  - name: SampleLimitTransform
     type: preprocessing
     params:
-      method: z-score
+      max_samples: 1000
+      shuffle: false
+  - name: EncodingTransform
+    type: preprocessing
+    params:
+      default: z-score
+      one_hot_encoding:
+      - site
+      binary_encoding: []
+      ordinal_encoding: []
+      embedding_layer: []
+      z-score:
+      - age
+      min-max: []
+      raw:
+      - sex
 data_analysis:
   features:
     reconstruction_mse: true
@@ -108,7 +118,7 @@ train:
     metric: loss
     min_delta: 0.001
     patience: 100
-  loss_function: age_prior_kl
+  loss_function: mse_vae
   loss_function_params:
     bce_vae:
       reduction: sum
@@ -380,8 +390,8 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 5
-      covariate_embedding: age_prior_embedding
+      latent_dim: 2
+      covariate_embedding: input_feature
   hidden_layers:
   - 128
   - 64

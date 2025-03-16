@@ -167,8 +167,6 @@ Datasets must be provided in the `data` directory.
 This project supports the following data types:
 - **Tabular data** in the following formats: `csv`, `rds`.
 
-  If a test split is provided, the test split name must be suffixed with `_test` (e.g., `dataset.rds` and `dataset_test.rds`).
-
 - **Image data** in the following formats: `jpg`, `jpeg`, `png`, `bmp`, `tiff`.
   Images should be placed in a directory with the same name as the dataset file (e.g., `dataset/<image_name>.jpg`). If a test split is provided, the test split directory must be named `test` (e.g., `dataset/test/<image_name>.jpg`).
 

@@ -37,7 +37,7 @@ class TabularDataset(AbstractDataset):
 
         # Retrieve configuration for skipped and covariate columns.
         self.skipped_columns = self.properties.dataset.skipped_columns or []
-        self.all_covariates = self.properties.dataset.covariates
+        self.covariates = self.properties.dataset.covariates
         self.skipped_covariates = self.properties.dataset.skipped_covariates
 
         if self.skipped_columns:
@@ -49,24 +49,54 @@ class TabularDataset(AbstractDataset):
         # Remove skipped columns from main data.
         self.data.drop(columns=self.skipped_columns, inplace=True)
 
-        # Ensure that all specified covariate columns exist.
-        missing_covariates = set(self.all_covariates) - set(self.data.columns)
-        if missing_covariates:
-            raise ValueError(
-                f"Covariate columns not found in dataset: {missing_covariates}"
-            )
+        # Handle missing covariates due to one-hot encoding
+        self.covariates = self._adjust_for_one_hot_encoding(self.covariates)
+        self.skipped_covariates = self._adjust_for_one_hot_encoding(
+            self.skipped_covariates
+        )
 
         # Identify feature columns as those not in covariates.
-        self.features = [
-            col for col in self.data.columns if col not in self.all_covariates
-        ]
+        self.features = [col for col in self.data.columns if col not in self.covariates]
         self.covariates = [
-            col for col in self.all_covariates if col not in self.skipped_covariates
+            col for col in self.covariates if col not in self.skipped_covariates
         ]
 
         self.logger.debug(f"Features: {self.features}")
         self.logger.debug(f"Covariates: {self.covariates}")
         self.logger.debug(f"Skipped Columns: {self.skipped_columns}")
+
+    def _adjust_for_one_hot_encoding(self, features: list) -> list:
+        """
+        Adjust feature names to account for one-hot encoding.
+
+        If a feature is missing from `self.data.columns`, check if it exists as one-hot encoded
+        columns (prefix-based match). If found, replace the original feature name with its
+        corresponding one-hot encoded feature names.
+
+        Returns:
+            List[str]: Updated list of features.
+        """
+        updated_features = []
+        for feature in features:
+            if feature in self.data.columns:
+                # exists as-is, keep it
+                updated_features.append(feature)
+            else:
+                # Check for one-hot encoded versions
+                one_hot_features = [
+                    col for col in self.data.columns if col.startswith(f"{feature}_")
+                ]
+                if one_hot_features:
+                    self.logger.info(
+                        f"Replacing feature '{feature}' with one-hot encoded features: {one_hot_features}"
+                    )
+                    updated_features.extend(one_hot_features)
+                else:
+                    self.logger.warning(
+                        f"Feature '{feature}' not found in dataset and no one-hot encoded features detected."
+                    )
+
+        return updated_features
 
     def __len__(self) -> int:
         """
@@ -89,10 +119,8 @@ class TabularDataset(AbstractDataset):
             (shape [num_features]) and the second is the covariates tensor (shape [num_covariates]).
         """
         row = self.data.iloc[idx]
-        # Extract features and covariates based on column names.
         features_series: pd.Series = row[self.features]
         covariates_series: pd.Series = row[self.covariates]
-        # Convert to torch.float32 tensors.
         features = torch.tensor(features_series.to_numpy(), dtype=torch.float32)
         covariates = torch.tensor(covariates_series.to_numpy(), dtype=torch.float32)
         return features, covariates

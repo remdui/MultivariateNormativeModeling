@@ -298,7 +298,7 @@ class ValidateTask(AbstractTask):
             # PCA and t-SNE projections with different parameters.
             for method in ("pca", "tsne"):
                 for n_components in (2, 3):
-                    for color in ("Age", "Sex"):
+                    for color in ("age", "sex"):
                         engine.plot_latent_projection(
                             method=method,
                             n_components=n_components,
