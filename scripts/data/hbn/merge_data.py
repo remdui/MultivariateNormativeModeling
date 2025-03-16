@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 from itertools import combinations
 
 import numpy as np
@@ -22,13 +23,12 @@ DATASET_PREFIX = "hbn"  # Dataset prefix (e.g., "hbn")
 ID_FIELD = "EID"  # Identifier column name
 COVARIATE_COLUMNS = [ID_FIELD, "Age", "Sex", "site"]
 
-# Toggle QC filtering on or off
-ENABLE_QC = True  # Set to False to disable QC filtering
+ENABLE_QC = True
 
 # Keywords used to identify measure-related columns
-AREA_KEY = "area"
-VOLUME_KEY = "volume"
-THICKNESS_KEY = "thickness"
+AREA_KEY = "surfarea"  # was "area"
+VOLUME_KEY = "vol"  # was "volume"
+THICKNESS_KEY = "thickavg"  # was "thickness"
 
 # Keys for hemisphere columns
 LH_KEY = "lh_"
@@ -42,8 +42,61 @@ CORE_FILE = f"core_{DATASET_PREFIX}.rds"
 QC_FILE = f"{DATASET_PREFIX}_qc.rds"
 
 # Features to exclude (if any)
-APARC_EXCLUDE_FEATURES = []
-ASEG_EXCLUDE_FEATURES = []
+APARC_EXCLUDE_FEATURES = [
+    "lh_MeanThickness_thickness",
+    "rh_MeanThickness_thickness",
+    "lh_WhiteSurfArea_area",
+    "rh_WhiteSurfArea_area",
+]
+
+# ASEG Features that are available in the GENR dataset
+INCLUDED_ASEG_FEATURES = {
+    "Brain_Stem",
+    "CC_Anterior",
+    "CC_Central",
+    "CC_Mid_Anterior",
+    "CC_Mid_Posterior",
+    "CC_Posterior",
+    "CSF",
+    "Fifth_Ventricle",
+    "Fourth_Ventricle",
+    "Left_Accumbens_area",
+    "Left_Amygdala",
+    "Left_Caudate",
+    "Left_Cerebellum_Cortex",
+    "Left_Cerebellum_White_Matter",
+    "Left_choroid_plexus",
+    "Left_Hippocampus",
+    "Left_Inf_Lat_Vent",
+    "Left_Lateral_Ventricle",
+    "Left_non_WM_hypointensities",
+    "Left_Pallidum",
+    "Left_Putamen",
+    "Left_Thalamus_Proper",
+    "Left_VentralDC",
+    "Left_vessel",
+    "Left_WM_hypointensities",
+    "non_WM_hypointensities",
+    "Optic_Chiasm",
+    "Right_Accumbens_area",
+    "Right_Amygdala",
+    "Right_Caudate",
+    "Right_Cerebellum_Cortex",
+    "Right_Cerebellum_White_Matter",
+    "Right_choroid_plexus",
+    "Right_Hippocampus",
+    "Right_Inf_Lat_Vent",
+    "Right_Lateral_Ventricle",
+    "Right_non_WM_hypointensities",
+    "Right_Pallidum",
+    "Right_Putamen",
+    "Right_Thalamus_Proper",
+    "Right_VentralDC",
+    "Right_vessel",
+    "Right_WM_hypointensities",
+    "Third_Ventricle",
+    "WM_hypointensities",
+}
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -56,31 +109,109 @@ def load_core_data(file_path):
     """Load the core data file and process the covariates."""
     core_data = pyreadr.read_r(file_path)[None]
     covariates = core_data[COVARIATE_COLUMNS]
-    covariates["Age"] = covariates["Age"].astype(np.float64)
-    covariates["Sex"] = covariates["Sex"].astype(np.float64)
+
+    # Rename columns to lowercase
+    covariates.columns = [
+        col if col == ID_FIELD else col.lower() for col in covariates.columns
+    ]
+
+    # Convert types using the new lowercase names
+    covariates["age"] = covariates["age"].astype(np.float64)
+    covariates["sex"] = covariates["sex"].astype(np.float64)
     covariates["site"] = covariates["site"].astype(np.float64)
+
     logging.info(
         f"Core data loaded with {covariates.shape[0]} rows and columns: {list(covariates.columns)}"
     )
+
     return covariates
+
+
+def rename_suffixes(df):
+    """
+    Rename the suffixes of the columns:
+
+      - _area      -> _surfarea
+      - _volume    -> _vol
+      - _thickness -> _thickavg
+    Also converts column names to lowercase for consistency.
+    """
+    new_columns = {}
+    for col in df.columns:
+        new_col = re.sub(r"_area$", "_surfarea", col)
+        new_col = re.sub(r"_volume$", "_vol", new_col)
+        new_col = re.sub(r"_thickness$", "_thickavg", new_col)
+        new_columns[col] = new_col
+    df.rename(columns=new_columns, inplace=True)
+    return df
+
+
+def process_aseg_feature_names(df):
+    """
+    Processes a list of feature names by:
+
+      1. Replacing dots ('.') with underscores ('_').
+      2. Renaming:
+           - "X3rd.Ventricle" -> "Third_Ventricle"
+           - "X4th.Ventricle" -> "Fourth_Ventricle"
+           - "X5th.Ventricle" -> "Fifth_Ventricle"
+      3. Filtering to only keep allowed features.
+
+    Parameters:
+        df (pd.DataFrame): Input DataFrame with raw column names.
+
+    Returns:
+        List of processed feature names that are in the allowed subset.
+    """
+    # Create a mapping from the original column names to the new names
+    mapping = {}
+    for col in df.columns:
+        # Replace dots with underscores
+        new_col = col.replace(".", "_")
+
+        # Rename specific ventricle columns if applicable
+        if new_col == "X3rd_Ventricle":
+            new_col = "Third_Ventricle"
+        elif new_col == "X4th_Ventricle":
+            new_col = "Fourth_Ventricle"
+        elif new_col == "X5th_Ventricle":
+            new_col = "Fifth_Ventricle"
+
+        mapping[col] = new_col
+
+    # Rename the DataFrame's columns using the mapping
+    df_renamed = df.rename(columns=mapping)
+
+    # Define the special columns that should always be kept
+    special_keep = {"row_id"}.union(COVARIATE_COLUMNS)
+
+    # Combine allowed features with the special keep columns
+    allowed_set = set(INCLUDED_ASEG_FEATURES).union(special_keep)
+
+    # Filter the DataFrame to only keep columns that are in the allowed set
+    cols_to_keep = [col for col in df_renamed.columns if col in allowed_set]
+    df_filtered = df_renamed[cols_to_keep]
+
+    return df_filtered
 
 
 def load_and_process_files(file_list, is_aseg=False):
     """Load and process the FreeSurfer output files."""
     processed_data = []
-    exclude_features = ASEG_EXCLUDE_FEATURES if is_aseg else APARC_EXCLUDE_FEATURES
     for file_path in file_list:
         data = pyreadr.read_r(file_path)[None]
         if is_aseg:
+            data = process_aseg_feature_names(data)
             data.rename(
                 columns=lambda col: col[:-4] if col.endswith("_vol") else col,
                 inplace=True,
             )
         data = data.drop(
-            columns=[col for col in exclude_features if col in data.columns],
+            columns=[col for col in APARC_EXCLUDE_FEATURES if col in data.columns],
             errors="ignore",
         )
         data = data.astype(np.float64, errors="ignore")
+        data = rename_suffixes(data)
         processed_data.append(data)
     combined_data = pd.concat(processed_data, ignore_index=True).dropna()
     return combined_data

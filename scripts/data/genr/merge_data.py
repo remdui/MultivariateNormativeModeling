@@ -35,6 +35,8 @@ ASEG_FILES = [
 ]
 CORE_FILE = "genr_mri_core_data_20231204.rds"
 
+CORE_SEX_FILE = "genr_sex.rds"
+
 # QC file: must contain columns "idc", "wave", "exclude", and "duplicate_removed"
 QC_FILE = "genr_qc.rds"
 
@@ -42,8 +44,7 @@ QC_FILE = "genr_qc.rds"
 APARC_EXCLUDE_FEATURES = ["lh_MeanThickness", "rh_MeanThickness"]
 ASEG_EXCLUDE_FEATURES = []
 
-# Toggle QC filtering on or off (QC filtering is now applied after merging)
-ENABLE_QC = True  # Set to False to disable QC filtering
+ENABLE_QC = False
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -73,6 +74,9 @@ def apply_qc_filter(merged_df, qc_data):
       - Removes duplicate rows (by idc and wave) flagged with duplicate_removed == 1 (keeping the first occurrence).
       - Drops the QC columns before returning.
     """
+    if not ENABLE_QC:
+        return merged_df
+
     qc_data["idc"] = qc_data["idc"].astype(np.float64)
     qc_data["wave"] = qc_data["wave"].astype(np.float64)
     qc_data["exclude"] = qc_data["exclude"].astype(np.int32)
@@ -117,9 +121,15 @@ def apply_qc_filter(merged_df, qc_data):
 # ----------------------------
 # Function Definitions (Imaging Data Processing)
 # ----------------------------
-def load_core_data(file_path):
-    """Load the core data file and process the covariates."""
-    core_data = pyreadr.read_r(file_path)[None]
+def load_core_data():
+    """Load the core data file, process the covariates, and merge sex information.
+
+    Returns:
+        pd.DataFrame: Merged DataFrame with covariates and sex information.
+    """
+    # Load core data
+    core_data = pyreadr.read_r(CORE_FILE)[None]
+
     # Melt age columns from wide to long format.
     covariates = core_data[
         ["idc", "age_child_mri_f05", "age_child_mri_f09", "age_child_mri_f13"]
@@ -127,17 +137,28 @@ def load_core_data(file_path):
     covariates = pd.melt(
         covariates, id_vars=["idc"], var_name="wave", value_name="age"
     ).dropna()
+
     # Map wave labels (last three characters) to numeric values and cast columns to float.
     covariates["wave"] = covariates["wave"].str[-3:].map(WAVE_MAPPING)
     covariates["age"] = covariates["age"].astype(np.float64)
     covariates["wave"] = covariates["wave"].astype(np.float64)
+
+    # Load the sex data and ensure the column names are lowercase.
+    sex_data = pyreadr.read_r(CORE_SEX_FILE)[None]
+
+    # Merge sex data into covariates on the "idc" column.
+    covariates = covariates.merge(sex_data, on="idc", how="left")
+
+    # Add a new covariate "site" with value 0 for all rows.
+    covariates["site"] = 0
+
     logging.info(
         f"Core data loaded with {covariates.shape[0]} rows and columns: {list(covariates.columns)}"
     )
     return covariates
 
 
-def load_and_process_files(file_list, wave_mapping, is_aseg=False):
+def load_and_process_files(file_list, is_aseg=False):
     """Load and process the FreeSurfer output files."""
     processed_data = []
     exclude_features = ASEG_EXCLUDE_FEATURES if is_aseg else APARC_EXCLUDE_FEATURES
@@ -163,7 +184,7 @@ def load_and_process_files(file_list, wave_mapping, is_aseg=False):
             [
                 data,
                 pd.DataFrame(
-                    {"wave": [wave_mapping[wave_label]] * len(data)}, index=data.index
+                    {"wave": [WAVE_MAPPING[wave_label]] * len(data)}, index=data.index
                 ),
             ],
             axis=1,
@@ -363,9 +384,9 @@ def process_and_save_with_combined(
 def main():
     """Main function to load, merge, and process the data with QC filtering applied after covariate merging."""
     # Load core, aparc, and aseg data.
-    covariates = load_core_data(CORE_FILE)
-    aparc_data = load_and_process_files(APARC_FILES, WAVE_MAPPING)
-    aseg_data = load_and_process_files(ASEG_FILES, WAVE_MAPPING, is_aseg=True)
+    covariates = load_core_data()
+    aparc_data = load_and_process_files(APARC_FILES)
+    aseg_data = load_and_process_files(ASEG_FILES, is_aseg=True)
 
     logging.info(
         f"Initial counts: covariates: {covariates.shape[0]}, aparc: {aparc_data.shape[0]}, aseg: {aseg_data.shape[0]}"
@@ -384,6 +405,7 @@ def main():
     process_and_save_with_combined(
         aparc_data, aseg_data, full_data, covariates, qc_data, OUTPUT_DIR
     )
+
     create_subsets(aparc_data, OUTPUT_DIR, "aparc", covariates, qc_data)
     create_subsets(full_data, OUTPUT_DIR, "full", covariates, qc_data)
 

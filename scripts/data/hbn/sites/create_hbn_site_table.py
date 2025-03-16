@@ -7,7 +7,12 @@ import pyreadr
 def create_rds_file():
     """Merge text files containing subject IDS into site table."""
     # Define the mapping of sites and file names
-    site_files = {0: "SI.txt", 1: "RUBIC.txt", 2: "CBIC.txt", 3: "CUNY.txt"}
+    site_files = {
+        1: "RUBIC.txt",
+        2: "CBIC.txt",
+        3: "CUNY.txt",
+        4: "SI.txt",
+    }
 
     # Initialize an empty DataFrame to store all the data
     all_data = pd.DataFrame(columns=["EID", "site"])

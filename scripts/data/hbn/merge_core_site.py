@@ -11,13 +11,16 @@ def merge_core_site():
     # Load hbn_sites.rds
     site_data = pyreadr.read_r("hbn_sites.rds")[None]
 
-    # Ensure both DataFrames have the correct columns
+    # Ensure both DataFrames have the required columns
     if (
         "EID" not in core_data.columns
         or "EID" not in site_data.columns
         or "site" not in site_data.columns
     ):
         raise ValueError("Missing required columns in the input RDS files.")
+
+    # Drop existing 'site' column in core_data if it exists
+    core_data = core_data.drop(columns=["site"], errors="ignore")
 
     # Merge the dataframes, using left join to keep all rows in core_data
     merged_data = core_data.merge(site_data, on="EID", how="left")
