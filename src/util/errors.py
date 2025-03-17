@@ -13,10 +13,6 @@ class UnsupportedNormalizationMethodError(ValueError):
     """Exception raised when an unsupported normalization method is provided."""
 
 
-class UnsupportedNoiseDistributionError(ValueError):
-    """Exception raised when an unsupported noise distribution is specified."""
-
-
 class NoDataToSaveError(Exception):
     """Exception raised when no data is available to save after conversion."""
 

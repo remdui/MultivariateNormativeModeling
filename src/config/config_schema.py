@@ -119,11 +119,6 @@ class DatasetConfig(BaseModel):
     enable_transforms: bool = True
     transforms: list[TransformConfig] = [
         TransformConfig(
-            name="NoiseTransform",
-            type="preprocessing",
-            params={"mean": 0.0, "std": 0.05, "distribution": "normal"},
-        ),
-        TransformConfig(
             name="DataCleaningTransform",
             type="preprocessing",
             params={"drop_na": True, "remove_duplicates": True},

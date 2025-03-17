@@ -1,11 +1,14 @@
 """Module for data encoding transforms."""
 
+import json
+import os
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from entities.log_manager import LogManager
+from entities.properties import Properties
 from util.errors import UnsupportedNormalizationMethodError
 
 
@@ -16,7 +19,7 @@ class EncodingTransform:
     This transform applies different feature encoding methods based on the configuration.
     """
 
-    train_stats: dict[str, dict[str, pd.Series]] = {}
+    train_stats: dict[str, dict[str, dict[str, float]]] = {}
 
     def __init__(self, **kwargs: Any) -> None:
         """
@@ -41,9 +44,30 @@ class EncodingTransform:
             "raw": kwargs.get("raw", []),
         }
 
+    @staticmethod
+    def save_stats_to_file() -> None:
+        """Save train statistics (mean, std, min, max) to a JSON file."""
+        properties = Properties.get_instance()
+        output_dir = os.path.join(properties.system.output_dir, "preprocessing")
+        file_path = os.path.join(output_dir, "normalization_stats.json")
+
+        # Ensure output directory exists
+        os.makedirs(output_dir, exist_ok=True)
+
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(EncodingTransform.train_stats, f, indent=4)
+            LogManager.get_logger(__name__).info(
+                f"Normalization stats saved to {file_path}"
+            )
+        except OSError as e:
+            LogManager.get_logger(__name__).error(
+                f"Failed to save normalization stats: {e}"
+            )
+
     def _get_or_compute_stats(
         self, method: str, feature: str, data: pd.DataFrame
-    ) -> Any:
+    ) -> dict[str, float]:
         """
         Retrieve stored train statistics for a feature, or compute and store them if missing.
 
@@ -116,7 +140,6 @@ class EncodingTransform:
                     stats = self._get_or_compute_stats(
                         method, feature, transformed_data
                     )
-
                     if method == "z-score":
                         transformed_data[feature] = (
                             transformed_data[feature] - stats["mean"]
