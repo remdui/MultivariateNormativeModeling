@@ -74,3 +74,43 @@ class NormalizationReader:
 
         self.logger.info("Inverse transformation applied to model outputs.")
         return real_values
+
+    def transform_to_z_score(
+        self, real_values: np.ndarray, feature_names: list
+    ) -> np.ndarray:
+        """
+        Convert real values to Z-scores using stored mean and std from the training set.
+
+        Args:
+            real_values (np.ndarray): The raw feature values to be transformed.
+            feature_names (list): The corresponding feature names.
+
+        Returns:
+            np.ndarray: Z-score normalized values.
+        """
+        z_scores = np.zeros_like(real_values, dtype=np.float32)  # Ensure float32 output
+
+        for i, feature in enumerate(feature_names):
+            if feature in self.normalization_stats.get("z-score", {}):
+                mean = float(
+                    self.normalization_stats["z-score"][feature]["mean"]
+                )  # Ensure float
+                std = float(
+                    self.normalization_stats["z-score"][feature]["std"]
+                )  # Ensure float
+                std = std if std > 1e-8 else 1e-8  # Prevent division by zero
+
+                z_scores[:, i] = (
+                    real_values[:, i] - mean
+                ) / std  # Ensure float division
+
+                self.logger.info(
+                    f"Feature '{feature}' is encoded: mean={mean:.6f}, std={std:.6f}, Z-score={z_scores[:, i]}"
+                )
+            else:
+                self.logger.warning(
+                    f"Feature '{feature}' missing from normalization stats. Using raw values."
+                )
+                z_scores[:, i] = real_values[:, i]  # Leave unnormalized if missing
+
+        return z_scores

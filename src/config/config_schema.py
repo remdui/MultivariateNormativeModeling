@@ -127,7 +127,7 @@ class DatasetConfig(BaseModel):
             name="EncodingTransform",
             type="preprocessing",
             params={
-                "default": "z_score",
+                "default": "z-score",
                 "one_hot_encoding": ["site", "sex"],
                 "binary_encoding": [],
                 "ordinal_encoding": [],
