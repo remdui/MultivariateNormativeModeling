@@ -16,6 +16,7 @@ from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
 from analysis.metrics.mse import compute_mse
 from analysis.metrics.r2 import compute_r2_score
 from entities.log_manager import LogManager
+from tasks.task_result import TaskResult
 from util.file_utils import (
     get_internal_file_extension,
     get_processed_file_path,
@@ -67,6 +68,47 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         self.recon_df: pd.DataFrame = pd.DataFrame()
         self.latent_test_df: pd.DataFrame = pd.DataFrame()
         self.latent_train_df: pd.DataFrame = pd.DataFrame()
+
+    def run_analysis(self) -> TaskResult:
+        results = TaskResult()
+
+        # Compute metrics based on configuration.
+        if self.properties.data_analysis.features.reconstruction_mse:
+            results["recon_mse"] = self.calculate_reconstruction_mse()
+
+        if self.properties.data_analysis.features.reconstruction_r2:
+            results["recon_r2"] = self.calculate_reconstruction_r2()
+
+        if self.properties.data_analysis.features.outlier_detection:
+            results["outlier_detection"] = self.detect_outliers()
+
+        if self.properties.data_analysis.features.latent_space_analysis:
+            results["summary_latent_space"] = self.summarize_latent_space()
+
+        # Identify extreme latent outliers.
+        results["latent_outliers"] = self.find_extreme_outliers_in_latent(top_k=1)
+
+        # Generate visualizations if enabled.
+        if self.properties.data_analysis.features.distribution_plots:
+            self.plot_feature_distributions()
+
+        if self.properties.data_analysis.features.latent_space_visualization:
+            self.plot_latent_distributions(split="train")
+            self.plot_latent_distributions(split="test")
+            # PCA and t-SNE projections with different parameters.
+            for method in ("pca", "tsne"):
+                for n_components in (2, 3):
+                    for color in ("age", "sex"):
+                        self.plot_latent_projection(
+                            method=method,
+                            n_components=n_components,
+                            color_covariate=color,
+                        )
+            self.plot_latent_pairplot()
+            self.plot_sampled_latent_distributions(n=5)
+            self.plot_kl_divergence_per_latent_dim()
+
+        return results
 
     def initialize_engine(self, *args: Any, **kwargs: Any) -> None:
         """Initialize tabular exploration pipeline."""

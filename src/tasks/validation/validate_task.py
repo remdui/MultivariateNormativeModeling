@@ -261,8 +261,6 @@ class ValidateTask(AbstractTask):
         Returns:
             TaskResult: An object containing analysis results.
         """
-        results = TaskResult()
-
         # Create and initialize the analysis engine.
         data_type = self.properties.dataset.data_type
         engine = create_analysis_engine(data_type)
@@ -272,41 +270,7 @@ class ValidateTask(AbstractTask):
             target_labels=self.dataloader.get_target_labels(),
         )
 
-        # Compute metrics based on configuration.
-        if self.properties.data_analysis.features.reconstruction_mse:
-            results["recon_mse"] = engine.calculate_reconstruction_mse()
-
-        if self.properties.data_analysis.features.reconstruction_r2:
-            results["recon_r2"] = engine.calculate_reconstruction_r2()
-
-        if self.properties.data_analysis.features.outlier_detection:
-            results["outlier_detection"] = engine.detect_outliers()
-
-        if self.properties.data_analysis.features.latent_space_analysis:
-            results["summary_latent_space"] = engine.summarize_latent_space()
-
-        # Identify extreme latent outliers.
-        results["latent_outliers"] = engine.find_extreme_outliers_in_latent(top_k=1)
-
-        # Generate visualizations if enabled.
-        if self.properties.data_analysis.features.distribution_plots:
-            engine.plot_feature_distributions()
-
-        if self.properties.data_analysis.features.latent_space_visualization:
-            engine.plot_latent_distributions(split="train")
-            engine.plot_latent_distributions(split="test")
-            # PCA and t-SNE projections with different parameters.
-            for method in ("pca", "tsne"):
-                for n_components in (2, 3):
-                    for color in ("age", "sex"):
-                        engine.plot_latent_projection(
-                            method=method,
-                            n_components=n_components,
-                            color_covariate=color,
-                        )
-            engine.plot_latent_pairplot()
-            engine.plot_sampled_latent_distributions(n=5)
-            engine.plot_kl_divergence_per_latent_dim()
+        results = engine.run_analysis()
 
         return results
 

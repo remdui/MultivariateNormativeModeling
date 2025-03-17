@@ -10,6 +10,7 @@ from typing import Any
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
+from tasks.task_result import TaskResult
 
 
 class AbstractAnalysisEngine(ABC):
@@ -41,3 +42,7 @@ class AbstractAnalysisEngine(ABC):
         This may include loading data, configuring analysis parameters, or preparing
         visualization settings.
         """
+
+    @abstractmethod
+    def run_analysis(self) -> TaskResult:
+        """Run all enabled analysis methods."""

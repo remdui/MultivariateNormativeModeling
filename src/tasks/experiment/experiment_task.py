@@ -79,7 +79,7 @@ class ExperimentTask(AbstractTask):
         )
 
         # Log best trial information
-        self.logger.info("Hyperparameter tuning completed.")
+        self.logger.info("Experiments completed.")
         self.logger.info(f"Best trial parameters: {study.best_trial.params}")
         self.logger.info(f"Best trial value (val_loss): {study.best_trial.value:.4f}")
 
@@ -103,10 +103,8 @@ class ExperimentTask(AbstractTask):
         Returns:
             float: The validation loss from the training task.
         """
-        # Assign experiment parameters from structured list
         trial_id = trial.number
         embed_method, latent_dim, repetition = experiment_settings[trial_id]
-        # Clear previous outputs and set unique identifier for tracking
         self.experiment_manager.clear_output_directory()
         # self.experiment_manager.add_experiment_group_identifier(f"{trial_id}_embed-{embed_method}_dim-{latent_dim}_rep-{repetition}")
 
