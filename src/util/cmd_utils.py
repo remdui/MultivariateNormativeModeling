@@ -41,7 +41,7 @@ def parse_args() -> argparse.Namespace:
         "--mode",
         type=str,
         required=True,
-        choices=["train", "validate", "inference", "tune"],
+        choices=["train", "validate", "inference", "tune", "experiment"],
         help="Action to perform: train, validate, inference, or tune",
     )
     parser.add_argument(

@@ -719,8 +719,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             self.logger.info(
                 f"{method_label} ({n_components}D) latent projection plot saved to {plot_filepath}"
             )
-        else:
-            plt.close(fig)
+        plt.close(fig)
 
     def plot_latent_pairplot(self) -> None:
         """
@@ -763,8 +762,8 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             plot_filepath = os.path.join(output_folder, plot_filename)
             grid.fig.savefig(plot_filepath, dpi=300, bbox_inches="tight")
             self.logger.info(f"Latent z_mean pairplot saved to {plot_filepath}")
-        else:
-            plt.close(grid.fig)
+
+        plt.close(grid.fig)
 
     def find_extreme_outliers_in_latent(
         self, top_k: int = 5
@@ -916,8 +915,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
                 self.logger.info(
                     f"Sampled latent distribution plot for Participant {participant_id} saved to {plot_filepath}"
                 )
-            else:
-                plt.close()
+            plt.close()
 
     def plot_kl_divergence_per_latent_dim(self) -> None:
         """
