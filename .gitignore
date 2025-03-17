@@ -20,6 +20,7 @@ data/hbn_*.rds
 data/genr_*.rds
 data/processed/*.h5
 data/processed/*.csv
+data/processed/*.json
 output/*
 experiments/*
 
