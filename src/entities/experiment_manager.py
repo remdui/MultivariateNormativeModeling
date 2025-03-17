@@ -256,7 +256,6 @@ class ExperimentManager:
 
         for subfolder in (
             "metrics",
-            "preprocessing",
             "reconstructions",
             "visualizations",
             "model_arch",

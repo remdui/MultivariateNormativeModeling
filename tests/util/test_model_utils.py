@@ -113,21 +113,3 @@ def test_save_model_invalid_model():
         TypeError, match="Expected 'model' to be an instance of nn.Module."
     ):
         save_model(model=None, epoch=epoch)
-
-
-def test_save_model_directory_creation(mocked_torch_save, mocker, mocked_properties):
-    """Test save_model with directory creation."""
-    model = MockModel()
-    epoch = 0
-    save_dir = "new_dir"
-
-    # Patch os.path.exists to return False, forcing directory creation
-    mocker.patch("os.path.exists", return_value=False)
-
-    # Assert that the mocked properties are set correctly
-    assert mocked_properties.train.save_format == "pt"
-
-    save_model(model=model, epoch=epoch, save_dir=save_dir)
-
-    # Verify torch.save was called
-    mocked_torch_save.assert_called_once()

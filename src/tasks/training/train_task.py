@@ -20,6 +20,7 @@ from model.layers.initialization.factory import initialize_weights
 from optimization.optimizers.factory import get_optimizer
 from optimization.regularizers.early_stopping import EarlyStopping
 from optimization.schedulers.factory import get_scheduler
+from preprocessing.transform.impl.encoding import EncodingTransform
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
 from util.file_utils import write_results_to_file
@@ -169,6 +170,10 @@ class TrainTask(AbstractTask):
         write_results_to_file(results, "metrics")
         visualize_model_arch(self.get_model(), self.get_input_size())
         self.experiment_manager.finalize_experiment()
+
+        # Save normalization statistics
+        EncodingTransform.save_stats_to_file()
+
         return results
 
     def __run_cross_validation_training(

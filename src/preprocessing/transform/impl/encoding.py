@@ -48,7 +48,7 @@ class EncodingTransform:
     def save_stats_to_file() -> None:
         """Save train statistics (mean, std, min, max) to a JSON file."""
         properties = Properties.get_instance()
-        output_dir = os.path.join(properties.system.output_dir, "preprocessing")
+        output_dir = os.path.join(properties.system.data_dir, "processed")
         file_path = os.path.join(output_dir, "normalization_stats.json")
 
         # Ensure output directory exists

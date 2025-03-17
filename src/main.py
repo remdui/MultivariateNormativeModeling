@@ -8,7 +8,6 @@ from entities.experiment_manager import ExperimentManager
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from preprocessing.pipeline.factory import create_preprocessing_pipeline
-from preprocessing.transform.impl.encoding import EncodingTransform
 from tasks.experiment.experiment_task import ExperimentTask
 from tasks.inference.inference_task import InferenceTask
 from tasks.training.train_task import TrainTask
@@ -199,9 +198,6 @@ def main() -> None:
 
         logger.info(f"Executing task: {ARGS.mode}")
         run_task(task_class)
-
-        # Save normalization statistics
-        EncodingTransform.save_stats_to_file()
 
         total_runtime = time.time() - total_start_time
         logger.info(f"Application completed in {total_runtime:.2f} seconds.")
