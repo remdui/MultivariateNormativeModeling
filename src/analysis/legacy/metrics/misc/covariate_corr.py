@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 import torch
 
-from analysis.metrics.stats.pearson_r import compute_pearson_r
+from analysis.legacy.metrics.stats.pearson_r import compute_pearson_r
 
 
 def evaluate_covariates_correlation(

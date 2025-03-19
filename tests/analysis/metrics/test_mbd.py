@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from analysis.metrics.stats.mbd import compute_mbd
+from analysis.legacy.metrics.stats.mbd import compute_mbd
 
 
 @pytest.fixture(name="data_tensors")

@@ -10,8 +10,8 @@ import torch
 from sklearn.metrics import mean_squared_error, r2_score  # type: ignore
 from torch import autocast
 
-from analysis.utils.normalization_reader import NormalizationReader
 from entities.log_manager import LogManager
+from entities.normalization_reader import NormalizationReader
 from tasks.abstract_task import AbstractTask
 from tasks.task_result import TaskResult
 from util.file_utils import write_results_to_file

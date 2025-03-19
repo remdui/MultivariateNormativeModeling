@@ -3,8 +3,8 @@
 import pytest
 import torch
 
-from analysis.metrics.stats.mse import compute_mse
-from analysis.metrics.stratified_metric import compute_stratified_metric
+from analysis.legacy.metrics.stats.mse import compute_mse
+from analysis.legacy.metrics.stratified_metric import compute_stratified_metric
 
 
 @pytest.fixture(name="sample_data")

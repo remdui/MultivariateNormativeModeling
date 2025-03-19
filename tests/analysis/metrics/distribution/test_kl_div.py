@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from analysis.metrics.distribution.kl_div import compute_kl_divergence
+from analysis.legacy.metrics.distribution.kl_div import compute_kl_divergence
 
 
 @pytest.fixture(name="data_tensors")

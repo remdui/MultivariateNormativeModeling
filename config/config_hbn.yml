@@ -33,7 +33,7 @@ dataset:
   input_data: hbn_aparc_vol_lh_rh.rds
   data_type: tabular
   image_type: grayscale
-  internal_file_format: csv
+  internal_file_format: hdf
   pin_memory: false
   shuffle: true
   test_split: 0.2
@@ -118,7 +118,7 @@ train:
     metric: loss
     min_delta: 0.001
     patience: 100
-  loss_function: age_prior_kl
+  loss_function: mse_vae
   loss_function_params:
     bce_vae:
       reduction: sum
@@ -391,7 +391,7 @@ model:
       encoder: mlp
       decoder: mlp
       latent_dim: 4
-      covariate_embedding: age_prior_embedding
+      covariate_embedding: encoder_embedding
   hidden_layers:
   - 128
   - 64

@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from analysis.metrics.image.ssim import compute_ssim
+from analysis.legacy.metrics.image.ssim import compute_ssim
 
 
 @pytest.fixture(name="data_tensors")

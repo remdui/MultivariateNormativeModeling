@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from analysis.metrics.stats.evs import compute_evs
+from analysis.legacy.metrics.stats.evs import compute_evs
 
 
 @pytest.fixture(name="data_tensors")

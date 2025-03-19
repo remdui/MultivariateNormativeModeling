@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from analysis.metrics.distribution.ks_test import kolmogorov_smirnov_test
+from analysis.legacy.metrics.distribution.ks_test import kolmogorov_smirnov_test
 
 
 def test_distribution_similarity_identical():

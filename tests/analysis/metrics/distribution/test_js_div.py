@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from analysis.metrics.distribution.js_div import compute_js_divergence
+from analysis.legacy.metrics.distribution.js_div import compute_js_divergence
 
 
 @pytest.fixture(name="data_tensors")

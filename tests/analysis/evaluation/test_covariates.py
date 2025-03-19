@@ -3,9 +3,9 @@
 import pytest
 import torch
 
-from analysis.metrics.misc.covariate_corr import evaluate_covariates_correlation
-from analysis.metrics.stats.mae import compute_mae
-from analysis.metrics.stats.mse import compute_mse
+from analysis.legacy.metrics.misc.covariate_corr import evaluate_covariates_correlation
+from analysis.legacy.metrics.stats.mae import compute_mae
+from analysis.legacy.metrics.stats.mse import compute_mse
 
 
 @pytest.fixture(name="data_tensors")
