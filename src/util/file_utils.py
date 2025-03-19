@@ -12,12 +12,28 @@ import os
 import shutil
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from tasks.task_result import TaskResult
 from util.errors import UnsupportedFileFormatError
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """Json encoder for numpy objects."""
+
+    def default(self, o: Any) -> Any:
+        """Convert numpy objects to native python objects."""
+        if isinstance(o, np.integer):
+            return int(o)
+        if isinstance(o, np.floating):
+            return float(o)
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+
+        return super().default(o)
 
 
 def write_results_to_file(
@@ -46,7 +62,7 @@ def write_results_to_file(
 
     # Write data to file with indentation for readability.
     with open(filename, "w", encoding="utf-8") as f:
-        json.dump(result_data, f, indent=4)
+        json.dump(result_data, f, indent=4, cls=NumpyEncoder)
 
     logger.info(f"Results written to {filename}")
 
