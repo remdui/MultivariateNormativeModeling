@@ -3,13 +3,12 @@
 from typing import Any
 
 import numpy as np
-import torch
 
-from util.tensor_utils import get_data_as_tensor, get_latent_cols_as_tensor
+from util.numpy_utils import get_data_as_numpy, get_latent_cols_as_numpy
 
 
 def detect_outliers(engine: Any, standardized: bool = True) -> dict:
-    """Detect outliers in input and recon data."""
+    """Detect outliers in input and reconstruction data."""
     logger = engine.logger
     if not standardized:
         logger.info(
@@ -19,45 +18,45 @@ def detect_outliers(engine: Any, standardized: bool = True) -> dict:
 
     threshold = engine.properties.data_analysis.features.outlier_threshold
 
-    input_tensor = get_data_as_tensor(engine.recon_df, "orig", engine.feature_labels)
-    recon_tensor = get_data_as_tensor(engine.recon_df, "recon", engine.feature_labels)
-    z_mean_tensor = get_latent_cols_as_tensor(engine.recon_df, "z_mean_")
-    z_varlog_tensor = get_latent_cols_as_tensor(engine.recon_df, "z_logvar_")
+    input_array = get_data_as_numpy(engine.recon_df, "orig", engine.feature_labels)
+    recon_array = get_data_as_numpy(engine.recon_df, "recon", engine.feature_labels)
+    z_mean_array = get_latent_cols_as_numpy(engine.recon_df, "z_mean_")
+    z_varlog_array = get_latent_cols_as_numpy(engine.recon_df, "z_logvar_")
 
-    if input_tensor is None or recon_tensor is None:
+    if input_array is None or recon_array is None:
         logger.warning(
-            "Could not detect row-level outliers in input/recon due to missing data/tensors."
+            "Could not detect row-level outliers in input/recon due to missing data."
         )
-        row_outlier_input = torch.zeros(0, dtype=torch.bool)
-        row_outlier_recon = torch.zeros(0, dtype=torch.bool)
+        row_outlier_input = np.array([], dtype=bool)
+        row_outlier_recon = np.array([], dtype=bool)
     else:
-        row_outlier_input = (input_tensor.abs() >= threshold).any(dim=1)
-        row_outlier_recon = (recon_tensor.abs() >= threshold).any(dim=1)
+        row_outlier_input = (np.abs(input_array) >= threshold).any(axis=1)
+        row_outlier_recon = (np.abs(recon_array) >= threshold).any(axis=1)
 
-    if z_mean_tensor is not None:
-        row_outlier_latent_mean = (z_mean_tensor.abs() >= threshold).any(dim=1)
-        num_outliers_latent_mean = int(row_outlier_latent_mean.sum().item())
+    if z_mean_array is not None:
+        row_outlier_latent_mean = (np.abs(z_mean_array) >= threshold).any(axis=1)
+        num_outliers_latent_mean = int(np.sum(row_outlier_latent_mean))
     else:
         num_outliers_latent_mean = 0
 
-    if z_varlog_tensor is not None:
-        row_outlier_latent_varlog = (z_varlog_tensor.abs() >= threshold).any(dim=1)
-        num_outliers_latent_varlog = int(row_outlier_latent_varlog.sum().item())
+    if z_varlog_array is not None:
+        row_outlier_latent_varlog = (np.abs(z_varlog_array) >= threshold).any(axis=1)
+        num_outliers_latent_varlog = int(np.sum(row_outlier_latent_varlog))
     else:
         num_outliers_latent_varlog = 0
 
-    num_outliers_input = int(row_outlier_input.sum().item())
-    num_outliers_recon = int(row_outlier_recon.sum().item())
+    num_outliers_input = int(np.sum(row_outlier_input))
+    num_outliers_recon = int(np.sum(row_outlier_recon))
 
-    if len(row_outlier_input) == len(row_outlier_recon):
+    if row_outlier_input.shape[0] == row_outlier_recon.shape[0]:
         new_outlier_mask = row_outlier_recon & (~row_outlier_input)
-        num_new_outliers = int(new_outlier_mask.sum().item())
+        num_new_outliers = int(np.sum(new_outlier_mask))
     else:
         num_new_outliers = 0
 
-    if len(row_outlier_input) == len(row_outlier_recon):
+    if row_outlier_input.shape[0] == row_outlier_recon.shape[0]:
         same_outliers_mask = row_outlier_input & row_outlier_recon
-        num_same_outliers = int(same_outliers_mask.sum().item())
+        num_same_outliers = int(np.sum(same_outliers_mask))
     else:
         num_same_outliers = 0
 
@@ -65,25 +64,25 @@ def detect_outliers(engine: Any, standardized: bool = True) -> dict:
     per_feature_recon = {}
     per_feature_latent = {}
 
-    if input_tensor is not None:
+    if input_array is not None:
         for feature in engine.feature_labels:
             col_name = f"orig_{feature}"
             if col_name in engine.recon_df.columns:
                 values = engine.recon_df[col_name].values
-                outlier_mask = abs(values) >= threshold
-                num_out = np.sum(outlier_mask)
+                outlier_mask = np.abs(values) >= threshold
+                num_out = int(np.sum(outlier_mask))
                 if num_out > 0:
-                    per_feature_input[feature] = int(num_out)
+                    per_feature_input[feature] = num_out
 
-    if recon_tensor is not None:
+    if recon_array is not None:
         for feature in engine.feature_labels:
             col_name = f"recon_{feature}"
             if col_name in engine.recon_df.columns:
                 values = engine.recon_df[col_name].values
-                outlier_mask = abs(values) >= threshold
-                num_out = np.sum(outlier_mask)
+                outlier_mask = np.abs(values) >= threshold
+                num_out = int(np.sum(outlier_mask))
                 if num_out > 0:
-                    per_feature_recon[feature] = int(num_out)
+                    per_feature_recon[feature] = num_out
 
     latent_cols = [
         c
@@ -92,10 +91,10 @@ def detect_outliers(engine: Any, standardized: bool = True) -> dict:
     ]
     for col in latent_cols:
         values = engine.recon_df[col].values
-        outlier_mask = abs(values) >= threshold
-        num_out = np.sum(outlier_mask)
+        outlier_mask = np.abs(values) >= threshold
+        num_out = int(np.sum(outlier_mask))
         if num_out > 0:
-            per_feature_latent[col] = int(num_out)
+            per_feature_latent[col] = num_out
 
     return {
         "input": num_outliers_input,
