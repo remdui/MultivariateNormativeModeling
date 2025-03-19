@@ -2,7 +2,7 @@
 
 from torch import Tensor
 
-from analysis.metrics.rmse import compute_rmse
+from analysis.metrics.stats.rmse import compute_rmse
 
 
 def compute_nrmse(

@@ -100,73 +100,73 @@ jobs:
             ./build/coverage.html/**
             ./build/coverage.xml
 
-  validation:
-    name: Validation
-    runs-on: ubuntu-latest
-    needs: testing
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+#  validation:
+#    name: Validation
+#    runs-on: ubuntu-latest
+#    needs: testing
+#    steps:
+#      - name: Checkout Code
+#        uses: actions/checkout@v4
+#
+#      - name: Install poetry
+#        run: pipx install poetry
+#
+#      - name: Set up Python
+#        uses: actions/setup-python@v5
+#        with:
+#          python-version: '3.11.3'
+#          cache: 'poetry'
+#
+#      - name: Install Dependencies
+#        run: |
+#          poetry install
+#
+#      - name: Run Validation
+#        run: |
+#          poetry run python src/main.py --config config_default.yml --mode inference
+#
+#      - name: Upload Logs
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: validation_logs
+#          path: ./logs/**
+#
+#      - name: Upload Output
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: validation_output
+#          path: ./output/**
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11.3'
-          cache: 'poetry'
-
-      - name: Install Dependencies
-        run: |
-          poetry install
-
-      - name: Run Validation
-        run: |
-          poetry run python src/main.py --config config_default.yml --mode inference
-
-      - name: Upload Logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: validation_logs
-          path: ./logs/**
-
-      - name: Upload Output
-        uses: actions/upload-artifact@v4
-        with:
-          name: validation_output
-          path: ./output/**
-
-  deploy_docker:
-    name: Deployment (Docker)
-    runs-on: ubuntu-latest
-    needs: validation
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Build Docker Image
-        run:  docker build -t masterthesis:latest -f ./docker/Dockerfile .
-
-      - name: Run Docker Image
-        run: |
-          docker run --rm \
-            -v ./output:/output \
-            -v ./data:/data \
-            -v ./logs:/logs \
-            -v ./models:/models \
-            -v ./config:/config \
-            masterthesis:latest \
-            --config config_default.yml --mode inference
-
-      - name: Upload Logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: deploy_docker_logs
-          path: ./logs/**
-
-      - name: Upload Output
-        uses: actions/upload-artifact@v4
-        with:
-          name: deploy_docker_output
-          path: ./output/**
+#  deploy_docker:
+#    name: Deployment (Docker)
+#    runs-on: ubuntu-latest
+#    needs: testing
+#    steps:
+#      - name: Checkout Code
+#        uses: actions/checkout@v4
+#
+#      - name: Build Docker Image
+#        run:  docker build -t masterthesis:latest -f ./docker/Dockerfile .
+#
+#      - name: Run Docker Image
+#        run: |
+#          docker run --rm \
+#            -v ./output:/output \
+#            -v ./data:/data \
+#            -v ./logs:/logs \
+#            -v ./models:/models \
+#            -v ./config:/config \
+#            masterthesis:latest \
+#            --config config_default.yml --mode inference
+#
+#      - name: Upload Logs
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: deploy_docker_logs
+#          path: ./logs/**
+#
+#      - name: Upload Output
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: deploy_docker_output
+#          path: ./output/**

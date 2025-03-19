@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from analysis.metrics.mehalanobis import compute_mahalanobis_distance
+from analysis.metrics.stats.mehalanobis import compute_mahalanobis_distance
 
 
 @pytest.fixture(name="data_tensors")

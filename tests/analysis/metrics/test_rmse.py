@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from analysis.metrics.rmse import compute_rmse
+from analysis.metrics.stats.rmse import compute_rmse
 
 
 @pytest.fixture(name="data_tensors")

@@ -10,11 +10,12 @@ import seaborn as sns  # type: ignore
 import torch
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA  # type: ignore
+from sklearn.linear_model import LinearRegression  # type: ignore
 from sklearn.manifold import TSNE  # type: ignore
+from sklearn.metrics import mean_squared_error, r2_score  # type: ignore
+from sklearn.model_selection import train_test_split  # type: ignore
 
 from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
-from analysis.metrics.mse import compute_mse
-from analysis.metrics.r2 import compute_r2_score
 from entities.log_manager import LogManager
 from tasks.task_result import TaskResult
 from util.file_utils import (
@@ -71,7 +72,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
 
     def run_analysis(self) -> TaskResult:
         results = TaskResult()
-
+        self.evaluate_latent_covariate_regression("age")
         # Compute metrics based on configuration.
         if self.properties.data_analysis.features.reconstruction_mse:
             results["recon_mse"] = self.calculate_reconstruction_mse()
@@ -109,6 +110,83 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             self.plot_kl_divergence_per_latent_dim()
 
         return results
+
+    def evaluate_latent_covariate_regression(self, covariate: str) -> dict[str, float]:
+        """
+        Train a regression model on the latent space to predict a given covariate.
+
+        The latent space is assumed to be represented by columns starting with 'z_mean_'.
+        A high error (high MSE, low R²) indicates that the latent space is invariant to the covariate.
+
+        Returns a dictionary with regression performance metrics:
+        {
+            "mse": <mean_squared_error>,
+            "r2": <r2_score>
+        }
+        """
+        # Determine which DataFrame to use:
+        # If the covariate is in recon_df, use that; otherwise, try merging recon_df with test_df on the unique identifier.
+        if covariate in self.recon_df.columns:
+            df = self.recon_df
+        elif covariate in self.test_df.columns:
+            unique_id = self.properties.dataset.unique_identifier_column
+            if unique_id in self.recon_df.columns and unique_id in self.test_df.columns:
+                df = pd.merge(
+                    self.recon_df, self.test_df[[unique_id, covariate]], on=unique_id
+                )
+            else:
+                self.logger.error(
+                    "Unique identifier column not found in both recon_df and test_df for covariate regression."
+                )
+                return {}
+        else:
+            self.logger.error(
+                f"Covariate '{covariate}' not found in recon_df or test_df."
+            )
+            return {}
+
+        # Ensure the covariate is numeric; if not, regression is not applicable.
+        if not np.issubdtype(df[covariate].dtype, np.number):
+            self.logger.error(
+                f"Covariate '{covariate}' is not numeric. Regression cannot be performed."
+            )
+            return {}
+
+        # Extract latent features (assumed to be the ones prefixed with "z_mean_")
+        latent_cols = [
+            col for col in self.recon_df.columns if col.startswith("z_mean_")
+        ]
+        if not latent_cols:
+            self.logger.error(
+                "No latent space columns found with prefix 'z_mean_' for regression."
+            )
+            return {}
+
+        # Use the latent features as predictors and the covariate as the target.
+        X = df[latent_cols].to_numpy()
+        y = df[covariate].to_numpy()
+
+        # Split data into training and testing sets (80/20 split)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+
+        # Train a linear regression model
+        reg = LinearRegression()
+        reg.fit(X_train, y_train)
+        y_pred = reg.predict(X_test)
+
+        # Compute performance metrics
+        mse_val = mean_squared_error(y_test, y_pred)
+        r2_val = r2_score(y_test, y_pred)
+
+        self.logger.info(
+            f"Latent covariate regression for '{covariate}': MSE={mse_val:.4f}, R²={r2_val:.4f}"
+        )
+
+        # Return the metrics. In this context, a higher MSE (and lower R²) implies that the latent space is less predictive of the covariate,
+        # which is desirable when invariance to that covariate is the goal.
+        return {"mse": mse_val, "r2": r2_val}
 
     def initialize_engine(self, *args: Any, **kwargs: Any) -> None:
         """Initialize tabular exploration pipeline."""
@@ -236,7 +314,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         """
         Compute MSE between original (input) columns and reconstruction (recon) columns.
 
-        for all features at once, then return it as a float.
+        using sklearn's mean_squared_error function.
         """
         input_tensor = self._get_data_as_tensor(
             self.recon_df, "orig", self.feature_labels
@@ -249,18 +327,19 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             self.logger.warning("Unable to calculate MSE due to missing data/tensors.")
             return float("nan")
 
-        # Compute MSE via custom function
-        mse_tensor = compute_mse(input_tensor, recon_tensor, metric_type="total")
-        mse_value = float(mse_tensor)  # Convert to Python float
+        # Convert tensors to numpy arrays
+        mse_value = mean_squared_error(
+            input_tensor.cpu().numpy(), recon_tensor.cpu().numpy()
+        )
 
         self.logger.info(f"Reconstruction MSE (across all features): {mse_value:.4f}")
         return mse_value
 
     def calculate_reconstruction_r2(self) -> float:
         """
-        Compute R^2 between original (input) columns and reconstruction (recon) columns.
+        Compute R² between original (input) columns and reconstruction (recon) columns.
 
-        for all features at once, then return it as a float.
+        using sklearn's r2_score function.
         """
         input_tensor = self._get_data_as_tensor(
             self.recon_df, "orig", self.feature_labels
@@ -270,14 +349,13 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         )
 
         if input_tensor is None or recon_tensor is None:
-            self.logger.warning("Unable to calculate R^2 due to missing data/tensors.")
+            self.logger.warning("Unable to calculate R² due to missing data/tensors.")
             return float("nan")
 
-        # Compute R^2 via custom function
-        r2_tensor = compute_r2_score(input_tensor, recon_tensor, metric_type="total")
-        r2_value = float(r2_tensor)
+        # Convert tensors to numpy arrays
+        r2_value = r2_score(input_tensor.cpu().numpy(), recon_tensor.cpu().numpy())
 
-        self.logger.info(f"Reconstruction R^2 (across all features): {r2_value:.4f}")
+        self.logger.info(f"Reconstruction R² (across all features): {r2_value:.4f}")
         return r2_value
 
     def detect_outliers(self, standardized: bool = True) -> dict[str, Any]:

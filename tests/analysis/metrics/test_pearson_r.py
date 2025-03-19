@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from analysis.metrics.pearson_r import compute_pearson_r
+from analysis.metrics.stats.pearson_r import compute_pearson_r
 
 
 @pytest.fixture(name="data_tensors")

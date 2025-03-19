@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from analysis.metrics.mse import compute_mse
+from analysis.metrics.stats.mse import compute_mse
 from analysis.metrics.stratified_metric import compute_stratified_metric
 
 
