@@ -13,12 +13,14 @@ from analysis.metrics.latent_metrics import (
 )
 from analysis.metrics.reconstruction_metrics import (
     calculate_reconstruction_mse,
+    calculate_reconstruction_pearson,
     calculate_reconstruction_r2,
 )
 from analysis.outlier.outlier_detection import (
     detect_outliers,
     find_extreme_outliers_in_latent,
 )
+from analysis.summary.input_summary import summarize_input_output_features
 from analysis.summary.latent_space_summary import summarize_latent_space
 from analysis.visualization.feature_plots import plot_feature_distributions
 from analysis.visualization.latent_plots import (
@@ -128,6 +130,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         results = TaskResult()
         results["latent_regression"] = calculate_latent_regression_error(self, "age")
         results["latent_kl"] = calculate_latent_kl(self)
+        results["recon_pearson"] = calculate_reconstruction_pearson(self)
 
         if self.properties.data_analysis.features.reconstruction_mse:
             results["recon_mse"] = calculate_reconstruction_mse(self)
@@ -140,6 +143,8 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
 
         if self.properties.data_analysis.features.latent_space_analysis:
             results["summary_latent_space"] = summarize_latent_space(self)
+
+            results["summary_input_space"] = summarize_input_output_features(self)
 
         results["latent_outliers"] = find_extreme_outliers_in_latent(self, top_k=1)
 
