@@ -7,10 +7,11 @@ from typing import Any
 import pandas as pd
 
 from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
-from analysis.metrics.latent_metrics import (
-    calculate_latent_kl,
+from analysis.metrics.invarient_metrics import (
+    calculate_latent_dhsic,
     calculate_latent_regression_error,
 )
+from analysis.metrics.normative_metrics import calculate_latent_kl
 from analysis.metrics.reconstruction_metrics import (
     calculate_reconstruction_mse,
     calculate_reconstruction_pearson,
@@ -128,9 +129,12 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
 
     def run_analysis(self) -> TaskResult:
         results = TaskResult()
-        results["latent_regression"] = calculate_latent_regression_error(self, "age")
+        results["latent_regression_age"] = calculate_latent_regression_error(
+            self, "age"
+        )
         results["latent_kl"] = calculate_latent_kl(self)
         results["recon_pearson"] = calculate_reconstruction_pearson(self)
+        results["hsic_age"] = calculate_latent_dhsic(self, "age")
 
         if self.properties.data_analysis.features.reconstruction_mse:
             results["recon_mse"] = calculate_reconstruction_mse(self)
@@ -142,9 +146,12 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             results["outlier_detection"] = detect_outliers(self)
 
         if self.properties.data_analysis.features.latent_space_analysis:
-            results["summary_latent_space"] = summarize_latent_space(self)
+            results["latent_space_statistics"] = summarize_latent_space(self)
 
-            results["summary_input_space"] = summarize_input_output_features(self)
+        if self.properties.data_analysis.features.summary_statistics:
+            results["feature_summary_statistics"] = summarize_input_output_features(
+                self
+            )
 
         results["latent_outliers"] = find_extreme_outliers_in_latent(self, top_k=1)
 

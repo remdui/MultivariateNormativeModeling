@@ -28,10 +28,7 @@ class DataAnalysisFeatures(BaseModel):
     reconstruction_r2: bool = True
     latent_space_analysis: bool = False
     latent_space_visualization: bool = False
-    sensitivity_analysis: bool = False
-    variance_analysis: bool = False
     distribution_plots: bool = False
-    correlation_matrix: bool = False
     normality_test: bool = False
     normality_test_method: str = "shapiro"
     normality_threshold: float = 0.05
@@ -239,6 +236,7 @@ class ModelConfig(BaseModel):
     dropout: bool = False
     dropout_rate: float = 0.2
 
+    normalization: bool = False
     normalization_layer: str = "batchnorm1d"
     normalization_layer_params: dict[str, Any] = Field(
         default_factory=lambda: {

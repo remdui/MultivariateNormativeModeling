@@ -21,10 +21,24 @@ class MLPEncoder(BaseEncoder):
         layers: list[nn.Module] = []
         prev_dim = input_dim
         for h_dim in hidden_dims:
+            # Linear layer
             layers.append(nn.Linear(prev_dim, h_dim))
-            # Insert activation function after each linear layer.
-            layers.append(self.activation_function)
+
+            # Append normalization layer if available
+            norm_layer = self.get_normalization_layer(h_dim)
+            if norm_layer is not None:
+                layers.append(norm_layer)
+
+            # Append activation function (unique instance)
+            layers.append(self.get_activation_function())
+
+            # Append dropout (regularization) if available
+            reg_layer = self.get_regularization()
+            if reg_layer is not None:
+                layers.append(reg_layer)
+
             prev_dim = h_dim
+
         self.model = nn.Sequential(*layers)
         # Two parallel heads for computing latent mean and log-variance.
         self.fc_z_mean = nn.Linear(prev_dim, latent_dim)

@@ -62,16 +62,13 @@ data_analysis:
     reconstruction_r2: true
     latent_space_analysis: true
     latent_space_visualization: true
-    sensitivity_analysis: true
-    variance_analysis: false
     distribution_plots: true
-    correlation_matrix: false
     normality_test: false
     normality_test_method: shapiro
     normality_threshold: 0.05
     outlier_detection: true
     outlier_threshold: 3.0
-    summary_statistics: false
+    summary_statistics: true
   plots:
     save_plots: true
     show_plots: false
@@ -91,7 +88,7 @@ train:
   cross_validation: false
   cross_validation_folds: 10
   cross_validation_method: kfold
-  epochs: 10
+  epochs: 300
   mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
@@ -284,7 +281,7 @@ train:
       weight_decay: 0.0
       amsgrad: false
     adamw:
-      lr: 0.0001
+      lr: 0.001
       betas:
         - 0.9
         - 0.999
@@ -382,13 +379,14 @@ model:
       encoder: mlp
       decoder: mlp
       latent_dim: 2
-      covariate_embedding: input_feature
+      covariate_embedding: no_embedding
   hidden_layers:
   - 128
   - 64
   weight_initializer: lecun
   dropout: false
   dropout_rate: 0.2
+  normalization: true
   normalization_layer: layernorm
   normalization_layer_params:
     batchnorm1d:

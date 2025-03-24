@@ -85,10 +85,7 @@ data_analysis:
     reconstruction_r2: true
     latent_space_analysis: false
     latent_space_visualization: false
-    sensitivity_analysis: false
-    variance_analysis: false
     distribution_plots: false
-    correlation_matrix: false
     normality_test: false
     normality_test_method: shapiro
     normality_threshold: 0.05
@@ -407,6 +404,7 @@ model:
   weight_initializer: he_normal
   dropout: false
   dropout_rate: 0.2
+  normalization: false
   normalization_layer: batchnorm1d
   normalization_layer_params:
     batchnorm1d:

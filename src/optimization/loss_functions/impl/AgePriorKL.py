@@ -13,10 +13,8 @@ from torch import Tensor
 from torch.nn import functional as F
 from torch.nn.modules.loss import _WeightedLoss
 
-from model.models.util.covariates import (
-    get_embedding_technique,
-    get_enabled_covariate_count,
-)
+from model.models.covariates.factory import get_embedding_technique
+from model.models.util.covariates import get_enabled_covariate_count
 from optimization.loss_functions.util.kl_annealing import KLAnnealing
 
 

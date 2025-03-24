@@ -33,7 +33,7 @@ dataset:
   input_data: hbn_aparc_vol_lh_rh.rds
   data_type: tabular
   image_type: grayscale
-  internal_file_format: hdf
+  internal_file_format: csv
   pin_memory: false
   shuffle: true
   test_split: 0.2
@@ -71,16 +71,13 @@ data_analysis:
     reconstruction_r2: true
     latent_space_analysis: true
     latent_space_visualization: true
-    sensitivity_analysis: false
-    variance_analysis: false
     distribution_plots: true
-    correlation_matrix: false
     normality_test: false
     normality_test_method: shapiro
     normality_threshold: 0.05
     outlier_detection: true
     outlier_threshold: 3.0
-    summary_statistics: false
+    summary_statistics: true
   plots:
     save_plots: true
     show_plots: false
@@ -247,7 +244,7 @@ train:
     plateau:
       mode: min
       factor: 0.5
-      patience: 10
+      patience: 5
       threshold: 0.001
       threshold_mode: rel
       cooldown: 5
@@ -293,7 +290,7 @@ train:
       weight_decay: 0.0
       amsgrad: false
     adamw:
-      lr: 0.0001
+      lr: 0.001
       betas:
         - 0.9
         - 0.999
@@ -390,15 +387,16 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 5
-      covariate_embedding: no_embedding
+      latent_dim: 8
+      covariate_embedding: decoder_embedding
   hidden_layers:
   - 128
   - 64
-  weight_initializer: he_normal
+  weight_initializer: lecun
   dropout: false
-  dropout_rate: 0.2
-  normalization_layer: layernorm
+  dropout_rate: 0.1
+  normalization: false
+  normalization_layer: batchnorm1d
   normalization_layer_params:
     batchnorm1d:
       eps: 1.0e-05
