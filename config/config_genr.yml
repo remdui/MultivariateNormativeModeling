@@ -31,10 +31,10 @@ dataset:
   - sex
   - site
   targets: []
-  input_data: genr_aparc_volume_lh_rh.rds
+  input_data: genr_aparc_vol_lh_rh.rds
   data_type: tabular
   image_type: grayscale
-  internal_file_format: csv
+  internal_file_format: hdf
   pin_memory: false
   shuffle: true
   test_split: 0.2
@@ -46,8 +46,7 @@ dataset:
     type: preprocessing
     params:
       default: z-score
-      one_hot_encoding:
-      - site
+      one_hot_encoding: []
       binary_encoding: []
       ordinal_encoding: []
       embedding_layer: []
@@ -55,6 +54,7 @@ dataset:
       - age
       min-max: []
       raw:
+      - site
       - sex
 data_analysis:
   features:
@@ -117,7 +117,7 @@ train:
     mse_vae:
       reduction: sum
       beta_start: 0.0
-      beta_end: 0.5
+      beta_end: 1.0
       kl_anneal_start: 5
       kl_anneal_end: 100
     age_prior_kl:

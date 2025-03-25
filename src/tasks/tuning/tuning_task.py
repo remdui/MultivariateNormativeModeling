@@ -98,27 +98,28 @@ class TuningTask(AbstractTask):
         start_time = time.time()
 
         # Define fixed number of epochs for each trial.
-        epochs = 200
+        epochs = 300
 
         # Hyperparameter suggestions.
-        latent_dim = trial.suggest_categorical("latent_dim", list(range(2, 33)))
-        batch_size = trial.suggest_categorical("batch_size", [4, 8, 16, 32, 64, 128])
+        latent_dim = 5
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+
+        dropout = trial.suggest_categorical("dropout", [False, True])
+        normalization = trial.suggest_categorical("normalization", [False, True])
+
         gradient_clipping = trial.suggest_categorical(
             "gradient_clipping", [False, True]
-        )
-        gradient_clipping_value = (
-            trial.suggest_float("gradient_clipping_value", 1.0, 10.0)
-            if gradient_clipping
-            else None
         )
         optimizer = trial.suggest_categorical("optimizer", ["adam", "adamw"])
         activation_function = trial.suggest_categorical(
             "activation_function", ["silu", "relu", "leakyrelu"]
         )
         depth = trial.suggest_categorical("hidden_depth", [2, 3, 4])
-        start_size = trial.suggest_categorical("hidden_start_size", [256, 128, 64])
-        lr = trial.suggest_categorical("learning_rate", [0.01, 0.001, 0.0001])
-
+        start_size = trial.suggest_categorical(
+            "hidden_start_size", [512, 256, 128, 64, 32]
+        )
+        lr = trial.suggest_categorical("learning_rate", [0.001, 0.0001])
+        beta_end = trial.suggest_float("beta_end", 0.05, 1.0)
         # Construct hidden layers based on depth and starting size.
         hidden_layers = [start_size]
         for _ in range(depth - 1):
@@ -129,12 +130,14 @@ class TuningTask(AbstractTask):
             f"  latent_dim: {latent_dim}\n"
             f"  batch_size: {batch_size}\n"
             f"  epochs: {epochs}\n"
+            f"  dropout: {dropout}\n"
+            f"  normalization: {normalization}\n"
             f"  gradient_clipping: {gradient_clipping}\n"
-            f"  gradient_clipping_value: {gradient_clipping_value}\n"
             f"  optimizer: {optimizer}\n"
             f"  activation_function: {activation_function}\n"
             f"  hidden_layers: {hidden_layers}\n"
             f"  learning_rate: {lr}"
+            f"  beta_end: {beta_end}"
         )
 
         # Overwrite properties with suggested hyperparameters.
@@ -143,10 +146,11 @@ class TuningTask(AbstractTask):
         properties.train.batch_size = batch_size
         properties.train.epochs = epochs
         properties.train.gradient_clipping = gradient_clipping
-        if gradient_clipping_value is not None:
-            properties.train.gradient_clipping_value = gradient_clipping_value
         properties.train.optimizer = optimizer
+        properties.model.dropout = dropout
+        properties.model.normalization = normalization
         properties.model.hidden_layers = hidden_layers
+        properties.train.loss_function_params["mse_vae"]["beta_end"] = beta_end
         properties.model.activation_function = activation_function
         if optimizer == "adam":
             properties.train.optimizer_params["adam"]["lr"] = lr

@@ -1,154 +1,121 @@
 """Metrics for latent space analysis."""
 
-import time
 from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy.spatial.distance import pdist, squareform  # type: ignore
+from hyppo.d_variate import dHsic  # type: ignore
+from scipy import stats  # type: ignore
+from sklearn.cross_decomposition import CCA  # type: ignore
+from sklearn.ensemble import RandomForestRegressor  # type: ignore
+from sklearn.feature_selection import mutual_info_regression  # type: ignore
 from sklearn.linear_model import LinearRegression  # type: ignore
-from sklearn.metrics import mean_squared_error, r2_score  # type: ignore
+from sklearn.metrics import (  # type: ignore
+    accuracy_score,
+    explained_variance_score,
+    f1_score,
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+)
 from sklearn.model_selection import train_test_split  # type: ignore
+from sklearn.neural_network import MLPClassifier, MLPRegressor  # type: ignore
 
 
-def median_bandwidth(x: Any, sample_size: Any = None) -> float:
+def calculate_latent_dhsic(engine: Any, covariate: str) -> dict[str, float]:
     """
-    Compute the median heuristic bandwidth for matrix x.
+    Measure the dependence between latent space and a single covariate using dHSIC.
 
-    x: 2D numpy array (n x d)
+    Args:
+        engine (Any): The analysis engine with loaded latent and covariate data.
+        covariate (str): Covariate column name to test against latent space.
+
+    Returns:
+        dict[str, float]: Dictionary with dHSIC statistic and p-value.
     """
-    n = x.shape[0]
-    if sample_size is not None and sample_size < n:
-        indices = np.random.choice(n, size=sample_size, replace=False)
-        x_sample = x[indices]
-    else:
-        x_sample = x
-    dists = pdist(x_sample, metric="euclidean")
-    med = np.median(dists)
-    return med if med > 0 else 0.001
+    logger = engine.logger
+
+    if covariate not in engine.test_df.columns:
+        logger.error(f"Covariate '{covariate}' not found in test_df.")
+        return {}
+
+    # Get latent variables
+    latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
+    if not latent_cols:
+        logger.error("No latent space columns found with prefix 'z_mean_'.")
+        return {}
+
+    latent_data = engine.recon_df[latent_cols].to_numpy()
+
+    # Get covariate values
+    col_data = engine.test_df[covariate]
+    cov_values = col_data.to_numpy().reshape(-1, 1)
+
+    dhsic_test = dHsic()
+    stat, p_value = dhsic_test.test(latent_data, cov_values, workers=1)
+
+    logger.info(
+        f"dHSIC test for covariate '{covariate}': statistic={stat:.6f}, p-value={p_value:.6f}"
+    )
+    return {"dhsic_statistic": stat, "p_value": p_value}
 
 
-def gaussian_grammat(x: Any, bw: Any) -> Any:
+def calculate_latent_mutual_information(engine: Any, covariate: str) -> dict[str, Any]:
     """
-    Compute the Gaussian kernel (Gram) matrix for x using bandwidth bw.
+    Calculate the mutual information between the latent representation and a given covariate.
 
-    x: 2D numpy array (n x d)
+    Args:
+        engine (Any): Analysis engine instance with loaded latent and test data.
+        covariate (str): The name of the covariate to analyze (must be in test_df).
+
+    Returns:
+        dict[str, float]: Dictionary containing the mutual information for each latent dimension
+                          and the total mutual information (summed across dimensions).
     """
-    dists = squareform(pdist(x, metric="sqeuclidean"))
-    K = np.exp(-dists / (2 * bw**2))
-    return K
+    logger = engine.logger
 
+    if covariate not in engine.test_df.columns:
+        logger.error(f"Covariate '{covariate}' not found in test_df.")
+        return {}
 
-def discrete_grammat(x: Any) -> Any:
-    """
-    Compute the discrete kernel Gram matrix for x.
+    # Identify latent representation columns (expected to have prefix "z_mean_")
+    latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
+    if not latent_cols:
+        logger.error("No latent space columns found with prefix 'z_mean_'.")
+        return {}
 
-    For each pair (i,j), returns 1 if the observations are identical, else 0.
-    """
-    n = x.shape[0]
-    K = np.zeros((n, n))
-    for i in range(n):
-        for j in range(i, n):
-            val = 1 if np.array_equal(x[i], x[j]) else 0
-            K[i, j] = val
-            K[j, i] = val
-    return K
+    # Extract latent representation and covariate data
+    Z = engine.recon_df[latent_cols].to_numpy()
+    y = engine.test_df[covariate]
 
+    y = y.to_numpy()
 
-def custom_grammat(x: Any, fun: Any) -> Any:
-    """
-    Compute a Gram matrix for x using a custom kernel function.
+    # Compute mutual information for each latent dimension
+    mi = mutual_info_regression(Z, y, random_state=42)
 
-    fun should take two 1D arrays (observations) and return a scalar.
-    """
-    n = x.shape[0]
-    K = np.zeros((n, n))
-    for i in range(n):
-        for j in range(i, n):
-            val = fun(x[i], x[j])
-            K[i, j] = val
-            K[j, i] = val
-    return K
-
-
-def dhsic(
-    X: Any,
-    Y: Any,
-    kernel: Any = "gaussian",
-    bandwidth: Any = 1,
-    matrix_input: Any = False,
-) -> Any:
-    """Compute the d-variable HSIC estimator."""
-    time.time()
-
-    # If matrix_input is True, split the matrix into its columns.
-    if matrix_input:
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X must be a numpy array when matrix_input=True.")
-        X = [X[:, i].reshape(-1, 1) for i in range(X.shape[1])]
-    elif not isinstance(X, list):
-        # If Y is provided, we treat X and Y as two separate variables.
-        X = [X, Y]
-
-    # Ensure each variable is a 2D array.
-    d = len(X)
-    for j in range(d):
-        X[j] = np.atleast_2d(X[j])
-        if X[j].shape[0] < X[j].shape[1]:
-            X[j] = X[j].T
-    n = X[0].shape[0]
-
-    if n < 2 * d:
-        return {"dHSIC": 0, "time": (0, 0), "bandwidth": None}
-
-    # Ensure kernel and bandwidth are lists.
-    if isinstance(kernel, str):
-        kernel = [kernel] * d
-    if isinstance(bandwidth, (int, float)):
-        bandwidth = [bandwidth] * d
-
-    # Compute Gram matrices.
-    K_list = [None] * d
-    start_gram = time.time()
-    for j in range(d):
-        if kernel[j] == "gaussian":
-            bw = median_bandwidth(X[j])
-            bandwidth[j] = bw
-            K_list[j] = gaussian_grammat(X[j], bw)
-        elif kernel[j] == "gaussian.fixed":
-            K_list[j] = gaussian_grammat(X[j], bandwidth[j])
-        elif kernel[j] == "discrete":
-            bandwidth[j] = None
-            K_list[j] = discrete_grammat(X[j])
-        elif callable(kernel[j]):
-            K_list[j] = custom_grammat(X[j], kernel[j])
-        else:
-            raise ValueError(
-                "kernel must be 'gaussian', 'gaussian.fixed', 'discrete', or a callable"
-            )
-
-    timeGramMat = time.time() - start_gram
-
-    # Compute dHSIC statistic.
-    start_hsic = time.time()
-    term1 = np.ones((n, n))
-    term2 = 1.0
-    term3 = np.full((n,), 2.0 / n)
-
-    for j in range(d):
-        term1 *= K_list[j]
-        term2 *= np.sum(K_list[j])
-        term2 = term2 / (n**2)
-        term3 = (term3 / n) * np.sum(K_list[j], axis=0)
-    dHSIC_val = (np.sum(term1) / (n**2)) + term2 - np.sum(term3)
-    timeHSIC = time.time() - start_hsic
-
-    return {"dHSIC": dHSIC_val, "time": (timeGramMat, timeHSIC), "bandwidth": bandwidth}
+    total_mi = float(mi.sum())
+    logger.info(
+        f"Mutual information for covariate '{covariate}': total MI = {total_mi:.6f}"
+    )
+    return {"mutual_info_per_dim": list(mi), "total_mutual_info": total_mi}
 
 
 def calculate_latent_regression_error(engine: Any, covariate: str) -> dict[str, float]:
-    """Perform latent regression on the latent space and the covariate."""
+    """
+    Perform a linear regression of the covariate on the latent space (z_mean_* columns).
+
+    Returns MSE, MAE, R², and explained variance.
+
+    Args:
+        engine (Any): Analysis engine or any object containing recon_df/test_df dataframes.
+        covariate (str): Name of the covariate column.
+
+    Returns:
+        dict[str, float]: Dictionary with keys: 'mse', 'mae', 'r2', 'explained_variance'.
+    """
     logger = engine.logger
+
+    # Identify which dataframe contains the covariate; if needed, merge using a unique ID.
     if covariate in engine.recon_df.columns:
         df = engine.recon_df
     elif covariate in engine.test_df.columns:
@@ -159,24 +126,144 @@ def calculate_latent_regression_error(engine: Any, covariate: str) -> dict[str, 
             )
         else:
             logger.error(
-                "Unique identifier column not found in both recon_df and test_df for covariate regression."
+                "Unique identifier column not found in both recon_df and test_df "
+                f"for covariate '{covariate}' regression."
             )
             return {}
     else:
         logger.error(f"Covariate '{covariate}' not found in recon_df or test_df.")
         return {}
 
+    # Check if covariate is numeric
     if not pd.api.types.is_numeric_dtype(df[covariate]):
         logger.error(
             f"Covariate '{covariate}' is not numeric. Regression cannot be performed."
         )
         return {}
 
+    # Extract latent columns
     latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
     if not latent_cols:
-        logger.error(
-            "No latent space columns found with prefix 'z_mean_' for regression."
-        )
+        logger.error("No latent space columns found with prefix 'z_mean_'.")
+        return {}
+
+    # Prepare data
+    X = df[latent_cols].to_numpy()
+    y = df[covariate].to_numpy()
+
+    # Train/test split
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Fit a simple linear regression
+    reg = LinearRegression()
+    reg.fit(X_train, y_train)
+    y_pred = reg.predict(X_test)
+
+    # Compute metrics
+    mse_val = mean_squared_error(y_test, y_pred)
+    mae_val = mean_absolute_error(y_test, y_pred)
+    r2_val = r2_score(y_test, y_pred)
+    explained_var = explained_variance_score(y_test, y_pred)
+
+    # Log and return results
+    logger.info(
+        f"Latent covariate regression for '{covariate}': "
+        f"MSE={mse_val:.4f}, MAE={mae_val:.4f}, R²={r2_val:.4f}, "
+        f"ExplainedVar={explained_var:.4f}"
+    )
+
+    return {
+        "mse": mse_val,
+        "mae": mae_val,
+        "r2": r2_val,
+        "explained_variance": explained_var,
+    }
+
+
+def calculate_latent_correlation_coefficients(
+    engine: Any, covariate: str
+) -> dict[str, list[float]]:
+    """
+    Compute Pearson and Spearman correlation coefficients between each latent dimension and a given covariate.
+
+    Args:
+        engine (Any): Analysis engine instance with loaded latent and test data.
+        covariate (str): The name of the covariate (must be in test_df).
+
+    Returns:
+        dict[str, list[float]]: Dictionary with keys 'pearson' and 'spearman' mapping to lists of correlation coefficients for each latent dimension.
+    """
+    logger = engine.logger
+
+    if covariate not in engine.test_df.columns:
+        logger.error(f"Covariate '{covariate}' not found in test_df.")
+        return {}
+
+    latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
+    if not latent_cols:
+        logger.error("No latent space columns found with prefix 'z_mean_'.")
+        return {}
+
+    # Extract latent representation from recon_df and covariate values from test_df
+    X = engine.recon_df[latent_cols]
+    y = engine.test_df[covariate]
+    pearson_coeffs = []
+    spearman_coeffs = []
+
+    for col in X.columns:
+        # Compute Pearson correlation
+        pearson_corr, _ = stats.pearsonr(X[col], y)
+        pearson_coeffs.append(pearson_corr)
+
+        # Compute Spearman correlation
+        spearman_corr, _ = stats.spearmanr(X[col], y)
+        spearman_coeffs.append(spearman_corr)
+
+    logger.info(f"Pearson correlations: {pearson_coeffs}")
+    logger.info(f"Spearman correlations: {spearman_coeffs}")
+    return {"pearson": pearson_coeffs, "spearman": spearman_coeffs}
+
+
+def calculate_latent_nonlinear_regression_error(
+    engine: Any, covariate: str
+) -> dict[str, float]:
+    """
+    Perform nonlinear regression using a RandomForestRegressor to predict the covariate from the latent representation.
+
+    Evaluate the model using Mean Absolute Error (MAE), Mean Squared Error (MSE), R², and explained variance score.
+
+    Args:
+        engine (Any): Analysis engine instance with loaded latent and test data.
+        covariate (str): The name of the covariate to predict.
+
+    Returns:
+        dict[str, float]: Dictionary with 'mae', 'mse', 'r2', and 'explained_variance' scores.
+    """
+    logger = engine.logger
+
+    # Determine data source: if covariate exists in recon_df, use it directly; otherwise, merge using a unique identifier.
+    if covariate in engine.recon_df.columns:
+        df = engine.recon_df
+    elif covariate in engine.test_df.columns:
+        unique_id = engine.properties.dataset.unique_identifier_column
+        if unique_id in engine.recon_df.columns and unique_id in engine.test_df.columns:
+            df = pd.merge(
+                engine.recon_df, engine.test_df[[unique_id, covariate]], on=unique_id
+            )
+        else:
+            logger.error(
+                "Unique identifier column not found in both recon_df and test_df for regression."
+            )
+            return {}
+    else:
+        logger.error(f"Covariate '{covariate}' not found in recon_df or test_df.")
+        return {}
+
+    latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
+    if not latent_cols:
+        logger.error("No latent space columns found with prefix 'z_mean_'.")
         return {}
 
     X = df[latent_cols].to_numpy()
@@ -185,69 +272,194 @@ def calculate_latent_regression_error(engine: Any, covariate: str) -> dict[str, 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
-    reg = LinearRegression()
-    reg.fit(X_train, y_train)
-    y_pred = reg.predict(X_test)
+
+    # Nonlinear regression using RandomForestRegressor
+    model = RandomForestRegressor(random_state=42)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    mae = mean_absolute_error(y_test, y_pred)
     mse_val = mean_squared_error(y_test, y_pred)
     r2_val = r2_score(y_test, y_pred)
+    explained_var = explained_variance_score(y_test, y_pred)
+
     logger.info(
-        f"Latent covariate regression for '{covariate}': MSE={mse_val:.4f}, R²={r2_val:.4f}"
+        f"Nonlinear regression for '{covariate}': "
+        f"MAE={mae:.4f}, MSE={mse_val:.4f}, R²={r2_val:.4f}, Explained Var={explained_var:.4f}"
     )
-    return {"mse": mse_val, "r2": r2_val}
+    return {
+        "mae": mae,
+        "mse": mse_val,
+        "r2": r2_val,
+        "explained_variance": explained_var,
+    }
 
 
-def calculate_latent_dhsic(engine: Any, covariate: str) -> dict[str, float]:
+def calculate_latent_cca_single(engine: Any, covariate: str) -> dict[str, float]:
     """
-    Test nonlinear dependence between the latent representation and a single covariate.
-
-    using an alternative dHSIC implementation.
+    Perform Canonical Correlation Analysis (CCA) between the latent representation and a single covariate.
 
     Args:
         engine (Any): Analysis engine instance with loaded latent and test data.
-        covariate (str): The name of the covariate to test (must be in test_df).
+        covariate (str): The name of the covariate from test_df to analyze.
 
     Returns:
-        dict[str, float]: Dictionary with dHSIC statistic and timing information.
-                          (Note: This implementation does not compute a permutation-based p-value.)
+        dict[str, float]: Dictionary with the canonical correlation coefficient.
     """
     logger = engine.logger
 
+    # Verify that the covariate exists in test_df.
     if covariate not in engine.test_df.columns:
         logger.error(f"Covariate '{covariate}' not found in test_df.")
         return {}
 
-    # Extract latent representation (assume columns with prefix "z_mean_")
+    # Extract latent representation from recon_df (using columns starting with "z_mean_")
     latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
     if not latent_cols:
         logger.error("No latent space columns found with prefix 'z_mean_'.")
         return {}
 
-    # Use the reconstruction data for latent representation
-    Z = engine.recon_df[latent_cols].to_numpy()
+    # Get the latent data and reshape the covariate to a 2D array.
+    X = engine.recon_df[latent_cols].to_numpy()
+    Y = engine.test_df[covariate].to_numpy().reshape(-1, 1)
 
-    # Extract covariate values
-    y = engine.test_df[covariate]
-    # For categorical data, you might want to encode, but here we assume numeric
-    y = y.to_numpy().reshape(-1, 1)
+    # Set up CCA with one component since we're using one covariate.
+    cca = CCA(n_components=1)
+    X_c, Y_c = cca.fit_transform(X, Y)
 
-    # Check matching shape
-    if Z.shape[0] != y.shape[0]:
-        logger.error(
-            f"Shape mismatch: latent ({Z.shape[0]}) vs covariate '{covariate}' ({y.shape[0]})."
-        )
+    # Compute the canonical correlation between the first (and only) components.
+    corr = np.corrcoef(X_c[:, 0], Y_c[:, 0])[0, 1]
+    logger.info(f"Canonical correlation for covariate '{covariate}': {corr:.6f}")
+    return {"canonical_correlation": corr}
+
+
+def calculate_latent_adversarial_performance(
+    engine: Any,
+    covariate: str,
+    task_type: str = "regression",  # or "classification"
+    hidden_layer_sizes: tuple = (32, 32),
+    max_iter: int = 10000,
+) -> dict[str, float]:
+    """
+    Train an adversarial predictor (MLP) to predict the given covariate from.
+
+    the latent representation z_mean_*. This is useful as a measure of how
+    'covariate-invariant' the latent space truly is. If the covariate can be
+    accurately predicted, it indicates that the latent space is not invariant.
+
+    Args:
+        engine (Any): The analysis engine instance with loaded latent and test data.
+        covariate (str): The name of the covariate to predict. Can be numeric or categorical.
+        task_type (str): "regression" or "classification". Defaults to "regression".
+        hidden_layer_sizes (tuple): Sizes of hidden layers in the MLP.
+        max_iter (int): Maximum number of iterations (epochs) for training the MLP.
+
+    Returns:
+        dict[str, float]: If regression, returns MSE, MAE, R², and explained variance.
+                          If classification, returns accuracy and F1 score.
+    """
+    logger = engine.logger
+
+    # Identify where the covariate resides (recon_df or test_df), then merge if needed
+    if covariate in engine.recon_df.columns:
+        df = engine.recon_df
+    elif covariate in engine.test_df.columns:
+        unique_id = engine.properties.dataset.unique_identifier_column
+        if unique_id in engine.recon_df.columns and unique_id in engine.test_df.columns:
+            df = pd.merge(
+                engine.recon_df, engine.test_df[[unique_id, covariate]], on=unique_id
+            )
+        else:
+            logger.error(
+                f"Unique identifier column '{unique_id}' not found in both recon_df and test_df."
+            )
+            return {}
+    else:
+        logger.error(f"Covariate '{covariate}' not found in recon_df or test_df.")
         return {}
 
-    # Compute dHSIC using the alternative implementation.
-    # Here we use a Gaussian kernel with default settings.
-    result = dhsic(Z, y, kernel="gaussian", bandwidth=1, matrix_input=False)
-    stat = result["dHSIC"]
-    gram_time, hsic_time = result["time"]
-    used_bandwidth = result["bandwidth"]
+    # Extract latent space columns
+    latent_cols = [col for col in df.columns if col.startswith("z_mean_")]
+    if not latent_cols:
+        logger.error("No latent space columns found with prefix 'z_mean_'.")
+        return {}
 
-    logger.info(
-        f"Alternative dHSIC for covariate '{covariate}': "
-        f"statistic={stat:.6f}, Gram time={gram_time:.4f}s, HSIC time={hsic_time:.4f}s, "
-        f"bandwidth={used_bandwidth}"
+    X = df[latent_cols].to_numpy()
+    y = df[covariate].to_numpy()
+
+    # Split into train/test
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
     )
 
-    return {"dhsic_statistic": stat, "gram_time": gram_time, "hsic_time": hsic_time}
+    if task_type == "regression":
+        # Ensure covariate is numeric
+        if not pd.api.types.is_numeric_dtype(df[covariate]):
+            logger.error(
+                f"Covariate '{covariate}' is not numeric but task_type='regression'."
+            )
+            return {}
+
+        model = MLPRegressor(
+            hidden_layer_sizes=hidden_layer_sizes,
+            max_iter=max_iter,
+            learning_rate_init=0.0001,
+            random_state=42,
+        )
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+
+        # Compute metrics
+        mse_val = mean_squared_error(y_test, y_pred)
+        mae_val = mean_absolute_error(y_test, y_pred)
+        r2_val = r2_score(y_test, y_pred)
+        explained_var = explained_variance_score(y_test, y_pred)
+
+        logger.info(
+            f"Adversarial MLP (regression) for '{covariate}': "
+            f"MSE={mse_val:.4f}, MAE={mae_val:.4f}, R²={r2_val:.4f}, "
+            f"ExplainedVar={explained_var:.4f}"
+        )
+        return {
+            "mse": mse_val,
+            "mae": mae_val,
+            "r2": r2_val,
+            "explained_variance": explained_var,
+        }
+
+    if task_type == "classification":
+        # For classification, convert covariate to integer categories if needed
+        if pd.api.types.is_numeric_dtype(df[covariate]):
+            # If numeric but you truly want classification, you need a binarization or discretization step
+            logger.error(
+                f"Covariate '{covariate}' is numeric, but task_type='classification'. "
+                "Please discretize or encode the covariate before classification."
+            )
+            return {}
+
+        # Convert to categorical codes
+        y_train_cat = pd.Categorical(y_train).codes
+        y_test_cat = pd.Categorical(y_test).codes
+
+        model_class = MLPClassifier(
+            hidden_layer_sizes=hidden_layer_sizes,
+            max_iter=max_iter,
+            random_state=42,
+        )
+        model_class.fit(X_train, y_train_cat)
+        y_pred_cat = model_class.predict(X_test)
+
+        # Compute classification metrics
+        acc_val = accuracy_score(y_test_cat, y_pred_cat)
+        f1_val = f1_score(y_test_cat, y_pred_cat, average="weighted")
+
+        logger.info(
+            f"Adversarial MLP (classification) for '{covariate}': "
+            f"Accuracy={acc_val:.4f}, F1={f1_val:.4f}"
+        )
+        return {"accuracy": acc_val, "f1": f1_val}
+
+    logger.error(
+        f"Unknown task_type '{task_type}'. Use 'regression' or 'classification'."
+    )
+    return {}

@@ -137,7 +137,7 @@ def visualize_model_arch(model: nn.Module, input_size: int) -> None:
     # Check if GPU visualization is supported
     if gpu_supported_by_triton_compiler():
         logger.warning("Model visualization is not supported on this GPU.")
-        raise NotImplementedError("Torchview does not support JIT on all GPUs.")
+        return
 
     # Compute number of covariates (used in visualization input)
     num_covariates = len(properties.dataset.covariates) - len(

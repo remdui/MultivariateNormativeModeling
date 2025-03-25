@@ -8,7 +8,12 @@ import pandas as pd
 
 from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
 from analysis.metrics.invarient_metrics import (
+    calculate_latent_adversarial_performance,
+    calculate_latent_cca_single,
+    calculate_latent_correlation_coefficients,
     calculate_latent_dhsic,
+    calculate_latent_mutual_information,
+    calculate_latent_nonlinear_regression_error,
     calculate_latent_regression_error,
 )
 from analysis.metrics.normative_metrics import calculate_latent_kl
@@ -129,21 +134,9 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
 
     def run_analysis(self) -> TaskResult:
         results = TaskResult()
-        results["latent_regression_age"] = calculate_latent_regression_error(
-            self, "age"
-        )
-        results["latent_kl"] = calculate_latent_kl(self)
-        results["recon_pearson"] = calculate_reconstruction_pearson(self)
-        results["hsic_age"] = calculate_latent_dhsic(self, "age")
-
-        if self.properties.data_analysis.features.reconstruction_mse:
-            results["recon_mse"] = calculate_reconstruction_mse(self)
-
-        if self.properties.data_analysis.features.reconstruction_r2:
-            results["recon_r2"] = calculate_reconstruction_r2(self)
-
         if self.properties.data_analysis.features.outlier_detection:
             results["outlier_detection"] = detect_outliers(self)
+            results["latent_outliers"] = find_extreme_outliers_in_latent(self, top_k=1)
 
         if self.properties.data_analysis.features.latent_space_analysis:
             results["latent_space_statistics"] = summarize_latent_space(self)
@@ -153,7 +146,31 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
                 self
             )
 
-        results["latent_outliers"] = find_extreme_outliers_in_latent(self, top_k=1)
+        results["recon_pearson"] = calculate_reconstruction_pearson(self)
+        if self.properties.data_analysis.features.reconstruction_mse:
+            results["recon_mse"] = calculate_reconstruction_mse(self)
+
+        if self.properties.data_analysis.features.reconstruction_r2:
+            results["recon_r2"] = calculate_reconstruction_r2(self)
+
+        results["normative_kl"] = calculate_latent_kl(self)
+
+        results["invariant_regression_age"] = calculate_latent_regression_error(
+            self, "age"
+        )
+        results["invariant_nonlinear_regression_age"] = (
+            calculate_latent_nonlinear_regression_error(self, "age")
+        )
+        results["invariant_adversarial_age"] = calculate_latent_adversarial_performance(
+            self, "age"
+        )
+
+        results["invariant_hsic_age"] = calculate_latent_dhsic(self, "age")
+        results["invariant_mi_age"] = calculate_latent_mutual_information(self, "age")
+        results["invariant_cca_age"] = calculate_latent_cca_single(self, "age")
+        results["invariant_corr_coef_age"] = calculate_latent_correlation_coefficients(
+            self, "age"
+        )
 
         if self.properties.data_analysis.features.distribution_plots:
             plot_feature_distributions(self)
