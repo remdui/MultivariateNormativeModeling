@@ -12,7 +12,7 @@ package-mode = false
 python = ">=3.11.3,<3.12"
 torch = "2.5.1" # deep learning library
 pandas = "2.2.3" # data manipulation library
-numpy = "2.1.3" # numerical computing library
+numpy = "2.0.2" # numerical computing library
 scipy = "1.14.1" # scientific computing library
 scikit-learn = "1.6.0" # machine learning library
 PyYAML = "6.0.2" # YAML parser
@@ -34,7 +34,7 @@ datasets = "3.2.0" # dataset library from huggingface
 safetensors = "0.4.5" # safe tensor operations
 seaborn = "0.13.2" # data visualization library
 statsmodels = "0.14.4" # statistical models library
-#umap-learn = "0.5.7" # dimensionality reduction library
+umap-learn = "0.5.7" # dimensionality reduction library
 hdbscan = "0.8.40" # clustering library
 plotly = "5.24.1" # interactive plotting library
 tensorboard = "2.18.0" # inspection tool for deep learning
@@ -44,6 +44,7 @@ scikit-image = "0.25.0" # image processing library
 optuna = "4.1.0" # hyperparameter optimization library
 hyppo = "^0.5.1" # hyppo
 future = "1.0.0" # Comptability between python2/3
+pcntoolkit ="0.33" # PCN Toolkit Framework
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.3.1" # linting

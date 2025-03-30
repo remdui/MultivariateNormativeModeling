@@ -55,7 +55,7 @@ class TuningTask(AbstractTask):
         study = optuna.create_study(
             direction="minimize", sampler=sampler, pruner=pruner
         )
-        study.optimize(self.objective, n_trials=100)
+        study.optimize(self.objective, n_trials=200)
 
         self.logger.info("Hyperparameter tuning completed.")
         self.logger.info(f"Best trial parameters: {study.best_trial.params}")
@@ -98,11 +98,11 @@ class TuningTask(AbstractTask):
         start_time = time.time()
 
         # Define fixed number of epochs for each trial.
-        epochs = 300
+        epochs = 500
 
         # Hyperparameter suggestions.
         latent_dim = 5
-        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64])
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128])
 
         dropout = trial.suggest_categorical("dropout", [False, True])
         normalization = trial.suggest_categorical("normalization", [False, True])
@@ -119,7 +119,8 @@ class TuningTask(AbstractTask):
             "hidden_start_size", [512, 256, 128, 64, 32]
         )
         lr = trial.suggest_categorical("learning_rate", [0.001, 0.0001])
-        beta_end = trial.suggest_float("beta_end", 0.05, 1.0)
+        beta_end = 1.0
+
         # Construct hidden layers based on depth and starting size.
         hidden_layers = [start_size]
         for _ in range(depth - 1):

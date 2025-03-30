@@ -230,13 +230,13 @@ class TrainTask(AbstractTask):
             avg_val_loss = self.__process_validation_epoch(epoch)
 
             # Report intermediate results to Optuna if applicable.
-            if self.trial is not None and epoch > 50:  # Skip warm-up period.
-                self.trial.report(avg_val_loss, step=epoch)
-                if self.trial.should_prune():
-                    self.logger.info(
-                        f"Trial {self.trial.number} pruned at epoch {epoch + 1} with val_loss={avg_val_loss:.4f}"
-                    )
-                    raise optuna.TrialPruned()
+            # if self.trial is not None and epoch > 50:  # Skip warm-up period.
+            #     self.trial.report(avg_val_loss, step=epoch)
+            #     if self.trial.should_prune():
+            #         self.logger.info(
+            #             f"Trial {self.trial.number} pruned at epoch {epoch + 1} with val_loss={avg_val_loss:.4f}"
+            #         )
+            #         raise optuna.TrialPruned()
 
             best_val_loss = self.__update_best_model(avg_val_loss, best_val_loss)
             self.__store_results(results, fold, avg_loss, avg_val_loss)
