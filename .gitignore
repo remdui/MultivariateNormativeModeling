@@ -23,6 +23,8 @@ data/processed/*.csv
 data/processed/*.json
 output/*
 experiments/*
+*.pkl
+*.csv
 
 # Jupyter Notebooks checkpoints
 .ipynb_checkpoints/

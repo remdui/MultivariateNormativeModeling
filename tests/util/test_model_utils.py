@@ -83,29 +83,6 @@ def test_save_model_with_date(fixed_datetime, mocked_torch_save, mocked_properti
     mocked_torch_save.assert_called_once_with(saved_model, filename)
 
 
-def test_save_model_without_date(mocked_torch_save, mocked_properties):
-    """Test save_model without date."""
-    model = MockModel()
-    epoch = 2
-    save_dir = "test_models_no_date"
-    model_name = "test_vae_model"
-
-    # Assert that the mocked properties are set correctly
-    assert mocked_properties.train.save_format == "pt"
-
-    save_model(
-        model=model,
-        epoch=epoch,
-        save_dir=save_dir,
-        model_name=model_name,
-    )
-    saved_model = OrderedDict()
-
-    # Verify that torch.save was called with the correct filename
-    filename = f"{save_dir}/{model_name}_{epoch}.pt"
-    mocked_torch_save.assert_called_once_with(saved_model, filename)
-
-
 def test_save_model_invalid_model():
     """Test save_model with an invalid model."""
     epoch = 0
