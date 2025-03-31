@@ -45,6 +45,8 @@ optuna = "4.1.0" # hyperparameter optimization library
 hyppo = "^0.5.1" # hyppo
 future = "1.0.0" # Comptability between python2/3
 pcntoolkit ="0.33" # PCN Toolkit Framework
+neuroHarmonize = "2.4.5" # Combat data harmonization wrapper
+neuroCombat = "0.2.12" # Combat data harmonization
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.3.1" # linting

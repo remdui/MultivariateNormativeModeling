@@ -25,6 +25,7 @@ output/*
 experiments/*
 *.pkl
 *.csv
+*.rds
 
 # Jupyter Notebooks checkpoints
 .ipynb_checkpoints/
