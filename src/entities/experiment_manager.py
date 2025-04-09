@@ -1,4 +1,5 @@
-"""Experiment Manager.
+"""
+Experiment Manager.
 
 This module defines the ExperimentManager singleton, which is responsible for managing
 experiment directories and handling input/output artifacts such as configuration files,
@@ -35,6 +36,7 @@ class ExperimentManager:
         """Initialize the ExperimentManager instance."""
         self.config_path = ""
         self._experiment_path: str | None = None
+        self._group_identifier: str | None = None  # New attribute for group prefix
         self.logger = LogManager.get_logger(__name__)
         self.properties = Properties.get_instance()
 
@@ -71,9 +73,11 @@ class ExperimentManager:
 
     def create_new_experiment(self, task_name: str) -> None:
         """
-        Create a new experiment directory under './experiments'.
+        Create a new experiment directory under './experiments' or './experiments/<group_identifier>'.
 
         The directory name is constructed using the model name, task name, and current timestamp.
+        If a group identifier is set, the experiment folder is created inside the group folder.
+        Otherwise, it is created directly under the base experiments folder.
 
         Args:
             task_name (str): Identifier for the current task.
@@ -81,38 +85,48 @@ class ExperimentManager:
         base_path = "./experiments"
         os.makedirs(base_path, exist_ok=True)
 
+        # Determine the parent directory based on group identifier.
+        if self._group_identifier is not None:
+            group_path = os.path.join(base_path, self._group_identifier)
+            os.makedirs(group_path, exist_ok=True)
+        else:
+            group_path = base_path
+
         timestamp = time.strftime("%d-%m-%Y_%H-%M-%S")
         model_name = self.properties.model_name
         folder_name = f"{model_name}_{task_name}_{timestamp}"
-        new_path = os.path.join(base_path, folder_name)
+        new_path = os.path.join(group_path, folder_name)
 
-        if new_path != self._experiment_path:
-            os.makedirs(new_path, exist_ok=True)
-            create_experiment_directory(new_path)
-            self._experiment_path = new_path
-            self.logger.info(f"Experiment directory created: {self._experiment_path}")
+        os.makedirs(new_path, exist_ok=True)
+        create_experiment_directory(new_path)
+        self._experiment_path = new_path
+        self.logger.info(f"Experiment directory created: {self._experiment_path}")
 
-    def add_experiment_group_identifier(self, suffix: str) -> None:
+    def create_experiment_group_identifier(self, group: str) -> None:
         """
-        Append a suffix to the current experiment path.
+        Set the experiment group identifier, which will be used to store subsequent experiments.
 
-        Creates the new directory if it does not exist and updates the internal experiment path.
+        under a subfolder in the base experiments directory.
 
         Args:
-            suffix (str): Suffix to append to the experiment path.
-
-        Raises:
-            ValueError: If the experiment path is not set.
+            group (str): The group identifier to use (becomes the name of the intermediate subfolder).
         """
-        if not self._experiment_path:
-            raise ValueError(
-                "Experiment path not set. Call create_new_experiment() first."
+        self._group_identifier = group
+        self.logger.info(
+            f"Experiment group identifier set to: {self._group_identifier}"
+        )
+
+    def clear_experiment_group_identifier(self) -> None:
+        """
+        Clear the current experiment group identifier.
+
+        After this call, new experiments are created directly under the base experiments folder.
+        """
+        if self._group_identifier is not None:
+            self.logger.info(
+                f"Clearing experiment group identifier: {self._group_identifier}"
             )
-        new_path = f"{self._experiment_path}_{suffix}"
-        if new_path != self._experiment_path:
-            os.makedirs(new_path, exist_ok=True)
-            self._experiment_path = new_path
-            self.logger.info(f"Experiment path updated to: {self._experiment_path}")
+        self._group_identifier = None
 
     def get_experiment_path(self) -> str:
         """

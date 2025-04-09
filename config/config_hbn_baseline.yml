@@ -97,7 +97,7 @@ train:
   cross_validation: false
   cross_validation_folds: 10
   cross_validation_method: kfold
-  epochs: 300
+  epochs: 1000
   mixed_precision: false
   gradient_accumulation: false
   gradient_accumulation_steps: 10
@@ -126,7 +126,7 @@ train:
     mse_vae:
       reduction: sum
       beta_start: 0.0
-      beta_end: 0.4
+      beta_end: 0.5
       kl_anneal_start: 5
       kl_anneal_end: 100
     age_prior_kl:
@@ -244,7 +244,7 @@ train:
     plateau:
       mode: min
       factor: 0.5
-      patience: 10
+      patience: 20
       threshold: 0.001
       threshold_mode: rel
       cooldown: 5
@@ -290,7 +290,7 @@ train:
       weight_decay: 0.0
       amsgrad: false
     adamw:
-      lr: 0.0001
+      lr: 0.001
       betas:
         - 0.9
         - 0.999
@@ -387,8 +387,8 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 5
-      covariate_embedding: decoder_embedding
+      latent_dim: 1
+      covariate_embedding: no_embedding
   hidden_layers:
   - 128
   - 64

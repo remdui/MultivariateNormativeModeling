@@ -9,9 +9,12 @@ This module defines the ExperimentTask class which:
   - Uses Optuna to track trials, ensuring structured hyperparameter search.
 """
 
+import random
 import time
 
+import numpy as np
 import optuna
+import torch
 from optuna.samplers import TPESampler
 
 from entities.log_manager import LogManager
@@ -38,16 +41,31 @@ class ExperimentTask(AbstractTask):
         self.task_name = "experiment"
 
         # Define embedding techniques to test
-        self.embedding_methods = ["no_embedding", "input_feature", "encoder_embedding"]
+        self.embedding_methods = ["no_embedding"]
 
         # Define latent dimension values to test
         self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16, 20]
 
         # Number of repetitions per experiment setting
-        self.num_repetitions = 3  # Change as needed
+        self.num_repetitions = 5  # Change as needed
 
         self.experiment_manager.clear_output_directory()
-        self.experiment_manager.create_new_experiment(self.task_name)
+
+        self.base_seed = 42
+        self.seed = -1
+
+    # Run i-th experiment (e.g., in a loop)
+    def set_seed_for_run(self, i: int) -> None:
+        """Set the seed for the i-th run."""
+        seed = self.base_seed + i
+        print(f"Run {i}: Using seed {seed}")
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        self.seed = seed
 
     def run(self) -> TaskResult:
         """
@@ -104,13 +122,18 @@ class ExperimentTask(AbstractTask):
             float: The validation loss from the training task.
         """
         trial_id = trial.number
+        self.set_seed_for_run(trial_id)
         embed_method, latent_dim, repetition = experiment_settings[trial_id]
         self.experiment_manager.clear_output_directory()
-        # self.experiment_manager.add_experiment_group_identifier(f"{trial_id}_embed-{embed_method}_dim-{latent_dim}_rep-{repetition}")
+        self.experiment_manager.create_experiment_group_identifier(
+            f"{trial_id}_embed-{embed_method}_dim-{latent_dim}_rep-{repetition}_seed-{self.seed}_dataset-HBN_covtype-none"
+        )
 
         self.logger.info(
             f"Starting trial {trial_id} | Embedding = {embed_method} | Latent Dim = {latent_dim} | Repetition = {repetition}"
         )
+
+        # Choose a base seed, e.g. fixed for repeatability of the whole suite
 
         start_time = time.time()
 
@@ -122,8 +145,7 @@ class ExperimentTask(AbstractTask):
         model_config["covariate_embedding"] = embed_method
         model_config["latent_dim"] = latent_dim
         properties.model.components[properties.model.architecture] = model_config
-
-        # Overwrite instance with new properties
+        properties.general.seed = self.seed
         Properties.overwrite_instance(properties)
 
         # Run training task
@@ -147,7 +169,7 @@ class ExperimentTask(AbstractTask):
             f"| Val Loss = {val_loss:.4f} | Test R2 = {test_loss_r2:.4f} | Test MSE = {test_loss_mse:.4f}"
         )
         self.logger.info(f"| Runtime = {runtime:.2f} sec")
-
+        self.experiment_manager.clear_experiment_group_identifier()
         return val_loss
 
     def get_task_name(self) -> str:
