@@ -11,7 +11,6 @@ from analysis.metrics.invarient_metrics import (
     calculate_latent_adversarial_performance,
     calculate_latent_cca_single,
     calculate_latent_correlation_coefficients,
-    calculate_latent_dhsic,
     calculate_latent_mutual_information,
     calculate_latent_nonlinear_regression_error,
     calculate_latent_regression_error,
@@ -165,7 +164,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             self, "age"
         )
 
-        results["invariant_hsic_age"] = calculate_latent_dhsic(self, "age")
+        # results["invariant_hsic_age"] = calculate_latent_dhsic(self, "age")
         results["invariant_mi_age"] = calculate_latent_mutual_information(self, "age")
         results["invariant_cca_age"] = calculate_latent_cca_single(self, "age")
         results["invariant_corr_coef_age"] = calculate_latent_correlation_coefficients(

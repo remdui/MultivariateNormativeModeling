@@ -116,7 +116,8 @@ disable=
     too-many-positional-arguments,
     too-many-arguments,
     unused-argument,
-    unbalanced-tuple-unpacking
+    unbalanced-tuple-unpacking,
+    redefined-variable-type
 
 
 [REPORTS]

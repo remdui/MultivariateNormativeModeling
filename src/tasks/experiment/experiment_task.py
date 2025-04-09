@@ -124,6 +124,7 @@ class ExperimentTask(AbstractTask):
         trial_id = trial.number
         self.set_seed_for_run(trial_id)
         embed_method, latent_dim, repetition = experiment_settings[trial_id]
+        embed_method = embed_method.replace("_", "")
         self.experiment_manager.clear_output_directory()
         self.experiment_manager.create_experiment_group_identifier(
             f"{trial_id}_embed-{embed_method}_dim-{latent_dim}_rep-{repetition}_seed-{self.seed}_dataset-HBN_covtype-none"
