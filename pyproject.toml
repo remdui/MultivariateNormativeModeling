@@ -66,7 +66,7 @@ xenon = "0.9.3" # code metrics (machine)
 pytest = "8.3.3" # unit testing
 pytest-cov = "6.0.0" # wrapper for coverage
 pytest-mock = "3.14.0" # mock library for pytest
-hypothesis = "6.119.3" # property based testing
+hypothesis = "6.130.12" # property based testing
 
 [tool.isort]
 profile = "black"
