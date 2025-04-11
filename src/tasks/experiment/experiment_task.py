@@ -134,8 +134,6 @@ class ExperimentTask(AbstractTask):
             f"Starting trial {trial_id} | Embedding = {embed_method} | Latent Dim = {latent_dim} | Repetition = {repetition}"
         )
 
-        # Choose a base seed, e.g. fixed for repeatability of the whole suite
-
         start_time = time.time()
 
         # Update properties with the selected embedding method and latent dimension

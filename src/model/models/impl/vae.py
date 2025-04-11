@@ -12,7 +12,6 @@ from model.components.factory import get_decoder, get_encoder
 from model.models.abstract_model import AbstractModel
 from model.models.covariates.factory import get_embedding_strategy
 from model.models.util.covariates import get_enabled_covariate_count
-from model.models.util.priors import CovariatePriorNet
 
 
 class VAE(AbstractModel):
@@ -47,7 +46,7 @@ class VAE(AbstractModel):
         self.decoder_output_dim = dims["decoder_output_dim"]
 
         # Age-conditional prior network (used for age_prior_embedding).
-        self.age_prior_net = CovariatePriorNet(latent_dim, [32, 16], num_covariates=1)
+        # self.age_prior_net = CovariatePriorNet(latent_dim, [32, 16], num_covariates=1)
 
         # Create encoder and decoder using factory methods.
         self.encoder = get_encoder(

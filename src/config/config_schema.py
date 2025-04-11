@@ -29,9 +29,7 @@ class DataAnalysisFeatures(BaseModel):
     latent_space_analysis: bool = False
     latent_space_visualization: bool = False
     distribution_plots: bool = False
-    normality_test: bool = False
-    normality_test_method: str = "shapiro"
-    normality_threshold: float = 0.05
+    latent_normality_test: bool = False
     outlier_detection: bool = False
     outlier_threshold: float = 3.0
     summary_statistics: bool = False

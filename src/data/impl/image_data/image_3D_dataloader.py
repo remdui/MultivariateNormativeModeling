@@ -85,7 +85,7 @@ class Image3DDataLoader(AbstractDataloader):
         """
         raise NotImplementedError("Subclasses must implement get_target_labels()")
 
-    def get_skipped_data(self) -> pd.DataFrame:
+    def get_skipped_data(self, dataloader: str = "test") -> pd.DataFrame:
         """
         Get the skipped data as a DataFrame.
 

@@ -8,8 +8,8 @@ system:
 general:
   debug: true
   log_level: INFO
-  seed: 2
-  verbose: true
+  seed: 42
+  verbose: false
 meta:
   config_version: 2
   description: Variational Autoencoder for Normative Modeling
@@ -33,7 +33,7 @@ dataset:
   input_data: hbn_aparc_vol_lh_rh.rds
   data_type: tabular
   image_type: grayscale
-  internal_file_format: hdf
+  internal_file_format: csv
   pin_memory: false
   shuffle: true
   test_split: 0.2
@@ -41,30 +41,25 @@ dataset:
   val_split: 0.2
   enable_transforms: true
   transforms:
-#  - name: SiteFilterTransform
-#    type: preprocessing
-#    params:
-#      selected_site: 2
-#      col_name: site
-#  - name: SampleLimitTransform
-#    type: preprocessing
-#    params:
-#      max_samples: 1000
-#      shuffle: false
+  - name: SiteFilterTransform
+    type: preprocessing
+    params:
+      selected_site: 2
+      col_name: site
   - name: EncodingTransform
     type: preprocessing
     params:
       default: z-score
       one_hot_encoding:
       - site
+      - sex
       binary_encoding: []
       ordinal_encoding: []
       embedding_layer: []
       z-score:
       - age
       min-max: []
-      raw:
-      - sex
+      raw: []
 data_analysis:
   features:
     reconstruction_mse: true
@@ -72,9 +67,7 @@ data_analysis:
     latent_space_analysis: true
     latent_space_visualization: true
     distribution_plots: true
-    normality_test: false
-    normality_test_method: shapiro
-    normality_threshold: 0.05
+    latent_normality_test: true
     outlier_detection: true
     outlier_threshold: 3.0
     summary_statistics: true
@@ -111,7 +104,7 @@ train:
     use_checkpoint: false
     checkpoint: ''
   early_stopping:
-    enabled: true
+    enabled: false
     metric: loss
     min_delta: 0.001
     patience: 100
@@ -119,22 +112,16 @@ train:
   loss_function_params:
     bce_vae:
       reduction: sum
-      beta_start: 0.0
+      beta_start: 0.1
       beta_end: 1.0
-      kl_anneal_start: 10
+      kl_anneal_start: 5
       kl_anneal_end: 200
     mse_vae:
       reduction: sum
-      beta_start: 0.0
-      beta_end: 0.5
-      kl_anneal_start: 5
-      kl_anneal_end: 100
-    age_prior_kl:
-      reduction: sum
-      beta_start: 0.0
+      beta_start: 0.1
       beta_end: 1.0
       kl_anneal_start: 5
-      kl_anneal_end: 100
+      kl_anneal_end: 200
     l1:
       reduction: sum
     mse:
@@ -244,7 +231,7 @@ train:
     plateau:
       mode: min
       factor: 0.5
-      patience: 20
+      patience: 10
       threshold: 0.001
       threshold_mode: rel
       cooldown: 5
@@ -387,9 +374,10 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 1
+      latent_dim: 4
       covariate_embedding: no_embedding
   hidden_layers:
+  - 256
   - 128
   - 64
   weight_initializer: lecun
@@ -493,7 +481,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: 'vae_hbn_baseline_v1_best.safetensors'
+  model: 'vae_hbn_baseline_v1.safetensors'
   data_representation: tabular
   image:
     length: 28

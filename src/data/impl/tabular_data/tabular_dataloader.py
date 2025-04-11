@@ -1,7 +1,8 @@
 """TabularDataloader for loading tabular datasets.
 
-This class implements the AbstractDataloader interface for tabular data. It loads processed
-datasets, sets up training, validation, and test splits, and supports cross-validation.
+This class implements the AbstractDataloader interface for tabular data.
+It loads processed datasets, sets up training, validation, and test splits,
+and supports cross-validation.
 """
 
 from typing import Any
@@ -9,13 +10,27 @@ from typing import Any
 import pandas as pd
 import torch
 from sklearn.model_selection import GroupKFold, KFold, StratifiedKFold  # type: ignore
-from torch.utils.data import DataLoader, Subset, random_split
+from torch.utils.data import DataLoader, Subset
 
 from data.abstract_dataloader import AbstractDataloader
 from data.impl.tabular_data.tabular_dataset import TabularDataset
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from util.file_utils import get_processed_file_path, is_data_file
+
+
+class TabularSubset(Subset):
+    """Custom Subset class to retain TabularDataset features."""
+
+    def get_skipped_data(self) -> pd.DataFrame:
+        """
+        Return the skipped data for the rows in this subset by subsetting the DataFrame.
+
+        from the original dataset.
+        """
+        df = self.dataset.get_skipped_data()
+        # Use the stored indices to slice the skipped data accordingly.
+        return df.iloc[self.indices]
 
 
 class TabularDataloader(AbstractDataloader):
@@ -47,8 +62,10 @@ class TabularDataloader(AbstractDataloader):
         self.targets = self.properties.dataset.targets
         self.pin_memory = self.properties.dataset.pin_memory
         self.shuffle = self.properties.dataset.shuffle
-        self.train_split = self.properties.dataset.train_split
-        self.val_split = self.properties.dataset.val_split
+        self.train_split = (
+            self.properties.dataset.train_split
+        )  # Now a ratio (e.g., 0.8)
+        self.val_split = self.properties.dataset.val_split  # Now a ratio (e.g., 0.2)
         self.seed = self.properties.general.seed
 
         self.__setup_file_paths()
@@ -209,8 +226,9 @@ class TabularDataloader(AbstractDataloader):
             raise ValueError("Fold indices not correctly initialized.")
 
         train_idx, val_idx = self.train_val_indices[fold]
-        train_dataset = Subset(self.train_dataset, train_idx)
-        val_dataset = Subset(self.train_dataset, val_idx)
+        # Use TabularSubset to ensure get_skipped_data() is available.
+        train_dataset = TabularSubset(self.train_dataset, train_idx)
+        val_dataset = TabularSubset(self.train_dataset, val_idx)
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.batch_size,
@@ -257,19 +275,30 @@ class TabularDataloader(AbstractDataloader):
             for train_idx, val_idx in splitter.split(self.train_dataset):
                 self.train_val_indices.append((train_idx, val_idx))
 
-    def __split_train_val(self, train_dataset: Any) -> None:
+    def __split_train_val(self, train_dataset: TabularDataset) -> None:
         """
         Split the training dataset into training and validation sets.
 
-        Uses random_split with a fixed seed to ensure reproducibility.
+        Uses a ratio based on self.train_split and self.val_split. The method calculates the number of samples
+        for each split, then uses a random permutation (with fixed seed for reproducibility) to partition
+        the data. It creates TabularSubset instances to ensure that the resulting objects have access to
+        the get_skipped_data() method.
 
         Args:
-            train_dataset (Any): The training dataset to split.
+            train_dataset (TabularDataset): The training dataset to split.
         """
-        self.train_dataset, self.val_dataset = random_split(
-            train_dataset,
-            [self.train_split, self.val_split],
-            generator=torch.Generator().manual_seed(self.seed),
+        num_samples = len(train_dataset)
+        generator = torch.Generator().manual_seed(self.seed)
+        indices = torch.randperm(num_samples, generator=generator).tolist()
+
+        # Calculate split lengths based on ratios.
+        train_length = int(num_samples * self.train_split)
+        # Ensure that the two splits cover the full dataset.
+        val_length = num_samples - train_length
+
+        self.train_dataset = TabularSubset(train_dataset, indices[:train_length])
+        self.val_dataset = TabularSubset(
+            train_dataset, indices[train_length : train_length + val_length]
         )
         self.logger.info(
             f"Splitting train dataset: {len(self.train_dataset)} train samples, {len(self.val_dataset)} validation samples"
@@ -302,11 +331,15 @@ class TabularDataloader(AbstractDataloader):
         """
         return self.targets
 
-    def get_skipped_data(self) -> pd.DataFrame:
+    def get_skipped_data(self, dataloader: str = "test") -> pd.DataFrame:
         """
         Retrieve the skipped data as a DataFrame.
 
         Returns:
             pd.DataFrame: DataFrame containing the skipped columns.
         """
-        return self.test_dataset.get_skipped_data()
+        if dataloader == "test":
+            return self.test_dataset.get_skipped_data()
+        if dataloader == "train":
+            return self.train_dataset.get_skipped_data()
+        raise ValueError(f"Invalid dataloader: {dataloader}")

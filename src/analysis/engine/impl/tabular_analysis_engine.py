@@ -6,6 +6,11 @@ from typing import Any
 
 import pandas as pd
 
+from analysis.deviation.latent_deviation_scores import (
+    calculate_mahalanobis_deviation_scores,
+    calculate_univariate_deviation_scores,
+    save_deviation_scores_to_csv,
+)
 from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
 from analysis.metrics.invarient_metrics import (
     calculate_latent_adversarial_performance,
@@ -15,11 +20,16 @@ from analysis.metrics.invarient_metrics import (
     calculate_latent_nonlinear_regression_error,
     calculate_latent_regression_error,
 )
-from analysis.metrics.normative_metrics import calculate_latent_kl
+from analysis.metrics.normative_metrics import (
+    calculate_latent_kl,
+    calculate_latent_normality,
+)
 from analysis.metrics.reconstruction_metrics import (
     calculate_reconstruction_mse,
+    calculate_reconstruction_mse_per_feature,
     calculate_reconstruction_pearson,
     calculate_reconstruction_r2,
+    calculate_reconstruction_r2_per_feature,
 )
 from analysis.outlier.outlier_detection import (
     detect_outliers,
@@ -66,6 +76,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         self.train_df: pd.DataFrame = pd.DataFrame()
         self.test_df: pd.DataFrame = pd.DataFrame()
         self.recon_df: pd.DataFrame = pd.DataFrame()
+        self.recon_train_df: pd.DataFrame = pd.DataFrame()
         self.latent_test_df: pd.DataFrame = pd.DataFrame()
         self.latent_train_df: pd.DataFrame = pd.DataFrame()
 
@@ -105,6 +116,17 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         self.logger.info(f"Loading reconstruction data from {recon_file_path}...")
         self.recon_df = load_data(recon_file_path)
         self.logger.info(f"Loaded recon_df: {self.recon_df.shape}")
+
+        recon_train_file_path = os.path.join(
+            self.properties.system.output_dir,
+            "reconstructions",
+            f"train_data.{output_extension}",
+        )
+        self.logger.info(
+            f"Loading reconstruction train data from {recon_train_file_path}..."
+        )
+        self.recon_train_df = load_data(recon_train_file_path)
+        self.logger.info(f"Loaded recon_train_df: {self.recon_train_df.shape}")
 
         # Load latent space parameters
         latent_test_file_path = os.path.join(
@@ -146,13 +168,27 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             )
 
         results["recon_pearson"] = calculate_reconstruction_pearson(self)
+
         if self.properties.data_analysis.features.reconstruction_mse:
             results["recon_mse"] = calculate_reconstruction_mse(self)
+            results["recon_mse_per_feature"] = calculate_reconstruction_mse_per_feature(
+                self
+            )
 
         if self.properties.data_analysis.features.reconstruction_r2:
             results["recon_r2"] = calculate_reconstruction_r2(self)
+            results["recon_r2_per_feature"] = calculate_reconstruction_r2_per_feature(
+                self
+            )
 
         results["normative_kl"] = calculate_latent_kl(self)
+
+        uni_deviation_df = calculate_univariate_deviation_scores(self)
+        maha_deviation_df = calculate_mahalanobis_deviation_scores(self)
+        save_deviation_scores_to_csv(self, uni_deviation_df, maha_deviation_df)
+
+        if self.properties.data_analysis.features.latent_normality_test:
+            results["normative_shapiro"] = calculate_latent_normality(self)
 
         results["invariant_regression_age"] = calculate_latent_regression_error(
             self, "age"

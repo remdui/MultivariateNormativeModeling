@@ -77,7 +77,7 @@ class ValidateTask(AbstractTask):
         self.logger.info("Starting the validation process.")
 
         self.__save_reconstruction_data()
-        self.__save_training_distribution()
+        self.__save_train_data()
 
         results = self.__analyze_results()
         results.validate_results()
@@ -85,44 +85,6 @@ class ValidateTask(AbstractTask):
         write_results_to_file(results, "metrics")
         self.experiment_manager.finalize_experiment()
         return results
-
-    def __save_training_distribution(self) -> None:
-        """
-        Compute and save latent representations' statistics (mean and std) over the training set.
-
-        Iterates through the training dataloader, collects z_mean and z_logvar for each batch,
-        and saves the computed latent parameters.
-        """
-        self.logger.info("Saving training latent parameters.")
-
-        latent_mean_list = []
-        latent_logvar_list = []
-
-        with torch.no_grad():
-            for batch in tqdm(
-                self.train_dataloader, desc="Calculating latent parameters"
-            ):
-                # Unpack batch (inputs and covariates for unsupervised tasks).
-                data, covariates = batch
-                data = data.to(self.device)
-                covariates = covariates.to(self.device)
-
-                with autocast(
-                    enabled=self.properties.train.mixed_precision,
-                    device_type=self.device,
-                ):
-                    model_outputs = self.model(data, covariates)
-                    z_mean = model_outputs.get("z_mean", None)
-                    z_logvar = model_outputs.get("z_logvar", None)
-
-                # Move outputs to CPU for further processing.
-                latent_mean_list.append(z_mean.cpu().numpy())
-                latent_logvar_list.append(z_logvar.cpu().numpy())
-
-        # Concatenate outputs from all batches.
-        z_mean_data = np.concatenate(latent_mean_list, axis=0)
-
-        self.__save_latent_parameters(z_mean_data, data="train")
 
     def __save_reconstruction_data(self) -> None:
         """
@@ -250,6 +212,133 @@ class ValidateTask(AbstractTask):
         self.logger.info("Data saved successfully.")
 
         self.__save_latent_parameters(z_mean_data, data="test")
+
+    def __save_train_data(self) -> None:
+        """
+        Compute and save reconstructions and latent representations for training data.
+
+        Processes the train set to obtain:
+            - Original inputs and covariates.
+            - Reconstructed outputs.
+            - Latent mean and log-variance.
+        Results are saved as a DataFrame that may also include skipped columns.
+        """
+        self.logger.info("Saving latent and reconstruction data per sample.")
+
+        original_data_list = []
+        original_covariates_list = []
+        reconstruction_data_list = []
+        latent_mean_list = []
+        latent_logvar_list = []
+
+        with torch.no_grad():
+            for batch in tqdm(
+                self.train_dataloader, desc="Collecting reconstruction data"
+            ):
+                data, covariates = batch
+                data = data.to(self.device)
+                covariates = covariates.to(self.device)
+
+                with autocast(
+                    enabled=self.properties.train.mixed_precision,
+                    device_type=self.device,
+                ):
+                    model_outputs = self.model(data, covariates)
+                    recon_batch = model_outputs["x_recon"]
+                    z_mean = model_outputs.get("z_mean", None)
+                    z_logvar = model_outputs.get("z_logvar", None)
+
+                # Append data converted to CPU arrays.
+                original_data_list.append(data.cpu().numpy())
+                original_covariates_list.append(covariates.cpu().numpy())
+                reconstruction_data_list.append(recon_batch.cpu().numpy())
+                latent_mean_list.append(z_mean.cpu().numpy())
+                latent_logvar_list.append(z_logvar.cpu().numpy())
+
+        # Concatenate batch data into full arrays.
+        original_data = np.concatenate(original_data_list, axis=0)
+        original_covariates = np.concatenate(original_covariates_list, axis=0)
+        reconstruction_data = np.concatenate(reconstruction_data_list, axis=0)
+        z_mean_data = np.concatenate(latent_mean_list, axis=0)
+        z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
+
+        # Retrieve any skipped data columns from the dataloader.
+        skipped_data_df = self.dataloader.get_skipped_data(dataloader="train")
+        if skipped_data_df is not None:
+            if skipped_data_df.shape[0] != original_data.shape[0]:
+                raise DataRowMismatchError(
+                    f"Mismatch in skipped data rows ({skipped_data_df.shape[0]}) and dataset rows ({original_data.shape[0]})."
+                )
+
+        self.logger.info(
+            "Creating DataFrame with original, reconstruction, and latent data."
+        )
+
+        # Obtain column labels.
+        feature_names = self.dataloader.get_feature_labels()
+        covariate_names = self.dataloader.get_covariate_labels()
+
+        # Define column names for original and reconstructed data.
+        original_col_names = [f"orig_{col}" for col in feature_names]
+        original_covariate_names = [f"orig_{col}" for col in covariate_names]
+        recon_col_names = [f"recon_{col}" for col in feature_names]
+        recon_covariate_names = [f"recon_{col}" for col in covariate_names]
+
+        # Define column names for latent space representations.
+        z_mean_col_names = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
+        z_logvar_col_names = [f"z_logvar_{i}" for i in range(z_mean_data.shape[1])]
+
+        # Combine arrays and column names based on the covariate embedding technique.
+        if self.covariate_embedding_technique in {
+            "input_feature",
+            "conditional_embedding",
+        }:
+            combined_data = np.concatenate(
+                [
+                    original_data,
+                    original_covariates,
+                    reconstruction_data,
+                    z_mean_data,
+                    z_logvar_data,
+                ],
+                axis=1,
+            )
+            all_columns = (
+                original_col_names
+                + original_covariate_names
+                + recon_col_names
+                + recon_covariate_names
+                + z_mean_col_names
+                + z_logvar_col_names
+            )
+        else:
+            combined_data = np.concatenate(
+                [original_data, reconstruction_data, z_mean_data, z_logvar_data],
+                axis=1,
+            )
+            all_columns = (
+                original_col_names
+                + recon_col_names
+                + z_mean_col_names
+                + z_logvar_col_names
+            )
+
+        # Create a DataFrame to hold all information.
+        df = pd.DataFrame(combined_data, columns=all_columns)
+
+        # Prepend skipped columns if available.
+        if skipped_data_df is not None:
+            df = pd.concat([skipped_data_df.reset_index(drop=True), df], axis=1)
+
+        # Determine output file path and extension.
+        output_extension = get_internal_file_extension()
+        output_file_path = f"{self.properties.system.output_dir}/reconstructions/train_data.{output_extension}"
+
+        self.logger.info(f"Saving train data to {output_file_path}...")
+        save_data(df, output_file_path)
+        self.logger.info("Data saved successfully.")
+
+        self.__save_latent_parameters(z_mean_data, data="train")
 
     def __analyze_results(self) -> TaskResult:
         """

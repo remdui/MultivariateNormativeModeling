@@ -262,7 +262,11 @@ class TrainTask(AbstractTask):
         Returns:
             float: Average training loss for the epoch.
         """
-        tqdm_loader = tqdm(self.train_dataloader, desc=f"Epoch {epoch + 1}/{epochs}")
+        tqdm_loader = tqdm(
+            self.train_dataloader,
+            desc=f"Epoch {epoch + 1}/{epochs}",
+            disable=not self.properties.general.verbose,
+        )
         avg_loss = self.__train_epoch(tqdm_loader)
         self.logger.info(
             f"Average training loss after epoch {epoch + 1}: {avg_loss:.4f}"

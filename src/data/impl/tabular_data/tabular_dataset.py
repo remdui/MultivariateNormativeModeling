@@ -7,11 +7,26 @@ and separates feature columns from covariate columns.
 import pandas as pd
 import torch
 from torch import Tensor
+from torch.utils.data import Subset
 
 from data.abstract_dataset import AbstractDataset
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from util.file_utils import load_data
+
+
+class TabularSubset(Subset):
+    """Custom Subset class to retain TabularDataset features."""
+
+    def get_skipped_data(self) -> pd.DataFrame:
+        """
+        Return the skipped data for the rows in this subset by subsetting the DataFrame.
+
+        from the original dataset.
+        """
+        df = self.dataset.get_skipped_data()
+        # Use the stored indices to slice the skipped data accordingly.
+        return df.iloc[self.indices]
 
 
 class TabularDataset(AbstractDataset):

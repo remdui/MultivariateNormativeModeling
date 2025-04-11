@@ -86,9 +86,7 @@ data_analysis:
     latent_space_analysis: false
     latent_space_visualization: false
     distribution_plots: false
-    normality_test: false
-    normality_test_method: shapiro
-    normality_threshold: 0.05
+    latent_normality_test: false
     outlier_detection: false
     outlier_threshold: 3.0
     summary_statistics: false
