@@ -91,9 +91,11 @@ def plot_latent_projection(
         logger.warning(f"Unsupported method='{method}'. Use 'pca' or 'tsne'.")
         return
 
+    # Determine coloring based on the covariate.
     color_array = "steelblue"
     add_colorbar = False
     if color_covariate is not None:
+        # First, check for a direct column in test_df.
         if color_covariate in engine.test_df.columns:
             cov_values = engine.test_df[color_covariate].to_numpy()
             if np.issubdtype(cov_values.dtype, np.number):
@@ -104,10 +106,23 @@ def plot_latent_projection(
                     f"Covariate '{color_covariate}' is not numeric; using single color."
                 )
         else:
-            logger.warning(
-                f"Covariate '{color_covariate}' not found in test_df. Using single color."
-            )
+            # Look for one-hot encoded columns: search for columns that start with the covariate identifier plus underscore.
+            candidate_cols = [
+                col
+                for col in engine.test_df.columns
+                if col.startswith(f"{color_covariate}_")
+            ]
+            if candidate_cols:
+                cov_array = engine.test_df[candidate_cols].to_numpy()
+                # Convert one-hot to categorical labels.
+                color_array = np.argmax(cov_array, axis=1)
+                add_colorbar = True
+            else:
+                logger.warning(
+                    f"Covariate '{color_covariate}' not found in test_df. Using single color."
+                )
 
+    # Perform dimensionality reduction.
     if method == "pca":
         reducer = PCA(n_components=n_components)
         try:
@@ -125,6 +140,7 @@ def plot_latent_projection(
             return
         method_label = "t-SNE"
 
+    # Plotting.
     fig = plt.figure(figsize=(8, 8))
     if n_components == 2:
         sc = plt.scatter(

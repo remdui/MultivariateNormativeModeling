@@ -147,7 +147,10 @@ def save_deviation_scores_to_csv(
     engine: Any, univariate_df: pd.DataFrame, mahalanobis_df: pd.DataFrame
 ) -> None:
     """
-    Merge the univariate and Mahalanobis deviation scores and save to a CSV file.
+    Merge the univariate and Mahalanobis deviation scores and save to a CSV file,.
+
+    if available. If either DataFrame is empty, use the one that is non-empty.
+    If both are empty, do nothing.
 
     The CSV is saved to:
       os.path.join(output_dir, "metrics", f"{output_identifier}.csv")
@@ -158,9 +161,27 @@ def save_deviation_scores_to_csv(
         mahalanobis_df (pd.DataFrame): DataFrame with Mahalanobis deviation scores.
     """
     logger = engine.logger
-    merged_df = pd.merge(
-        univariate_df, mahalanobis_df, on="participant_id", how="outer"
-    )
+
+    if univariate_df.empty and mahalanobis_df.empty:
+        logger.error(
+            "Both univariate and Mahalanobis deviation score DataFrames are empty. Nothing to merge or save."
+        )
+        return
+    if univariate_df.empty:
+        logger.warning(
+            "Univariate deviation scores DataFrame is empty. Using Mahalanobis deviation scores only."
+        )
+        merged_df = mahalanobis_df.copy()
+    elif mahalanobis_df.empty:
+        logger.warning(
+            "Mahalanobis deviation scores DataFrame is empty. Using univariate deviation scores only."
+        )
+        merged_df = univariate_df.copy()
+    else:
+        merged_df = pd.merge(
+            univariate_df, mahalanobis_df, on="participant_id", how="outer"
+        )
+
     output_dir = engine.properties.system.output_dir
     output_identifier = "deviation_scores"
     filename = os.path.join(output_dir, "metrics", f"{output_identifier}.csv")

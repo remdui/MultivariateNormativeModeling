@@ -16,7 +16,9 @@ from analysis.metrics.invarient_metrics import (
     calculate_latent_adversarial_performance,
     calculate_latent_cca_single,
     calculate_latent_correlation_coefficients,
+    calculate_latent_logistic_classification_error,
     calculate_latent_mutual_information,
+    calculate_latent_nonlinear_classification_error,
     calculate_latent_nonlinear_regression_error,
     calculate_latent_regression_error,
 )
@@ -190,6 +192,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         if self.properties.data_analysis.features.latent_normality_test:
             results["normative_shapiro"] = calculate_latent_normality(self)
 
+        # Invariant analysis for age (continuous)
         results["invariant_regression_age"] = calculate_latent_regression_error(
             self, "age"
         )
@@ -199,12 +202,34 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         results["invariant_adversarial_age"] = calculate_latent_adversarial_performance(
             self, "age"
         )
-
-        # results["invariant_hsic_age"] = calculate_latent_dhsic(self, "age")
         results["invariant_mi_age"] = calculate_latent_mutual_information(self, "age")
         results["invariant_cca_age"] = calculate_latent_cca_single(self, "age")
         results["invariant_corr_coef_age"] = calculate_latent_correlation_coefficients(
             self, "age"
+        )
+
+        # Invariant analysis for sex (one-hot encoded)
+        results["invariant_logistic_sex"] = (
+            calculate_latent_logistic_classification_error(self, "sex")
+        )
+        results["invariant_nonlinear_classification_sex"] = (
+            calculate_latent_nonlinear_classification_error(self, "sex")
+        )
+        results["invariant_adversarial_sex"] = calculate_latent_adversarial_performance(
+            self, "sex", task_type="classification"
+        )
+
+        # Invariant analysis for site (one-hot encoded)
+        results["invariant_logistic_site"] = (
+            calculate_latent_logistic_classification_error(self, "site")
+        )
+        results["invariant_nonlinear_classification_site"] = (
+            calculate_latent_nonlinear_classification_error(self, "site")
+        )
+        results["invariant_adversarial_site"] = (
+            calculate_latent_adversarial_performance(
+                self, "site", task_type="classification"
+            )
         )
 
         if self.properties.data_analysis.features.distribution_plots:
@@ -215,7 +240,7 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             plot_latent_distributions(self, split="test")
             for method in ("pca", "tsne"):
                 for n_components in (2, 3):
-                    for color in ("age", "sex"):
+                    for color in ("age", "sex", "site"):
                         plot_latent_projection(
                             self,
                             method=method,

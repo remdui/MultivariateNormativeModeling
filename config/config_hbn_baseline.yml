@@ -36,16 +36,16 @@ dataset:
   internal_file_format: csv
   pin_memory: false
   shuffle: true
-  test_split: 0.2
-  train_split: 0.8
-  val_split: 0.2
+  test_split: 0.3
+  train_split: 0.9
+  val_split: 0.1
   enable_transforms: true
   transforms:
-  - name: SiteFilterTransform
-    type: preprocessing
-    params:
-      selected_site: 2
-      col_name: site
+#  - name: SiteFilterTransform
+#    type: preprocessing
+#    params:
+#      selected_site: 2
+#      col_name: site
   - name: EncodingTransform
     type: preprocessing
     params:
@@ -119,7 +119,7 @@ train:
     mse_vae:
       reduction: sum
       beta_start: 0.1
-      beta_end: 1.0
+      beta_end: 0.5
       kl_anneal_start: 5
       kl_anneal_end: 200
     l1:
@@ -374,10 +374,9 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 4
+      latent_dim: 8
       covariate_embedding: no_embedding
   hidden_layers:
-  - 256
   - 128
   - 64
   weight_initializer: lecun
@@ -481,7 +480,7 @@ model:
     softmin:
       dim: null
 validation:
-  model: 'vae_hbn_baseline_v1.safetensors'
+  model: 'vae_hbn_baseline_v1_best.safetensors'
   data_representation: tabular
   image:
     length: 28
