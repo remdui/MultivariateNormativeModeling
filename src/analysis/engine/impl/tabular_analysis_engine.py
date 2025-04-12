@@ -32,6 +32,8 @@ from analysis.metrics.reconstruction_metrics import (
     calculate_reconstruction_pearson,
     calculate_reconstruction_r2,
     calculate_reconstruction_r2_per_feature,
+    compare_feature_distributions_bhattacharyya,
+    compare_feature_distributions_ks,
 )
 from analysis.outlier.outlier_detection import (
     detect_outliers,
@@ -183,11 +185,12 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
                 self
             )
 
-        results["normative_kl"] = calculate_latent_kl(self)
+        results["recon_distribution_KS"] = compare_feature_distributions_ks(self)
+        results["recon_distribution_BC"] = compare_feature_distributions_bhattacharyya(
+            self
+        )
 
-        uni_deviation_df = calculate_univariate_deviation_scores(self)
-        maha_deviation_df = calculate_mahalanobis_deviation_scores(self)
-        save_deviation_scores_to_csv(self, uni_deviation_df, maha_deviation_df)
+        results["normative_kl"] = calculate_latent_kl(self)
 
         if self.properties.data_analysis.features.latent_normality_test:
             results["normative_shapiro"] = calculate_latent_normality(self)
@@ -241,6 +244,10 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         results["invariant_corr_coef_site"] = calculate_latent_correlation_coefficients(
             self, "site"
         )
+
+        uni_deviation_df = calculate_univariate_deviation_scores(self)
+        maha_deviation_df = calculate_mahalanobis_deviation_scores(self)
+        save_deviation_scores_to_csv(self, uni_deviation_df, maha_deviation_df)
 
         if self.properties.data_analysis.features.distribution_plots:
             plot_feature_distributions(self)
