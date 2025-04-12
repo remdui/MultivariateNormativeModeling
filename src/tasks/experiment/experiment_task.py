@@ -47,7 +47,7 @@ class ExperimentTask(AbstractTask):
         self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16, 20]
 
         # Number of repetitions per experiment setting
-        self.num_repetitions = 5  # Change as needed
+        self.num_repetitions = 3  # Change as needed
 
         self.experiment_manager.clear_output_directory()
 
@@ -124,10 +124,10 @@ class ExperimentTask(AbstractTask):
         trial_id = trial.number
         self.set_seed_for_run(trial_id)
         embed_method, latent_dim, repetition = experiment_settings[trial_id]
-        embed_method = embed_method.replace("_", "")
+        embed_method_str = embed_method.replace("_", "")
         self.experiment_manager.clear_output_directory()
         self.experiment_manager.create_experiment_group_identifier(
-            f"{trial_id}_embed-{embed_method}_dim-{latent_dim}_rep-{repetition}_seed-{self.seed}_dataset-HBN_covtype-none"
+            f"{trial_id}_embed-{embed_method_str}_dim-{latent_dim}_rep-{repetition}_seed-{self.seed}_dataset-HBN_covtype-none"
         )
 
         self.logger.info(

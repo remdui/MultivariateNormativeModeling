@@ -11,7 +11,10 @@ from sklearn.ensemble import (  # type: ignore
     RandomForestClassifier,
     RandomForestRegressor,
 )
-from sklearn.feature_selection import mutual_info_regression  # type: ignore
+from sklearn.feature_selection import (  # type: ignore
+    mutual_info_classif,
+    mutual_info_regression,
+)
 from sklearn.linear_model import LinearRegression, LogisticRegression  # type: ignore
 from sklearn.metrics import (  # type: ignore
     accuracy_score,
@@ -69,19 +72,32 @@ def calculate_latent_mutual_information(engine: Any, covariate: str) -> dict[str
     """
     Calculate the mutual information between the latent representation and a given covariate.
 
+    For one-hot encoded covariates (e.g. sex, site), it will search for columns with prefix "covariate_" and
+    convert them to categorical labels using np.argmax.
+
     Args:
         engine (Any): Analysis engine instance with loaded latent and test data.
-        covariate (str): The name of the covariate to analyze (must be in test_df).
+        covariate (str): The name of the covariate to analyze.
 
     Returns:
-        dict[str, float]: Dictionary containing the mutual information for each latent dimension
-                          and the total mutual information (summed across dimensions).
+        dict[str, Any]: Mutual information per latent dimension and the total mutual information.
     """
     logger = engine.logger
 
-    if covariate not in engine.test_df.columns:
-        logger.error(f"Covariate '{covariate}' not found in test_df.")
-        return {}
+    # Get the target values.
+    if covariate in engine.test_df.columns:
+        y = engine.test_df[covariate].to_numpy()
+    else:
+        candidate_cols = [
+            col for col in engine.test_df.columns if col.startswith(f"{covariate}_")
+        ]
+        if candidate_cols:
+            y = np.argmax(engine.test_df[candidate_cols].to_numpy(), axis=1)
+        else:
+            logger.error(
+                f"Covariate '{covariate}' not found in test_df (neither direct nor one-hot encoded)."
+            )
+            return {}
 
     latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
     if not latent_cols:
@@ -89,13 +105,113 @@ def calculate_latent_mutual_information(engine: Any, covariate: str) -> dict[str
         return {}
 
     Z = engine.recon_df[latent_cols].to_numpy()
-    y = engine.test_df[covariate].to_numpy()
-    mi = mutual_info_regression(Z, y, random_state=42)
+
+    # Decide whether to use regression or classification mutual information.
+    if np.issubdtype(y.dtype, np.number) and (len(np.unique(y)) > 10):
+        mi = mutual_info_regression(Z, y, random_state=42)
+    else:
+        mi = mutual_info_classif(Z, y, random_state=42)
+
     total_mi = float(mi.sum())
     logger.info(
         f"Mutual information for covariate '{covariate}': total MI = {total_mi:.6f}"
     )
     return {"mutual_info_per_dim": list(mi), "total_mutual_info": total_mi}
+
+
+def calculate_latent_cca_single(engine: Any, covariate: str) -> dict[str, float]:
+    """
+    Perform Canonical Correlation Analysis (CCA) between the latent representation and a single covariate.
+
+    For one-hot encoded covariates, candidate columns (e.g. "sex_", "site_") are converted via np.argmax.
+
+    Args:
+        engine (Any): Analysis engine with loaded latent and test data.
+        covariate (str): The name of the covariate to analyze.
+
+    Returns:
+        dict[str, float]: Dictionary with the canonical correlation coefficient.
+    """
+    logger = engine.logger
+
+    if covariate in engine.test_df.columns:
+        Y = engine.test_df[covariate].to_numpy().reshape(-1, 1)
+    else:
+        candidate_cols = [
+            col for col in engine.test_df.columns if col.startswith(f"{covariate}_")
+        ]
+        if candidate_cols:
+            Y = np.argmax(engine.test_df[candidate_cols].to_numpy(), axis=1).reshape(
+                -1, 1
+            )
+        else:
+            logger.error(
+                f"Covariate '{covariate}' not found in test_df (neither direct nor one-hot encoded)."
+            )
+            return {}
+
+    latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
+    if not latent_cols:
+        logger.error("No latent space columns found with prefix 'z_mean_'.")
+        return {}
+
+    X = engine.recon_df[latent_cols].to_numpy()
+    cca = CCA(n_components=1)
+    X_c, Y_c = cca.fit_transform(X, Y)
+    corr = np.corrcoef(X_c[:, 0], Y_c[:, 0])[0, 1]
+    logger.info(f"Canonical correlation for covariate '{covariate}': {corr:.6f}")
+    return {"canonical_correlation": corr}
+
+
+def calculate_latent_correlation_coefficients(
+    engine: Any, covariate: str
+) -> dict[str, list[float]]:
+    """
+    Compute Pearson and Spearman correlation coefficients between each latent dimension and a given covariate.
+
+    For one-hot encoded covariates, candidate columns (e.g. "sex_", "site_") are combined by taking the argmax.
+
+    Args:
+        engine (Any): Analysis engine with loaded latent and test data.
+        covariate (str): The name of the covariate.
+
+    Returns:
+        dict[str, list[float]]: Dictionary with lists of Pearson and Spearman correlation coefficients.
+    """
+    logger = engine.logger
+
+    if covariate in engine.test_df.columns:
+        y = engine.test_df[covariate]
+    else:
+        candidate_cols = [
+            col for col in engine.test_df.columns if col.startswith(f"{covariate}_")
+        ]
+        if candidate_cols:
+            y = pd.Series(np.argmax(engine.test_df[candidate_cols].to_numpy(), axis=1))
+        else:
+            logger.error(
+                f"Covariate '{covariate}' not found in test_df (neither direct nor one-hot encoded)."
+            )
+            return {}
+
+    latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
+    if not latent_cols:
+        logger.error("No latent space columns found with prefix 'z_mean_'.")
+        return {}
+
+    X = engine.recon_df[latent_cols]
+    pearson_coeffs = []
+    spearman_coeffs = []
+
+    for col in X.columns:
+        pearson_corr, _ = stats.pearsonr(X[col], y)
+        spearman_corr, _ = stats.spearmanr(X[col], y)
+        pearson_coeffs.append(pearson_corr)
+        spearman_coeffs.append(spearman_corr)
+
+    logger.info(f"Pearson correlations: {pearson_coeffs}")
+    logger.info(f"Spearman correlations: {spearman_coeffs}")
+    return {"pearson": pearson_coeffs, "spearman": spearman_coeffs}
 
 
 def calculate_latent_regression_error(engine: Any, covariate: str) -> dict[str, float]:
@@ -168,46 +284,6 @@ def calculate_latent_regression_error(engine: Any, covariate: str) -> dict[str, 
     }
 
 
-def calculate_latent_correlation_coefficients(
-    engine: Any, covariate: str
-) -> dict[str, list[float]]:
-    """
-    Compute Pearson and Spearman correlation coefficients between each latent dimension and a given covariate.
-
-    Args:
-        engine (Any): Analysis engine with loaded latent and test data.
-        covariate (str): The name of the covariate (must be in test_df).
-
-    Returns:
-        dict[str, list[float]]: Dictionary with 'pearson' and 'spearman' lists of correlation coefficients.
-    """
-    logger = engine.logger
-
-    if covariate not in engine.test_df.columns:
-        logger.error(f"Covariate '{covariate}' not found in test_df.")
-        return {}
-
-    latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
-    if not latent_cols:
-        logger.error("No latent space columns found with prefix 'z_mean_'.")
-        return {}
-
-    X = engine.recon_df[latent_cols]
-    y = engine.test_df[covariate]
-    pearson_coeffs = []
-    spearman_coeffs = []
-
-    for col in X.columns:
-        pearson_corr, _ = stats.pearsonr(X[col], y)
-        spearman_corr, _ = stats.spearmanr(X[col], y)
-        pearson_coeffs.append(pearson_corr)
-        spearman_coeffs.append(spearman_corr)
-
-    logger.info(f"Pearson correlations: {pearson_coeffs}")
-    logger.info(f"Spearman correlations: {spearman_coeffs}")
-    return {"pearson": pearson_coeffs, "spearman": spearman_coeffs}
-
-
 def calculate_latent_nonlinear_regression_error(
     engine: Any, covariate: str
 ) -> dict[str, float]:
@@ -272,37 +348,6 @@ def calculate_latent_nonlinear_regression_error(
         "r2": r2_val,
         "explained_variance": explained_var,
     }
-
-
-def calculate_latent_cca_single(engine: Any, covariate: str) -> dict[str, float]:
-    """
-    Perform Canonical Correlation Analysis (CCA) between the latent representation and a single covariate.
-
-    Args:
-        engine (Any): Analysis engine with loaded latent and test data.
-        covariate (str): The name of the covariate from test_df.
-
-    Returns:
-        dict[str, float]: Dictionary with the canonical correlation coefficient.
-    """
-    logger = engine.logger
-
-    if covariate not in engine.test_df.columns:
-        logger.error(f"Covariate '{covariate}' not found in test_df.")
-        return {}
-
-    latent_cols = [col for col in engine.recon_df.columns if col.startswith("z_mean_")]
-    if not latent_cols:
-        logger.error("No latent space columns found with prefix 'z_mean_'.")
-        return {}
-
-    X = engine.recon_df[latent_cols].to_numpy()
-    Y = engine.test_df[covariate].to_numpy().reshape(-1, 1)
-    cca = CCA(n_components=1)
-    X_c, Y_c = cca.fit_transform(X, Y)
-    corr = np.corrcoef(X_c[:, 0], Y_c[:, 0])[0, 1]
-    logger.info(f"Canonical correlation for covariate '{covariate}': {corr:.6f}")
-    return {"canonical_correlation": corr}
 
 
 def calculate_latent_adversarial_performance(

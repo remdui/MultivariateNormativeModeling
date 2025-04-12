@@ -218,6 +218,11 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
         results["invariant_adversarial_sex"] = calculate_latent_adversarial_performance(
             self, "sex", task_type="classification"
         )
+        results["invariant_mi_sex"] = calculate_latent_mutual_information(self, "sex")
+        results["invariant_cca_sex"] = calculate_latent_cca_single(self, "sex")
+        results["invariant_corr_coef_sex"] = calculate_latent_correlation_coefficients(
+            self, "sex"
+        )
 
         # Invariant analysis for site (one-hot encoded)
         results["invariant_logistic_site"] = (
@@ -230,6 +235,11 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
             calculate_latent_adversarial_performance(
                 self, "site", task_type="classification"
             )
+        )
+        results["invariant_mi_site"] = calculate_latent_mutual_information(self, "site")
+        results["invariant_cca_site"] = calculate_latent_cca_single(self, "site")
+        results["invariant_corr_coef_site"] = calculate_latent_correlation_coefficients(
+            self, "site"
         )
 
         if self.properties.data_analysis.features.distribution_plots:

@@ -6,6 +6,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns  # type: ignore
+from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA  # type: ignore
 from sklearn.manifold import TSNE  # type: ignore
 
@@ -94,17 +95,19 @@ def plot_latent_projection(
     # Determine coloring based on the covariate.
     color_array = "steelblue"
     add_colorbar = False
+    is_discrete = False
     if color_covariate is not None:
         # First, check for a direct column in test_df.
         if color_covariate in engine.test_df.columns:
             cov_values = engine.test_df[color_covariate].to_numpy()
+            # If numeric assume continuous (e.g. age)
             if np.issubdtype(cov_values.dtype, np.number):
                 color_array = cov_values
                 add_colorbar = True
             else:
-                logger.warning(
-                    f"Covariate '{color_covariate}' is not numeric; using single color."
-                )
+                # Non-numeric: treat as discrete, use unique labels.
+                color_array = cov_values
+                is_discrete = True
         else:
             # Look for one-hot encoded columns: search for columns that start with the covariate identifier plus underscore.
             candidate_cols = [
@@ -116,7 +119,7 @@ def plot_latent_projection(
                 cov_array = engine.test_df[candidate_cols].to_numpy()
                 # Convert one-hot to categorical labels.
                 color_array = np.argmax(cov_array, axis=1)
-                add_colorbar = True
+                is_discrete = True
             else:
                 logger.warning(
                     f"Covariate '{color_covariate}' not found in test_df. Using single color."
@@ -143,40 +146,96 @@ def plot_latent_projection(
     # Plotting.
     fig = plt.figure(figsize=(8, 8))
     if n_components == 2:
-        sc = plt.scatter(
-            z_transformed[:, 0],
-            z_transformed[:, 1],
-            c=color_array,
-            cmap="viridis" if add_colorbar else None,
-            alpha=0.8,
-            s=30,
-            marker="o",
-        )
-        plt.xlabel("Component 1")
-        plt.ylabel("Component 2")
-        plt.title(f"{method_label} Projection (2D) of Latent z_mean")
-        if add_colorbar:
-            cbar = plt.colorbar(sc)
-            cbar.set_label(color_covariate)
+        if is_discrete:
+            # Get unique class labels and assign each a distinct color.
+            unique_labels = np.unique(color_array)
+            cmap_disc = plt.cm.get_cmap("tab10", len(unique_labels))
+            point_colors = [cmap_disc(label) for label in color_array]
+            sc = plt.scatter(
+                z_transformed[:, 0],
+                z_transformed[:, 1],
+                c=point_colors,
+                alpha=0.8,
+                s=30,
+                marker="o",
+            )
+
+            legend_elements = [
+                Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color="w",
+                    label=str(label),
+                    markerfacecolor=cmap_disc(label),
+                    markersize=8,
+                )
+                for label in unique_labels
+            ]
+            plt.legend(handles=legend_elements, title=color_covariate)
+        else:
+            sc = plt.scatter(
+                z_transformed[:, 0],
+                z_transformed[:, 1],
+                c=color_array,
+                cmap="viridis" if add_colorbar else None,
+                alpha=0.8,
+                s=30,
+                marker="o",
+            )
+            plt.xlabel("Component 1")
+            plt.ylabel("Component 2")
+            plt.title(f"{method_label} Projection (2D) of Latent z_mean")
+            if add_colorbar:
+                cbar = plt.colorbar(sc)
+                cbar.set_label(color_covariate)
     else:
         ax = fig.add_subplot(111, projection="3d")
-        sc = ax.scatter(
-            z_transformed[:, 0],
-            z_transformed[:, 1],
-            z_transformed[:, 2],
-            c=color_array,
-            cmap="viridis" if add_colorbar else None,
-            alpha=0.8,
-            s=30,
-            marker="o",
-        )
-        ax.set_xlabel("Component 1")
-        ax.set_ylabel("Component 2")
-        ax.set_zlabel("Component 3")
-        ax.set_title(f"{method_label} Projection (3D) of Latent z_mean")
-        if add_colorbar:
-            cbar = fig.colorbar(sc, ax=ax)
-            cbar.set_label(color_covariate)
+        if is_discrete:
+            unique_labels = np.unique(color_array)
+            cmap_disc = plt.cm.get_cmap("tab10", len(unique_labels))
+            point_colors = [cmap_disc(label) for label in color_array]
+            sc = ax.scatter(
+                z_transformed[:, 0],
+                z_transformed[:, 1],
+                z_transformed[:, 2],
+                c=point_colors,
+                alpha=0.8,
+                s=30,
+                marker="o",
+            )
+
+            legend_elements = [
+                Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color="w",
+                    label=str(label),
+                    markerfacecolor=cmap_disc(label),
+                    markersize=8,
+                )
+                for label in unique_labels
+            ]
+            ax.legend(handles=legend_elements, title=color_covariate)
+        else:
+            sc = ax.scatter(
+                z_transformed[:, 0],
+                z_transformed[:, 1],
+                z_transformed[:, 2],
+                c=color_array,
+                cmap="viridis" if add_colorbar else None,
+                alpha=0.8,
+                s=30,
+                marker="o",
+            )
+            ax.set_xlabel("Component 1")
+            ax.set_ylabel("Component 2")
+            ax.set_zlabel("Component 3")
+            ax.set_title(f"{method_label} Projection (3D) of Latent z_mean")
+            if add_colorbar:
+                cbar = fig.colorbar(sc, ax=ax)
+                cbar.set_label(color_covariate)
     if engine.properties.data_analysis.plots.show_plots:
         plt.show()
     if engine.properties.data_analysis.plots.save_plots:
