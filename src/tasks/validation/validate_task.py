@@ -149,7 +149,7 @@ class ValidateTask(AbstractTask):
 
         # Obtain column labels.
         feature_names = self.dataloader.get_feature_labels()
-        covariate_names = self.dataloader.get_covariate_labels()
+        covariate_names = self.dataloader.get_encoded_covariate_labels()
 
         # Define column names for original and reconstructed data.
         original_col_names = [f"orig_{col}" for col in feature_names]
@@ -196,6 +196,8 @@ class ValidateTask(AbstractTask):
                 + z_logvar_col_names
             )
 
+        print(len(all_columns))
+        print(all_columns)
         # Create a DataFrame to hold all information.
         df = pd.DataFrame(combined_data, columns=all_columns)
 
@@ -276,7 +278,7 @@ class ValidateTask(AbstractTask):
 
         # Obtain column labels.
         feature_names = self.dataloader.get_feature_labels()
-        covariate_names = self.dataloader.get_covariate_labels()
+        covariate_names = self.dataloader.get_encoded_covariate_labels()
 
         # Define column names for original and reconstructed data.
         original_col_names = [f"orig_{col}" for col in feature_names]
@@ -355,7 +357,7 @@ class ValidateTask(AbstractTask):
         engine = create_analysis_engine(data_type)
         engine.initialize_engine(
             feature_labels=self.dataloader.get_feature_labels(),
-            covariate_labels=self.dataloader.get_covariate_labels(),
+            covariate_labels=self.dataloader.get_encoded_covariate_labels(),
             target_labels=self.dataloader.get_target_labels(),
         )
 

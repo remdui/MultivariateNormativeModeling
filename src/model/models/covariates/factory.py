@@ -4,8 +4,10 @@ from typing import Any
 
 from entities.log_manager import LogManager
 from entities.properties import Properties
-from model.models.covariates.impl.age_prior_embedding import AgePriorEmbeddingStrategy
-from model.models.covariates.impl.conditional_vae_embedding import (
+from model.models.covariates.impl.adversarial_embedding import (
+    AdversarialEmbeddingStrategy,
+)
+from model.models.covariates.impl.conditional_embedding import (
     ConditionalEmbeddingStrategy,
 )
 from model.models.covariates.impl.decoder_embedding import DecoderEmbeddingStrategy
@@ -23,8 +25,6 @@ def get_embedding_strategy(vae: Any) -> Any:
     technique = get_embedding_technique()
     logger.info(f"Initializing VAE using {technique} embedding.")
 
-    if technique == "age_prior_embedding":
-        return AgePriorEmbeddingStrategy(vae)
     if technique == "no_embedding":
         return NoEmbeddingStrategy(vae)
     if technique == "input_feature":
@@ -35,6 +35,17 @@ def get_embedding_strategy(vae: Any) -> Any:
         return EncoderEmbeddingStrategy(vae)
     if technique == "decoder_embedding":
         return DecoderEmbeddingStrategy(vae)
+    if technique == "adversarial_embedding":
+        covariate_info = {
+            "labels": ["age", "sex"],  # Example labels
+            "continuous": [0],  # First covariate (e.g. age) is continuous
+            "categorical": {
+                "sex": [1, 2]
+            },  # Second covariate (e.g. sex) is categorical
+        }
+        return AdversarialEmbeddingStrategy(
+            vae, lambda_adv=1.0, covariate_info=covariate_info
+        )
     raise UnsupportedCovariateEmbeddingTechniqueError(
         f"Unknown covariate_embedding technique: {technique}"
     )

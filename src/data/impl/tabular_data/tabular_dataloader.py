@@ -10,27 +10,13 @@ from typing import Any
 import pandas as pd
 import torch
 from sklearn.model_selection import GroupKFold, KFold, StratifiedKFold  # type: ignore
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 
 from data.abstract_dataloader import AbstractDataloader
-from data.impl.tabular_data.tabular_dataset import TabularDataset
+from data.impl.tabular_data.tabular_dataset import TabularDataset, TabularSubset
 from entities.log_manager import LogManager
 from entities.properties import Properties
 from util.file_utils import get_processed_file_path, is_data_file
-
-
-class TabularSubset(Subset):
-    """Custom Subset class to retain TabularDataset features."""
-
-    def get_skipped_data(self) -> pd.DataFrame:
-        """
-        Return the skipped data for the rows in this subset by subsetting the DataFrame.
-
-        from the original dataset.
-        """
-        df = self.dataset.get_skipped_data()
-        # Use the stored indices to slice the skipped data accordingly.
-        return df.iloc[self.indices]
 
 
 class TabularDataloader(AbstractDataloader):
@@ -108,8 +94,8 @@ class TabularDataloader(AbstractDataloader):
             f"Test dataset: {len(self.test_dataset)} samples, {self.test_dataset.get_num_features()} features"
         )
 
-        self.logger.debug(f"Train dataset head:\n{train_dataset.data.head()}")
-        self.logger.debug(f"Test dataset head:\n{self.test_dataset.data.head()}")
+        self.logger.info(f"Train dataset head:\n{train_dataset.data.head()}")
+        self.logger.info(f"Test dataset head:\n{self.test_dataset.data.head()}")
 
         if self.properties.train.cross_validation:
             self.train_dataset = train_dataset
@@ -321,6 +307,15 @@ class TabularDataloader(AbstractDataloader):
             list[str]: List of covariate column names (excluding skipped covariates).
         """
         return [item for item in self.covariates if item not in self.skipped_covariates]
+
+    def get_encoded_covariate_labels(self) -> list[str]:
+        """
+        Get the encoded covariate labels of the dataset.
+
+        Returns:
+            list[str]: List of encoded covariate column names (excluding skipped covariates).
+        """
+        return self.test_dataset.covariates
 
     def get_target_labels(self) -> list[str]:
         """

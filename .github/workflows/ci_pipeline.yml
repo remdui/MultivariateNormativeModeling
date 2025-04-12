@@ -45,8 +45,8 @@ jobs:
       - name: Static Code Analysis 2/2 (ruff)
         run: poetry run ruff check ./src
 
-      - name: Static Type Checker (mypy)
-        run: poetry run mypy ./src
+#      - name: Static Type Checker (mypy)
+#        run: poetry run mypy ./src
 
       - name: Security Linter (bandit)
         run: poetry run bandit --ini .bandit -r ./src

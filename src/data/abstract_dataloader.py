@@ -90,6 +90,15 @@ class AbstractDataloader(ABC):
         """
 
     @abstractmethod
+    def get_encoded_covariate_labels(self) -> list[str]:
+        """
+        Get the encoded covariate labels of the dataset.
+
+        Returns:
+            list[str]: List of encoded covariate column names (excluding skipped covariates).
+        """
+
+    @abstractmethod
     def get_target_labels(self) -> list[str]:
         """
         Get the labels of the targets in the dataset.

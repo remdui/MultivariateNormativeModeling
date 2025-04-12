@@ -18,7 +18,7 @@ class EncoderEmbeddingStrategy(BaseEmbeddingStrategy):
             "encoder_input_dim": input_dim + cov_dim,
             "encoder_output_dim": latent_dim,
             "decoder_input_dim": latent_dim,
-            "decoder_output_dim": output_dim + cov_dim,
+            "decoder_output_dim": output_dim,
         }
 
     def forward(self, x: Tensor, covariates: Tensor | None) -> dict:

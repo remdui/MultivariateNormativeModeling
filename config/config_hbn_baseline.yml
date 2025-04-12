@@ -376,8 +376,8 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 1
-      covariate_embedding: no_embedding
+      latent_dim: 4
+      covariate_embedding: adversarial_embedding
   hidden_layers:
   - 256
   - 128

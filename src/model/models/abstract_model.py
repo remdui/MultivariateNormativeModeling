@@ -35,7 +35,7 @@ class AbstractModel(nn.Module):
 
         Attributes:
             properties: Global configuration instance with model settings.
-            architecture: Identifier for the model architecture from properties.
+            architectgure: Identifier for the model architecture from properties.
             model_components: Dictionary of additional components specific to the architecture.
         """
         super().__init__()

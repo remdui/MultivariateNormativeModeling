@@ -103,7 +103,10 @@ class AbstractTask(ABC):
         """Build and initialize the model based on the configuration."""
         # Get the model using the factory
         model = get_model(
-            self.properties.model.architecture, self.input_dim, self.output_dim
+            self.properties.model.architecture,
+            self.input_dim,
+            self.output_dim,
+            len(self.dataloader.get_encoded_covariate_labels()),
         )
         model = model.to(self.device)
 

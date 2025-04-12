@@ -115,13 +115,14 @@ def load_model(model: AbstractModel, model_path: str, device: str) -> AbstractMo
         raise
 
 
-def visualize_model_arch(model: nn.Module, input_size: int) -> None:
+def visualize_model_arch(model: nn.Module, input_size: int, cov_size: int = 0) -> None:
     """
     Generates a visualization of the model architecture and saves it as an image.
 
     Args:
         model (nn.Module): The PyTorch model to visualize.
         input_size (int): The input size for the visualization.
+        cov_size (int): The size of the covariates tensor (if applicable).
 
     Raises:
         NotImplementedError: If visualization is not supported on the current GPU.
@@ -139,11 +140,6 @@ def visualize_model_arch(model: nn.Module, input_size: int) -> None:
         logger.warning("Model visualization is not supported on this GPU.")
         return
 
-    # Compute number of covariates (used in visualization input)
-    num_covariates = len(properties.dataset.covariates) - len(
-        properties.dataset.skipped_covariates
-    )
-
     os.makedirs(output_dir, exist_ok=True)  # Ensure output directory exists
 
     try:
@@ -155,9 +151,7 @@ def visualize_model_arch(model: nn.Module, input_size: int) -> None:
             save_graph=True,
             directory=output_dir,
             filename=file_name,
-            covariates=torch.empty((batch_size, num_covariates)).to(
-                properties.system.device
-            ),
+            covariates=torch.empty((batch_size, cov_size)).to(properties.system.device),
         )
         logger.info(
             f"Model architecture visualization saved: {os.path.join(output_dir, file_name)}.png"

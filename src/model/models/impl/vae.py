@@ -11,7 +11,6 @@ from entities.log_manager import LogManager
 from model.components.factory import get_decoder, get_encoder
 from model.models.abstract_model import AbstractModel
 from model.models.covariates.factory import get_embedding_strategy
-from model.models.util.covariates import get_enabled_covariate_count
 
 
 class VAE(AbstractModel):
@@ -22,7 +21,7 @@ class VAE(AbstractModel):
     The encoder and decoder dimensions are configured by the embedding strategy.
     """
 
-    def __init__(self, input_dim: int, output_dim: int):
+    def __init__(self, input_dim: int, output_dim: int, cov_dim: int = 0):
         """
         Initialize the VAE model.
 
@@ -33,7 +32,6 @@ class VAE(AbstractModel):
         super().__init__(input_dim, output_dim)
         self.logger = LogManager.get_logger(__name__)
         self.embedding_strategy = get_embedding_strategy(self)
-        cov_dim = get_enabled_covariate_count()
         latent_dim = self.model_components.get("latent_dim")
 
         # Delegate dimension configuration to the strategy.
@@ -44,9 +42,6 @@ class VAE(AbstractModel):
         self.encoder_output_dim = dims["encoder_output_dim"]
         self.decoder_input_dim = dims["decoder_input_dim"]
         self.decoder_output_dim = dims["decoder_output_dim"]
-
-        # Age-conditional prior network (used for age_prior_embedding).
-        # self.age_prior_net = CovariatePriorNet(latent_dim, [32, 16], num_covariates=1)
 
         # Create encoder and decoder using factory methods.
         self.encoder = get_encoder(

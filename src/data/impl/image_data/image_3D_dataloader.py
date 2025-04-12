@@ -76,6 +76,15 @@ class Image3DDataLoader(AbstractDataloader):
         """
         raise NotImplementedError("Subclasses must implement get_covariate_labels()")
 
+    def get_encoded_covariate_labels(self) -> list[str]:
+        """
+        Get the encoded covariate labels of the dataset.
+
+        Returns:
+            list[str]: List of encoded covariate column names (excluding skipped covariates).
+        """
+        raise NotImplementedError("Subclasses must implement get_covariate_labels().")
+
     def get_target_labels(self) -> list[str]:
         """
         Get the target labels of the dataset.

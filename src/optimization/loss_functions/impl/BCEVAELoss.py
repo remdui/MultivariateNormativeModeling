@@ -13,7 +13,6 @@ from torch.nn import functional as F
 from torch.nn.modules.loss import _WeightedLoss
 
 from model.models.covariates.factory import get_embedding_technique
-from model.models.util.covariates import get_enabled_covariate_count
 from optimization.loss_functions.util.kl_annealing import KLAnnealing
 from util.errors import UnsupportedCovariateEmbeddingTechniqueError
 
@@ -56,7 +55,6 @@ class BCEVAELoss(_WeightedLoss):
             kl_anneal_end=kl_anneal_end,
         )
         self.covariate_embedding_technique = get_embedding_technique()
-        self.cov_dim = get_enabled_covariate_count()
 
     def forward(
         self,
@@ -93,22 +91,9 @@ class BCEVAELoss(_WeightedLoss):
             else self.kl_annealer.beta_end
         )
 
-        _, data_dim = x.shape
-
         if self.covariate_embedding_technique == "no_embedding":
             recon_loss = F.binary_cross_entropy(recon_x, x, reduction=self.reduction)
             cov_loss = 0.0
-        elif self.covariate_embedding_technique == "input_feature":
-            if covariates is None:
-                raise UnsupportedCovariateEmbeddingTechniqueError(
-                    "Covariates must be provided for 'input_feature' mode."
-                )
-            recon_data = recon_x[:, :data_dim]
-            recon_cov = recon_x[:, data_dim : data_dim + self.cov_dim]
-            recon_loss = F.binary_cross_entropy(recon_data, x, reduction=self.reduction)
-            cov_loss = F.binary_cross_entropy(
-                recon_cov, covariates, reduction=self.reduction
-            )
         elif self.covariate_embedding_technique == "encoder_embedding":
             recon_loss = F.binary_cross_entropy(recon_x, x, reduction=self.reduction)
             cov_loss = 0.0

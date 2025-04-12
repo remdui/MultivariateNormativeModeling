@@ -168,7 +168,11 @@ class TrainTask(AbstractTask):
         results.validate_results()
         results.process_results()
         write_results_to_file(results, "metrics")
-        visualize_model_arch(self.get_model(), self.get_input_size())
+        visualize_model_arch(
+            self.get_model(),
+            self.get_input_size(),
+            len(self.dataloader.get_encoded_covariate_labels()),
+        )
         self.experiment_manager.finalize_experiment()
 
         # Save normalization statistics
@@ -454,6 +458,7 @@ class TrainTask(AbstractTask):
                 x=data,
                 current_epoch=self.epoch,
                 covariates=covariates,
+                covariate_labels=self.dataloader.get_encoded_covariate_labels(),
             )
 
         loss_value = loss.item()
@@ -550,6 +555,7 @@ class TrainTask(AbstractTask):
                         x=data,
                         current_epoch=self.epoch,
                         covariates=covariates,
+                        covariate_labels=self.dataloader.get_encoded_covariate_labels(),
                     )
                 total_val_loss += loss.item()
                 total_val_samples += data.size(0)

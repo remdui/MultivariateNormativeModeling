@@ -47,7 +47,7 @@ class TabularDataset(AbstractDataset):
         super().__init__()
         self.logger = LogManager.get_logger(__name__)
         self.properties = Properties.get_instance()
-        self.logger.debug(f"Loading dataset from: {file_path}")
+        self.logger.info(f"Loading dataset from: {file_path}")
         self.data = load_data(file_path)
 
         # Retrieve configuration for skipped and covariate columns.
@@ -66,9 +66,12 @@ class TabularDataset(AbstractDataset):
 
         # Handle missing covariates due to one-hot encoding
         self.covariates = self._adjust_for_one_hot_encoding(self.covariates)
-        self.skipped_covariates = self._adjust_for_one_hot_encoding(
-            self.skipped_covariates
-        )
+        original_skipped = self.skipped_covariates.copy()
+        self.skipped_covariates = [
+            cov
+            for cov in self.covariates
+            if any(skip in cov for skip in original_skipped)
+        ]
 
         # Identify feature columns as those not in covariates.
         self.features = [col for col in self.data.columns if col not in self.covariates]
@@ -76,9 +79,9 @@ class TabularDataset(AbstractDataset):
             col for col in self.covariates if col not in self.skipped_covariates
         ]
 
-        self.logger.debug(f"Features: {self.features}")
-        self.logger.debug(f"Covariates: {self.covariates}")
-        self.logger.debug(f"Skipped Columns: {self.skipped_columns}")
+        self.logger.info(f"Features: {self.features}")
+        self.logger.info(f"Covariates: {self.covariates}")
+        self.logger.info(f"Skipped Columns: {self.skipped_columns}")
 
     def _adjust_for_one_hot_encoding(self, features: list) -> list:
         """
