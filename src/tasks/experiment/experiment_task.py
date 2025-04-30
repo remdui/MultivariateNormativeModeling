@@ -47,23 +47,29 @@ class ExperimentTask(AbstractTask):
             "encoder_embedding",
             "decoder_embedding",
             "conditional_embedding",
+            "aguila22_embedding",
         ]
 
         # Define latent dimension values to test
-        self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
-
+        # self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
+        self.latent_dim_values = [8]
         # Number of repetitions per experiment setting
         self.num_repetitions = 1  # Change as needed
 
         self.experiment_manager.clear_output_directory()
-
+        self.embed_method: str = ""
+        self.trial_offset = 0
+        self.rep_offset = 0
         self.base_seed = 42
         self.seed = -1
 
     # Run i-th experiment (e.g., in a loop)
-    def set_seed_for_run(self, i: int) -> None:
+    def set_seed_for_run(self, i: int, next_embed_method: str) -> None:
         """Set the seed for the i-th run."""
-        seed = self.base_seed + i
+        if self.base_seed != 42 and next_embed_method != self.embed_method:
+            self.base_seed = 42
+
+        seed = self.base_seed + 1
         print(f"Run {i}: Using seed {seed}")
         random.seed(seed)
         np.random.seed(seed)
@@ -127,13 +133,15 @@ class ExperimentTask(AbstractTask):
         Returns:
             float: The validation loss from the training task.
         """
-        trial_id = trial.number
-        self.set_seed_for_run(trial_id)
-        embed_method, latent_dim, repetition = experiment_settings[trial_id]
+        trial_id = trial.number + self.trial_offset
+        embed_method, latent_dim, repetition = experiment_settings[trial.number]
+        self.set_seed_for_run(trial_id, embed_method)
+        self.embed_method = embed_method
+        repetition = repetition + self.rep_offset
         embed_method_str = embed_method.replace("_", "")
         self.experiment_manager.clear_output_directory()
         self.experiment_manager.create_experiment_group_identifier(
-            f"{trial_id}_embed-{embed_method_str}_dim-{latent_dim}_rep-{repetition}_seed-{self.seed}_dataset-HBN_covtype-none"
+            f"{trial_id}_embed-{embed_method_str}_dim-{latent_dim}_rep-{repetition}_seed-{self.seed}_dataset-GenR_covtype-sexage"
         )
 
         self.logger.info(

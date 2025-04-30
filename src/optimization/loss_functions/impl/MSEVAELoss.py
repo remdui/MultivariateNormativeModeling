@@ -98,6 +98,8 @@ class MSEVAELoss(_WeightedLoss):
             "no_embedding",
             "encoder_embedding",
             "decoder_embedding",
+            "aguila22_embedding",
+            "wang22_embedding",
         }:
             mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
             mse_cov = 0.0

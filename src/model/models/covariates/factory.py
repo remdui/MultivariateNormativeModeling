@@ -7,6 +7,9 @@ from entities.properties import Properties
 from model.models.covariates.impl.adversarial_embedding import (
     AdversarialEmbeddingStrategy,
 )
+from model.models.covariates.impl.aguila22_embedding import (
+    Aguila22ConditionalEmbeddingStrategy,
+)
 from model.models.covariates.impl.conditional_embedding import (
     ConditionalEmbeddingStrategy,
 )
@@ -16,6 +19,9 @@ from model.models.covariates.impl.input_feature_embedding import (
     InputFeatureEmbeddingStrategy,
 )
 from model.models.covariates.impl.no_embedding import NoEmbeddingStrategy
+from model.models.covariates.impl.wang22_embedding import (
+    Wang22ConditionalEmbeddingStrategy,
+)
 from util.errors import UnsupportedCovariateEmbeddingTechniqueError
 
 
@@ -31,6 +37,10 @@ def get_embedding_strategy(vae: Any) -> Any:
         return InputFeatureEmbeddingStrategy(vae)
     if technique == "conditional_embedding":
         return ConditionalEmbeddingStrategy(vae)
+    if technique == "aguila22_embedding":
+        return Aguila22ConditionalEmbeddingStrategy(vae)
+    if technique == "wang22_embedding":
+        return Wang22ConditionalEmbeddingStrategy(vae)
     if technique == "encoder_embedding":
         return EncoderEmbeddingStrategy(vae)
     if technique == "decoder_embedding":

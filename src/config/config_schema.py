@@ -124,9 +124,6 @@ class DatasetConfig(BaseModel):
             params={
                 "default": "z-score",
                 "one_hot_encoding": ["site", "sex"],
-                "binary_encoding": [],
-                "ordinal_encoding": [],
-                "embedding_layer": [],
                 "z-score": ["age"],
                 "min-max": [],
                 "raw": [],

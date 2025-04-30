@@ -36,9 +36,6 @@ class EncodingTransform:
         # Define encoding methods
         self.method_map = {
             "one_hot_encoding": kwargs.get("one_hot_encoding", []),
-            "binary_encoding": kwargs.get("binary_encoding", []),
-            "ordinal_encoding": kwargs.get("ordinal_encoding", []),
-            "embedding_layer": kwargs.get("embedding_layer", []),
             "z-score": kwargs.get("z-score", []),
             "min-max": kwargs.get("min-max", []),
             "raw": kwargs.get("raw", []),

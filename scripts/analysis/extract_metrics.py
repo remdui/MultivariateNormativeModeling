@@ -9,7 +9,18 @@ import pandas as pd
 
 # === CONFIG ===
 base_path = "../../experiments"
-keys_to_extract = ["recon_r2", "recon_mse"]
+keys_to_extract = [
+    "recon_r2",
+    "recon_mse",
+    "invariant_regression_age",
+    "recon_distribution_KS",
+    "recon_distribution_BC",
+    "normative_kl",
+    "invariant_mi_site",
+]
+
+
+repetitions = 1
 
 
 # === Helpers ===
@@ -69,14 +80,32 @@ for (embed, dataset, covtype, latent), metric_data in results.items():
     }
 
     for metric, reps in metric_data.items():
-        vals = []
-        for i in range(5):
-            val = reps[i]
-            row[f"{metric}_Repeat #{i+1}"] = val
-            vals.append(val)
-        vals = np.array(vals, dtype=np.float64)
-        row[f"{metric}_Average"] = round(np.nanmean(vals), 2)
-        row[f"{metric}_Std"] = round(np.nanstd(vals), 2)
+        if isinstance(reps[0], dict):
+            subkeys = set()
+            for rep in reps:
+                if isinstance(rep, dict):
+                    subkeys.update(rep.keys())
+
+            for subkey in subkeys:
+                vals = []
+                for i in range(repetitions):
+                    rep_val = reps[i]
+                    val = rep_val.get(subkey) if isinstance(rep_val, dict) else np.nan
+                    row[f"{metric}_{subkey}_Repeat #{i+1}"] = val
+                    vals.append(val)
+                vals = np.array(vals, dtype=np.float64)
+                row[f"{metric}_{subkey}_Average"] = round(np.nanmean(vals), 2)
+                row[f"{metric}_{subkey}_Std"] = round(np.nanstd(vals), 2)
+
+        else:
+            vals = []
+            for i in range(repetitions):
+                val = reps[i]
+                row[f"{metric}_Repeat #{i+1}"] = val
+                vals.append(val)
+            vals = np.array(vals, dtype=np.float64)
+            row[f"{metric}_Average"] = round(np.nanmean(vals), 2)
+            row[f"{metric}_Std"] = round(np.nanstd(vals), 2)
 
     rows.append(row)
 

@@ -109,6 +109,7 @@ for roi in rois:
         "RMSE": metrics_te["RMSE"][0],
         "Rho": metrics_te["Rho"][0],
     }
+    print(metrics_te)
     print("Overall metrics:", overall_metrics)
     overall_df = pd.DataFrame([overall_metrics])
     global_all_metrics = pd.concat([global_all_metrics, overall_df], ignore_index=True)

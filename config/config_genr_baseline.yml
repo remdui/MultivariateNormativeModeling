@@ -28,7 +28,6 @@ dataset:
   - sex
   - site
   skipped_covariates:
-  - sex
   - site
   targets: []
   input_data: genr_aparc_vol.rds
@@ -49,9 +48,6 @@ dataset:
       one_hot_encoding:
       - site
       - sex
-      binary_encoding: []
-      ordinal_encoding: []
-      embedding_layer: []
       z-score:
       - age
       min-max: []
