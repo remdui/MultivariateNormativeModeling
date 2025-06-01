@@ -43,18 +43,19 @@ class ExperimentTask(AbstractTask):
         # Define embedding techniques to test
         self.embedding_methods = [
             "no_embedding",
-            "input_feature_embedding",
-            "encoder_embedding",
-            "decoder_embedding",
+            # "input_feature_embedding",
+            # "encoder_embedding",
+            # "decoder_embedding",
             "conditional_embedding",
             "encoderdecoder_embedding",
+            # "adversarial_embedding"
         ]
 
         # Define latent dimension values to test
         # self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
-        self.latent_dim_values = [8]
+        self.latent_dim_values = [4, 8]
         # Number of repetitions per experiment setting
-        self.num_repetitions = 1  # Change as needed
+        self.num_repetitions = 2  # Change as needed
 
         self.experiment_manager.clear_output_directory()
         self.embed_method: str = ""

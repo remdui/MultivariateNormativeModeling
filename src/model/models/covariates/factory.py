@@ -34,7 +34,7 @@ def get_embedding_strategy(vae: Any) -> Any:
         return InputFeatureEmbeddingStrategy(vae)
     if technique == "conditional_embedding":
         return ConditionalEmbeddingStrategy(vae)
-    if technique == "encoderdecoder":
+    if technique == "encoderdecoder_embedding":
         return EncoderDecoderEmbeddingStrategy(vae)
     if technique == "encoder_embedding":
         return EncoderEmbeddingStrategy(vae)

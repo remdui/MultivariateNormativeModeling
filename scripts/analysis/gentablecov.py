@@ -106,10 +106,7 @@ def main():
             ("inputfeatureembedding", "Encoder-Decoder (cVAE)"),
             ("encoderdecoderembedding", "Covariate reconstruction"),
             ("conditionalembedding", "Conditional loss term"),
-            # The following will appear as blank if not present:
-            ("encoderdecoderbinned", "Encoder-Decoder (binned age)"),
-            ("adversarialterm", "Adversarial loss term"),
-            ("conditionalprior", "Conditional prior"),
+            ("adversarialembedding", "Adversarial loss term"),
         ]
     )
 

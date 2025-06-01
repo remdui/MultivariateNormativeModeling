@@ -98,12 +98,11 @@ class MSEVAELoss(_WeightedLoss):
             "no_embedding",
             "encoder_embedding",
             "decoder_embedding",
-            "aguila22_embedding",
-            "wang22_embedding",
+            "encoderdecoder_embedding",
         }:
             mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
             mse_cov = 0.0
-        elif self.covariate_embedding_technique == "input_feature":
+        elif self.covariate_embedding_technique == "input_feature_embedding":
             if covariates is None:
                 raise UnsupportedCovariateEmbeddingTechniqueError(
                     "Covariates must be provided for 'input_feature' mode."
