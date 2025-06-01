@@ -117,7 +117,9 @@ disable=
     too-many-arguments,
     unused-argument,
     unbalanced-tuple-unpacking,
-    redefined-variable-type
+    redefined-variable-type,
+    too-many-statements,
+    expression-not-assigned
 
 
 [REPORTS]
