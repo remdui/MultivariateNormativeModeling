@@ -8,7 +8,7 @@ from model.models.util.vae import reparameterize
 from util.errors import UnsupportedCovariateEmbeddingTechniqueError
 
 
-class Aguila22ConditionalEmbeddingStrategy(BaseEmbeddingStrategy):
+class EncoderDecoderEmbeddingStrategy(BaseEmbeddingStrategy):
     """Conditional VAE covariate embedding strategy."""
 
     def configure_dimensions(

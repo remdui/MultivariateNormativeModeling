@@ -7,21 +7,18 @@ from entities.properties import Properties
 from model.models.covariates.impl.adversarial_embedding import (
     AdversarialEmbeddingStrategy,
 )
-from model.models.covariates.impl.aguila22_embedding import (
-    Aguila22ConditionalEmbeddingStrategy,
-)
 from model.models.covariates.impl.conditional_embedding import (
     ConditionalEmbeddingStrategy,
 )
 from model.models.covariates.impl.decoder_embedding import DecoderEmbeddingStrategy
 from model.models.covariates.impl.encoder_embedding import EncoderEmbeddingStrategy
+from model.models.covariates.impl.encoderdecoder_embedding import (
+    EncoderDecoderEmbeddingStrategy,
+)
 from model.models.covariates.impl.input_feature_embedding import (
     InputFeatureEmbeddingStrategy,
 )
 from model.models.covariates.impl.no_embedding import NoEmbeddingStrategy
-from model.models.covariates.impl.wang22_embedding import (
-    Wang22ConditionalEmbeddingStrategy,
-)
 from util.errors import UnsupportedCovariateEmbeddingTechniqueError
 
 
@@ -33,14 +30,12 @@ def get_embedding_strategy(vae: Any) -> Any:
 
     if technique == "no_embedding":
         return NoEmbeddingStrategy(vae)
-    if technique == "input_feature":
+    if technique == "input_feature_embedding":
         return InputFeatureEmbeddingStrategy(vae)
     if technique == "conditional_embedding":
         return ConditionalEmbeddingStrategy(vae)
-    if technique == "aguila22_embedding":
-        return Aguila22ConditionalEmbeddingStrategy(vae)
-    if technique == "wang22_embedding":
-        return Wang22ConditionalEmbeddingStrategy(vae)
+    if technique == "encoderdecoder":
+        return EncoderDecoderEmbeddingStrategy(vae)
     if technique == "encoder_embedding":
         return EncoderEmbeddingStrategy(vae)
     if technique == "decoder_embedding":

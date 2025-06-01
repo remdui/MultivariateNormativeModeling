@@ -43,11 +43,11 @@ class ExperimentTask(AbstractTask):
         # Define embedding techniques to test
         self.embedding_methods = [
             "no_embedding",
-            "input_feature",
+            "input_feature_embedding",
             "encoder_embedding",
             "decoder_embedding",
             "conditional_embedding",
-            "aguila22_embedding",
+            "encoderdecoder_embedding",
         ]
 
         # Define latent dimension values to test
