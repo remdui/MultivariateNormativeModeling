@@ -6,9 +6,7 @@ Scan through a directory tree of the form:
     experiments/<experiment_folder>/**/validate/output/metrics/metrics.json
 
 Each <experiment_folder> is named like:
-    <id>_embed-<embedtype>_dim-<dim>_rep-<rep>_seed-<seed>_dataset-<datasetname>_covtype-<whatever>
-
-We will ignore the folder’s covtype entirely.  Instead, supply on the command line:
+    <id>_embed-<embedtype>_dim-<dim>_rep-<rep>_seed-<seed>
 
     --covariates none
     --covariates age
@@ -49,24 +47,19 @@ def parse_experiment_folder_name(folder_name):
     """
     Given a folder name like:
 
-        0_embed-noembedding_dim-1_rep-0_seed-42_dataset-HBN_covtype-none
+        0_embed-noembedding_dim-1_rep-0_seed-42
 
     Extract:
         embed      = "noembedding"
         dim        = 1
         rep        = 0
         seed       = 42
-        dataset    = "HBN"
-
-    We ignore covtype here entirely.
     """
     pattern = (
         r"^[0-9]+_embed-(?P<embed>[^_]+)"
         r"_dim-(?P<dim>\d+)"
         r"_rep-(?P<rep>\d+)"
         r"_seed-(?P<seed>\d+)"
-        r"_dataset-(?P<dataset>[^_]+)"
-        r"_covtype-.+$"
     )
     m = re.match(pattern, folder_name)
     if not m:
@@ -78,7 +71,6 @@ def parse_experiment_folder_name(folder_name):
         "dim": int(m.group("dim")),
         "rep": int(m.group("rep")),
         "seed": int(m.group("seed")),
-        "dataset": m.group("dataset"),
     }
 
 
@@ -254,7 +246,6 @@ def main():
             "dim": parsed["dim"],
             "rep": parsed["rep"],
             "seed": parsed["seed"],
-            "dataset": parsed["dataset"],
             "recon_mse": metrics.get("recon_mse", None),
             "recon_r2": metrics.get("recon_r2", None),
             "global_mean_kl": metrics.get("normative_kl", {}).get(
@@ -276,9 +267,7 @@ def main():
     df = pd.DataFrame(all_records)
 
     group_cols = ["embed", "dim"]
-    numeric_cols = [
-        c for c in df.columns if c not in group_cols + ["seed", "rep", "dataset"]
-    ]
+    numeric_cols = [c for c in df.columns if c not in group_cols + ["seed", "rep"]]
 
     agg_dict = {col: ["mean", "std"] for col in numeric_cols}
     df_grouped = df.groupby(group_cols).agg(agg_dict)

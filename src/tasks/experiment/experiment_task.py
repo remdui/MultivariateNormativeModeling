@@ -41,39 +41,28 @@ class ExperimentTask(AbstractTask):
         self.task_name = "experiment"
 
         # Define embedding techniques to test
-        self.embedding_methods = [
-            "no_embedding",
-            "input_feature_embedding",
-            "encoder_embedding",
-            "decoder_embedding",
-            "conditional_embedding",
-            "encoderdecoder_embedding",
-            "adversarial_embedding",
-            "conditional_adversarial_embedding",
-            "fair_embedding",
-            "hsic_embedding",
-        ]
+        self.embedding_methods = ["no_embedding"]
 
         # Define latent dimension values to test
         # self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
         self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
         # Number of repetitions per experiment setting
-        self.num_repetitions = 2  # Change as needed
+        self.num_repetitions = 5  # Change as needed
 
         self.experiment_manager.clear_output_directory()
         self.embed_method: str = ""
-        self.trial_offset = 0
-        self.rep_offset = 0
-        self.base_seed = 42
+        self.trial_offset = 8
+        self.rep_offset = 1
+        self.base_seed = 43
         self.seed = -1
 
     # Run i-th experiment (e.g., in a loop)
     def set_seed_for_run(self, i: int, next_embed_method: str) -> None:
         """Set the seed for the i-th run."""
-        if self.base_seed != 42 and next_embed_method != self.embed_method:
-            self.base_seed = 42
+        if self.seed != self.base_seed and next_embed_method != self.embed_method:
+            self.seed = self.base_seed
 
-        seed = self.base_seed + 1
+        seed = self.seed + 1
         print(f"Run {i}: Using seed {seed}")
         random.seed(seed)
         np.random.seed(seed)

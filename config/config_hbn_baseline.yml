@@ -26,7 +26,10 @@ dataset:
   - age
   - sex
   - site
-  skipped_covariates: []
+  skipped_covariates:
+  - age
+  - sex
+  - site
   targets: []
   input_data: hbn_aparc_vol.rds
   data_type: tabular
