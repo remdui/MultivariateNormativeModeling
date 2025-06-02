@@ -26,17 +26,20 @@ from model.models.covariates.impl.input_feature_embedding import (
 from model.models.covariates.impl.no_embedding import NoEmbeddingStrategy
 from util.errors import UnsupportedCovariateEmbeddingTechniqueError
 
-covariate_info = {
-    "labels": ["age", "sex"],
-    "continuous": [0],
-    "categorical": {"sex": [1, 2]},
-}
-
 # covariate_info = {
-#     "labels": ["age", "sex", "site"],
+#     "labels": ["age", "sex"],
 #     "continuous": [0],
-#     "categorical": {"sex": [1, 2], "site": [3, 4, 5], },
+#     "categorical": {"sex": [1, 2]},
 # }
+
+covariate_info = {
+    "labels": ["age", "sex", "site"],
+    "continuous": [0],
+    "categorical": {
+        "sex": [1, 2],
+        "site": [3, 4, 5],
+    },
+}
 
 
 def get_embedding_strategy(vae: Any) -> Any:
