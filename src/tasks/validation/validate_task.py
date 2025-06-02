@@ -163,7 +163,7 @@ class ValidateTask(AbstractTask):
 
         # Combine arrays and column names based on the covariate embedding technique.
         if self.covariate_embedding_technique in {
-            "input_feature",
+            "input_feature_embedding",
             "conditional_embedding",
         }:
             combined_data = np.concatenate(
@@ -292,7 +292,7 @@ class ValidateTask(AbstractTask):
 
         # Combine arrays and column names based on the covariate embedding technique.
         if self.covariate_embedding_technique in {
-            "input_feature",
+            "input_feature_embedding",
             "conditional_embedding",
         }:
             combined_data = np.concatenate(
