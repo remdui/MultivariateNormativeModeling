@@ -13,8 +13,68 @@ from torch.nn import functional as F
 from torch.nn.modules.loss import _WeightedLoss
 
 from model.models.covariates.factory import get_embedding_technique
+from model.models.covariates.impl.fair_embedding import _compute_mmd_rbf
 from optimization.loss_functions.util.kl_annealing import KLAnnealing
 from util.errors import UnsupportedCovariateEmbeddingTechniqueError
+
+
+def _rbf_kernel(x: Tensor, sigma: float) -> Tensor:
+    """
+    Computes the RBF kernel matrix K for input x:
+
+      K_ij = exp(-||x_i - x_j||^2 / (2 sigma^2))
+    """
+    n, d = x.shape
+    # Compute pairwise squared Euclidean distances
+    # Expand to (n, n, d) to compute (x_i - x_j)^2 along dim=2
+    xx = x.unsqueeze(1).expand(n, n, d)
+    yy = x.unsqueeze(0).expand(n, n, d)
+    dist2 = ((xx - yy) ** 2).sum(dim=2)  # shape (n, n)
+    return torch.exp(-dist2 / (2 * sigma**2))
+
+
+def _center_kernel(K: Tensor) -> Tensor:
+    """
+    Centers a kernel matrix K in feature space via H = I - (1/n) 11^T:
+
+      K_centered = H K H
+    """
+    n = K.size(0)
+    # Create centering matrix H = I - (1/n) * 11^T
+    identity = torch.eye(n, device=K.device, dtype=K.dtype)
+    ones = torch.ones((n, n), device=K.device, dtype=K.dtype) / n
+    H = identity - ones
+    return H @ K @ H
+
+
+def _compute_hsic(
+    z: Tensor,
+    s: Tensor,
+    sigma_z: float,
+    sigma_s: float,
+) -> Tensor:
+    """
+    Computes the (biased) empirical HSIC between z and s:
+
+      HSIC = (1 / n^2) * trace( K_centered(z) @ K_centered(s) )
+    where K(z) and K(s) are RBF kernels.
+    """
+    n = z.size(0)
+    if n < 2:
+        # If batch size is 1, HSIC is zero by definition
+        return torch.tensor(0.0, device=z.device)
+
+    # Compute RBF kernels
+    K_z = _rbf_kernel(z, sigma_z)  # (n, n)
+    K_s = _rbf_kernel(s, sigma_s)  # (n, n)
+
+    # Center both
+    Kc_z = _center_kernel(K_z)
+    Kc_s = _center_kernel(K_s)
+
+    # Biased HSIC estimate
+    hsic_val = (Kc_z * Kc_s).sum() / (n * n)
+    return hsic_val
 
 
 class MSEVAELoss(_WeightedLoss):
@@ -36,6 +96,11 @@ class MSEVAELoss(_WeightedLoss):
         beta_end: float = 1.0,
         kl_anneal_start: int = 0,
         kl_anneal_end: int = 0,
+        mmd_sigma: float = 1.0,
+        mmd_lambda: float = 1.0,
+        hsic_sigma_z: float = 1.0,
+        hsic_sigma_s: float = 1.0,
+        hsic_lambda: float = 1.0,
     ) -> None:
         """
         Initialize the MSEVAELoss.
@@ -55,6 +120,11 @@ class MSEVAELoss(_WeightedLoss):
             kl_anneal_end=kl_anneal_end,
         )
         self.covariate_embedding_technique = get_embedding_technique()
+        self.mmd_sigma = mmd_sigma
+        self.mmd_lambda = mmd_lambda
+        self.hsic_sigma_z = hsic_sigma_z
+        self.hsic_sigma_s = hsic_sigma_s
+        self.hsic_lambda = hsic_lambda
 
     def forward(
         self,
@@ -128,14 +198,12 @@ class MSEVAELoss(_WeightedLoss):
                     group = label.split("_")[0]
                     categorical_groups.setdefault(group, []).append(i)
 
-            # Continuous covariate loss (e.g., age)
             loss_cont = 0.0
             if continuous_indices:
                 pred_cont = recon_cov[:, continuous_indices]
                 true_cont = covariates[:, continuous_indices]
                 loss_cont = F.mse_loss(pred_cont, true_cont, reduction=self.reduction)
 
-            # Categorical covariate loss (e.g., sex, site)
             loss_cat = 0.0
             for group, indices in categorical_groups.items():
                 pred_cat = recon_cov[:, indices]
@@ -147,49 +215,140 @@ class MSEVAELoss(_WeightedLoss):
 
             mse_cov = loss_cont + loss_cat * 1.0
 
-        elif self.covariate_embedding_technique == "adversarial_embedding":
+        elif self.covariate_embedding_technique in {
+            "adversarial_embedding",
+            "conditional_adversarial_embedding",
+        }:
             if covariates is None or covariate_labels is None:
                 raise UnsupportedCovariateEmbeddingTechniqueError(
-                    "Covariates and covariate_labels must be provided for 'adversarial_embedding' mode."
+                    "Covariates and covariate_labels must be provided for adversarial mode."
                 )
-            # In adversarial embedding, the decoder only reconstructs the primary data.
+
             mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
+            mse_cov = 0.0
 
-            # Compute adversarial loss using the predictions from the adversary branch.
-            adv_preds = model_outputs.get("adv_preds")
-            if adv_preds is None:
-                raise UnsupportedCovariateEmbeddingTechniqueError(
-                    "Adversary predictions missing in model outputs for 'adversarial_embedding' mode."
-                )
+            adv_preds = model_outputs.get("adv_preds", {})
+            continuous_indices: list[int] = []
+            categorical_groups: dict[str, list[int]] = {}
 
-            continuous_indices = []
-            categorical_groups = {}
             for i, label in enumerate(covariate_labels):
                 if "_" not in label:
                     continuous_indices.append(i)
                 else:
-                    group = label.split("_")[0]
-                    categorical_groups.setdefault(group, []).append(i)
+                    grp = label.split("_")[0]
+                    categorical_groups.setdefault(grp, []).append(i)
 
             loss_adv_cont = 0.0
             if continuous_indices and "continuous" in adv_preds:
                 pred_cont = adv_preds["continuous"]
                 true_cont = covariates[:, continuous_indices]
-                loss_adv_cont = F.mse_loss(
+
+                alpha = 0.1  # ← scale factor
+                loss_adv_cont = alpha * F.mse_loss(
                     pred_cont, true_cont, reduction=self.reduction
                 )
 
             loss_adv_cat = 0.0
-            for group, indices in categorical_groups.items():
-                if group in adv_preds:
-                    pred_cat = adv_preds[group]
+            for grp, indices in categorical_groups.items():
+                if grp in adv_preds:
+                    pred_cat = adv_preds[grp]
                     true_onehot = covariates[:, indices]
                     true_labels = true_onehot.argmax(dim=1)
                     loss_adv_cat += F.cross_entropy(
                         pred_cat, true_labels, reduction=self.reduction
                     )
 
-            mse_cov = 1.0 * (loss_adv_cont + loss_adv_cat)
+            adv_loss = loss_adv_cont + loss_adv_cat
+            mse_cov += adv_loss
+
+        elif self.covariate_embedding_technique == "fair_embedding":
+            if covariates is None or covariate_labels is None:
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    "Covariates and covariate_labels must be provided for 'fair_embedding' mode."
+                )
+
+            mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
+            mse_cov = 0.0
+
+            z = model_outputs.get("z")
+            if z is None:
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    "Latent code 'z' missing in model outputs for 'fair_embedding'."
+                )
+
+            categorical_groups: dict[str, list[int]] = {}
+            for i, label in enumerate(covariate_labels):
+                if "_" not in label:
+                    continue
+                grp = label.split("_")[0]
+                categorical_groups.setdefault(grp, []).append(i)
+
+            mmd_total = torch.tensor(0.0, device=z.device)
+
+            # print(covariates) # Find out order (same as config order)
+
+            for group, indices in categorical_groups.items():
+                # `indices` is a list of one‐hot column positions for this group,
+                # e.g. [2,3,4] if "site_A","site_B","site_C" are at columns 2,3,4.
+                num_classes = len(indices)
+                if num_classes < 2:
+                    # trivial or degenerate group → skip
+                    continue
+
+                # Build true_labels ∈ {0,…, num_classes−1}
+                true_onehot = covariates[:, indices]  # shape (batch, num_classes)
+                true_labels = true_onehot.argmax(dim=1)  # shape (batch,)
+
+                # For each distinct pair (i, j) with 0 ≤ i < j < num_classes,
+                #     collect z_i and z_j, then compute MMD(z_i, z_j).
+                group_mmd = torch.tensor(0.0, device=z.device)
+                pair_count = 0
+
+                for i_class in range(num_classes):
+                    # z_i = all z where true_labels == i_class
+                    z_i = z[true_labels == i_class]
+                    # skip if no samples of that class in this batch
+                    if z_i.size(0) == 0:
+                        continue
+
+                    for j_class in range(i_class + 1, num_classes):
+                        z_j = z[true_labels == j_class]
+                        if z_j.size(0) == 0:
+                            continue
+
+                        # compute MMD between z_i and z_j
+                        mmd_ij = _compute_mmd_rbf(z_i, z_j, sigma=self.mmd_sigma)
+                        group_mmd = group_mmd + mmd_ij
+                        pair_count += 1
+
+                if pair_count > 0:
+                    # Option A: sum all pairwise MMDs
+                    mmd_total = mmd_total + group_mmd
+
+                    # Option B (alternative): average over pairs:
+                    # mmd_total = mmd_total + (group_mmd / float(pair_count))
+
+            mse_data = mse_data + self.mmd_lambda * mmd_total
+
+        elif self.covariate_embedding_technique == "hsic_embedding":
+            if covariates is None or covariate_labels is None:
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    "Covariates and covariate_labels must be provided for 'hsic_embedding'."
+                )
+            mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
+            mse_cov = 0.0
+
+            z = model_outputs.get("z")
+            if z is None:
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    "Latent code 'z' missing for HSIC embedding."
+                )
+
+            hsic_val = _compute_hsic(
+                z, covariates, sigma_z=self.hsic_sigma_z, sigma_s=self.hsic_sigma_s
+            )
+            extra_penalty = self.hsic_lambda * hsic_val
+            mse_data += extra_penalty
 
         else:
             raise UnsupportedCovariateEmbeddingTechniqueError(

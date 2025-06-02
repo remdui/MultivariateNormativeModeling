@@ -24,11 +24,9 @@ dataset:
   - EID
   covariates:
   - age
-  - site
   - sex
-  skipped_covariates:
   - site
-  - sex
+  skipped_covariates: []
   targets: []
   input_data: hbn_aparc_vol.rds
   data_type: tabular
@@ -374,7 +372,7 @@ model:
       encoder: mlp
       decoder: mlp
       latent_dim: 4
-      covariate_embedding: adversarial_embedding
+      covariate_embedding: input_feature_embedding
   hidden_layers:
   - 256
   - 128

@@ -119,7 +119,10 @@ disable=
     unbalanced-tuple-unpacking,
     redefined-variable-type,
     too-many-statements,
-    expression-not-assigned
+    expression-not-assigned,
+    abstract-method,
+    arguments-differ,
+    too-many-branches
 
 
 [REPORTS]

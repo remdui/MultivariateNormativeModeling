@@ -35,7 +35,7 @@ class GradientReversalLayer(nn.Module):
         return GradientReversalFunction.apply(x, self.lambda_adv)
 
 
-class SimpleAdversarialEmbeddingStrategy(BaseEmbeddingStrategy):
+class SimpleConditionalAdversarialEmbeddingStrategy(BaseEmbeddingStrategy):
     """
     “Stabilized” Adversarial embedding:
 
@@ -81,7 +81,6 @@ class SimpleAdversarialEmbeddingStrategy(BaseEmbeddingStrategy):
         self.adversary_cont: nn.Module | None = None
         self.adversary_cat: nn.ModuleDict | None = None
 
-        # Adversary hyperparams
         self.hidden_dim = hidden_dim
         self.dropout_p = dropout_p
 
@@ -98,7 +97,6 @@ class SimpleAdversarialEmbeddingStrategy(BaseEmbeddingStrategy):
         Then build adversary MLPs that take z_mean (latent_dim) and predict covariates.
         We place them on Properties.system.device.
         """
-        # Determine device from Properties
         properties = Properties.get_instance()
         device = properties.system.device
 
@@ -112,6 +110,7 @@ class SimpleAdversarialEmbeddingStrategy(BaseEmbeddingStrategy):
         else:
             self.adversary_cont = None
 
+        # --- Categorical adversary heads (one per group) ---
         self.adversary_cat = nn.ModuleDict()
         for group_name, indices in self.categorical_groups.items():
             num_classes = len(indices)
@@ -123,9 +122,9 @@ class SimpleAdversarialEmbeddingStrategy(BaseEmbeddingStrategy):
             ).to(device)
 
         return {
-            "encoder_input_dim": input_dim,
+            "encoder_input_dim": input_dim + cov_dim,
             "encoder_output_dim": latent_dim,
-            "decoder_input_dim": latent_dim,
+            "decoder_input_dim": latent_dim + cov_dim,
             "decoder_output_dim": output_dim,
         }
 
@@ -153,20 +152,17 @@ class SimpleAdversarialEmbeddingStrategy(BaseEmbeddingStrategy):
                 "Covariates must be provided for stabilized adversarial embedding."
             )
 
-        z_mean, z_logvar = self.vae.encoder(x)
-
+        encoder_input = torch.cat([x, covariates], dim=1)
+        z_mean, z_logvar = self.vae.encoder(encoder_input)
         z = reparameterize(z_mean, z_logvar)
-
-        x_recon = self.vae.decoder(z)
-
+        decoder_input = torch.cat([z, covariates], dim=1)
+        x_recon = self.vae.decoder(decoder_input)
         z_for_adv = self.grl(z_mean)
-
         adv_outputs: dict[str, Tensor] = {}
 
         if self.adversary_cont is not None:
             adv_outputs["continuous"] = self.adversary_cont(z_for_adv)
 
-        # Categorical heads
         for group_name, head in self.adversary_cat.items():
             adv_outputs[group_name] = head(z_for_adv)
 

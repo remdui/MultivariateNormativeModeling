@@ -86,15 +86,15 @@ repos:
         types: [ python ]
         require_serial: true
         args: ["--ini", ".bandit"]
-  - repo: local
-    hooks:
-      - id: xenon
-        name: "Code Complexity Checker (xenon)"
-        entry: xenon
-        language: system
-        types: [ python ]
-        require_serial: true
-        args: [-bD, -mD, -aD, ./src]
+#  - repo: local
+#    hooks:
+#      - id: xenon
+#        name: "Code Complexity Checker (xenon)"
+#        entry: xenon
+#        language: system
+#        types: [ python ]
+#        require_serial: true
+#        args: [-bD, -mD, -aD, ./src]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

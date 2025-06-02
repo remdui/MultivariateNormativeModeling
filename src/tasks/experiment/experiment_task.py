@@ -43,17 +43,20 @@ class ExperimentTask(AbstractTask):
         # Define embedding techniques to test
         self.embedding_methods = [
             "no_embedding",
-            # "input_feature_embedding",
-            # "encoder_embedding",
-            # "decoder_embedding",
+            "input_feature_embedding",
+            "encoder_embedding",
+            "decoder_embedding",
             "conditional_embedding",
             "encoderdecoder_embedding",
-            # "adversarial_embedding"
+            "adversarial_embedding",
+            "conditional_adversarial_embedding",
+            "fair_embedding",
+            "hsic_embedding",
         ]
 
         # Define latent dimension values to test
         # self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
-        self.latent_dim_values = [4, 8]
+        self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
         # Number of repetitions per experiment setting
         self.num_repetitions = 2  # Change as needed
 
@@ -142,7 +145,7 @@ class ExperimentTask(AbstractTask):
         embed_method_str = embed_method.replace("_", "")
         self.experiment_manager.clear_output_directory()
         self.experiment_manager.create_experiment_group_identifier(
-            f"{trial_id}_embed-{embed_method_str}_dim-{latent_dim}_rep-{repetition}_seed-{self.seed}_dataset-GenR_covtype-sexage"
+            f"{trial_id}_embed-{embed_method_str}_dim-{latent_dim}_rep-{repetition}_seed-{self.seed}"
         )
 
         self.logger.info(
