@@ -14,6 +14,9 @@ from model.models.covariates.impl.conditional_embedding import (
     ConditionalEmbeddingStrategy,
 )
 from model.models.covariates.impl.decoder_embedding import DecoderEmbeddingStrategy
+from model.models.covariates.impl.disentangle_embedding import (
+    DisentangleEmbeddingStrategy,
+)
 from model.models.covariates.impl.encoder_embedding import EncoderEmbeddingStrategy
 from model.models.covariates.impl.encoderdecoder_embedding import (
     EncoderDecoderEmbeddingStrategy,
@@ -75,6 +78,11 @@ def get_embedding_strategy(vae: Any) -> Any:
 
     if technique == "hsic_embedding":
         return HSICEmbeddingStrategy(vae, hsic_lambda=1.0)
+
+    if technique == "disentangle_embedding":
+        return DisentangleEmbeddingStrategy(
+            vae, covariate_info=covariate_info, hsic_lambda=1.0
+        )
 
     raise UnsupportedCovariateEmbeddingTechniqueError(
         f"Unknown covariate_embedding technique: {technique}"

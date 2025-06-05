@@ -147,6 +147,18 @@ class ValidateTask(AbstractTask):
             "Creating DataFrame with original, reconstruction, and latent data."
         )
 
+        if self.covariate_embedding_technique == "disentangle_embedding":
+            # The config entry "latent_dim" is the size of the uninformed part:
+            uninformed_size = self.properties.model.components.get(
+                self.properties.model.architecture
+            ).get("latent_dim")
+            total_latent_dim = z_mean_data.shape[1]
+            sensitive_dim = total_latent_dim - uninformed_size
+
+            # Keep only the last `uninformed_size` columns of z_mean and z_logvar
+            z_mean_data = z_mean_data[:, sensitive_dim:]
+            z_logvar_data = z_logvar_data[:, sensitive_dim:]
+
         # Obtain column labels.
         feature_names = self.dataloader.get_feature_labels()
         covariate_names = self.dataloader.get_encoded_covariate_labels()
@@ -275,6 +287,16 @@ class ValidateTask(AbstractTask):
         self.logger.info(
             "Creating DataFrame with original, reconstruction, and latent data."
         )
+
+        if self.covariate_embedding_technique == "disentangle_embedding":
+            uninformed_size = self.properties.model.components.get(
+                self.properties.model.architecture
+            ).get("latent_dim")
+            total_latent_dim = z_mean_data.shape[1]
+            sensitive_dim = total_latent_dim - uninformed_size
+
+            z_mean_data = z_mean_data[:, sensitive_dim:]
+            z_logvar_data = z_logvar_data[:, sensitive_dim:]
 
         # Obtain column labels.
         feature_names = self.dataloader.get_feature_labels()

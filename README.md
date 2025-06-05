@@ -17,16 +17,6 @@
 Robustness to Site-Variance using Gen R Data`
 - Under supervision of: `C. Lofi (TU Delft), R. Muetzel (Erasmus MC), and H. Schnack (Erasmus MC)`
 
-### Literature
-
-Literature and research documents can be found in the `docs/literature` directory.
-
-- The thesis document can be found at [`docs/literature/thesis.pdf`](docs/literature/thesis.pdf)
-- The thesis proposal can be found at [`docs/literature/thesis_proposal.pdf`](docs/literature/thesis_proposal.pdf)
-- Papers that are relevant to this project can be found at [`docs/literature/papers.md`](docs/literature/papers.md)
-- Other documents can be found at [`docs/other`](docs/other)
-
-Relevant documentation for the code can be found in the `docs/code` directory.
 
 ### Code Repository
 
@@ -54,7 +44,7 @@ This project requires the following dependencies installed:
 - Python >= 3.11.3 (matching the latest version on Snellius HPC)
 - Poetry >= 1.8.4
 
-All dependencies[README.md](README.md) are listed in the `pyproject.toml` file.
+All dependencies [README.md](README.md) are listed in the `pyproject.toml` file.
 
 Alternatively, Docker can be used to run the project. The Dockerfile is provided in the repository. This requires Docker to be installed on the host machine.
 

@@ -103,10 +103,14 @@ def main():
             ("noembedding", "Baseline"),
             ("decoderembedding", "Decoder-only"),
             ("encoderembedding", "Encoder-only"),
-            ("inputfeatureembedding", "Encoder-Decoder (cVAE)"),
-            ("encoderdecoderembedding", "Covariate reconstruction"),
+            ("encoderdecoderembedding", "Encoder-Decoder (cVAE)"),
+            ("inputfeatureembedding", "Covariate reconstruction"),
             ("conditionalembedding", "Conditional loss term"),
             ("adversarialembedding", "Adversarial loss term"),
+            ("conditionaladversarialembedding", "Conditional Adversarial loss term"),
+            ("fairembedding", "FairVAE (MMD)"),
+            ("hsicembedding", "HSIC loss term"),
+            ("disentangleembedding", "Disentangled subspace"),
         ]
     )
 

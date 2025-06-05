@@ -3,7 +3,7 @@ system:
   device: cuda
   log_dir: ./logs
   models_dir: ./models
-  num_workers: 4
+  num_workers: 0
   output_dir: ./output
 general:
   debug: true
@@ -26,10 +26,7 @@ dataset:
   - age
   - sex
   - site
-  skipped_covariates:
-  - age
-  - sex
-  - site
+  skipped_covariates: []
   targets: []
   input_data: hbn_aparc_vol.rds
   data_type: tabular
@@ -374,8 +371,8 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 4
-      covariate_embedding: input_feature_embedding
+      latent_dim: 8
+      covariate_embedding: disentangle_embedding
   hidden_layers:
   - 256
   - 128

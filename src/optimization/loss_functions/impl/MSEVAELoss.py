@@ -350,6 +350,66 @@ class MSEVAELoss(_WeightedLoss):
             extra_penalty = self.hsic_lambda * hsic_val
             mse_data += extra_penalty
 
+        elif self.covariate_embedding_technique == "disentangle_embedding":
+            if covariates is None or covariate_labels is None:
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    "Covariates and covariate_labels must be provided for 'disentangle_embedding'."
+                )
+
+            mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
+
+            disc_preds = model_outputs.get("disc_preds", {})
+            continuous_indices: list[int] = []
+            categorical_groups: dict[str, list[int]] = {}
+
+            for i, label in enumerate(covariate_labels):
+                if "_" not in label:
+                    continuous_indices.append(i)
+                else:
+                    grp = label.split("_")[0]
+                    categorical_groups.setdefault(grp, []).append(i)
+
+            loss_disc_cont = 0.0
+            if continuous_indices and "continuous" in disc_preds:
+                pred_cont = disc_preds["continuous"]
+                true_cont = covariates[:, continuous_indices]
+                loss_disc_cont = F.mse_loss(
+                    pred_cont, true_cont, reduction=self.reduction
+                )
+
+            loss_disc_cat = 0.0
+            for grp, indices in categorical_groups.items():
+                if grp in disc_preds:
+                    pred_cat = disc_preds[grp]  # shape = (batch, num_classes)
+                    true_onehot = covariates[:, indices]
+                    true_labels = true_onehot.argmax(dim=1)
+                    loss_disc_cat += F.cross_entropy(
+                        pred_cat, true_labels, reduction=self.reduction
+                    )
+
+            disc_loss = loss_disc_cont + loss_disc_cat
+
+            z = model_outputs.get("z")
+            if z is None:
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    "Latent code 'z' missing for disentangle embedding."
+                )
+
+            cov_dim = len(continuous_indices) + sum(
+                len(indices) for indices in categorical_groups.values()
+            )
+            if z.size(1) < cov_dim:
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    f"Latent dimension {z.size(1)} smaller than required sensitive dimension {cov_dim}."
+                )
+            z_u = z[:, cov_dim:]
+
+            hsic_val = _compute_hsic(
+                z_u, covariates, sigma_z=self.hsic_sigma_z, sigma_s=self.hsic_sigma_s
+            )
+            hsic_penalty = self.hsic_lambda * hsic_val
+            mse_cov = disc_loss + hsic_penalty
+
         else:
             raise UnsupportedCovariateEmbeddingTechniqueError(
                 f"Unknown covariate embedding technique: {self.covariate_embedding_technique}"

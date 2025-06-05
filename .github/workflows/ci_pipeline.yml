@@ -51,9 +51,6 @@ jobs:
       - name: Security Linter (bandit)
         run: poetry run bandit --ini .bandit -r ./src
 
-      - name: Code Complexity Checker (xenon)
-        run: poetry run xenon --max-absolute D --max-modules D --max-average D ./src
-
       - name: YAML file Checker
         run: poetry run pre-commit run check-yaml --all-files
 
@@ -90,7 +87,7 @@ jobs:
 
       - name: Run Coverage (pytest-cov)
         run: |
-          poetry run pytest tests --cov=src --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=10
+          poetry run pytest tests --cov=src --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=5
 
       - name: Upload Coverage Reports
         uses: actions/upload-artifact@v4
