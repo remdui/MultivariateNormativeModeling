@@ -22,7 +22,7 @@ data/processed/*.h5
 data/processed/*.csv
 data/processed/*.json
 output/*
-experiments/*
+experiments*/
 *.pkl
 *.csv
 *.rds

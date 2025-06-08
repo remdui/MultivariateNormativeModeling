@@ -1,13 +1,4 @@
-"""
-Module for running structured experiments.
-
-This module defines the ExperimentTask class which:
-  - Iterates over different embedding techniques.
-  - Iterates over a predefined set of latent dimension values.
-  - Repeats the experiment for a given number of repetitions.
-  - Runs a training and validation cycle for each configuration.
-  - Uses Optuna to track trials, ensuring structured hyperparameter search.
-"""
+"""Experiment task."""
 
 import random
 import time
@@ -52,27 +43,31 @@ class ExperimentTask(AbstractTask):
             "conditional_adversarial_embedding",
             "fair_embedding",
             "hsic_embedding",
+            "disentangle_embedding",
         ]
 
         # Define latent dimension values to test
-        # self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
         self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
         # Number of repetitions per experiment setting
         self.num_repetitions = 3  # Change as needed
 
         self.experiment_manager.clear_output_directory()
         self.embed_method: str = ""
-        self.trial_offset = 64
-        self.rep_offset = 1
-        self.base_seed = 43
+        self.trial_offset = 0
+        self.rep_offset = 0
+        # Base seed for the first repetition
+        self.base_seed = 42
+        # Keep the initial base seed to compute offsets per repetition
+        self.initial_base_seed = self.base_seed
         self.seed = -1
 
-    # Run i-th experiment (e.g., in a loop)
     def set_seed_for_run(self, i: int, next_embed_method: str) -> None:
-        """Set the seed for the i-th run."""
+        """Set the seed for the i-th run, resetting per embedding method."""
+        # Reset to base_seed when moving to a new embedding method
         if self.seed != self.base_seed and next_embed_method != self.embed_method:
             self.seed = self.base_seed
 
+        # Increment seed for each run
         seed = self.seed + 1
         print(f"Run {i}: Using seed {seed}")
         random.seed(seed)
@@ -85,7 +80,9 @@ class ExperimentTask(AbstractTask):
 
     def run(self) -> TaskResult:
         """
-        Execute the experiment by running structured trials across embedding methods, latent dimensions, and repetitions.
+        Execute the experiment by running structured trials across embedding methods,.
+
+        latent dimensions, and repetitions.
 
         Uses Optuna to track and manage the search space.
 
@@ -139,6 +136,14 @@ class ExperimentTask(AbstractTask):
         """
         trial_id = trial.number + self.trial_offset
         embed_method, latent_dim, repetition = experiment_settings[trial.number]
+
+        # Update base_seed for the current repetition so that each repetition
+        # shifts the seed range by the number of embedding methods
+        self.base_seed = self.initial_base_seed + repetition * len(
+            self.latent_dim_values
+        )
+
+        # Set seed for this run
         self.set_seed_for_run(trial_id, embed_method)
         self.embed_method = embed_method
         repetition = repetition + self.rep_offset

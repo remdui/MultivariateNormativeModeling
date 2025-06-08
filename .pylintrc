@@ -122,7 +122,8 @@ disable=
     expression-not-assigned,
     abstract-method,
     arguments-differ,
-    too-many-branches
+    too-many-branches,
+    unnecessary-lambda
 
 
 [REPORTS]

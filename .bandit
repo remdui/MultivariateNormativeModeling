@@ -1,5 +1,5 @@
 # FILE: .bandit
 [bandit]
-skips = B614,B301,B403
+skips = B614,B301,B403,B311
 # B614: We need Pytorch load and save functions
 exclude = tests, ./tests

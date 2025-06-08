@@ -1,22 +1,14 @@
 """Data Harmonization with Combat."""
 
-import os
-import shutil
-
 import pandas as pd
 import pyreadr
 from neuroHarmonize import harmonizationLearn
 
 # ----- Configuration -----
 harmonize_covars = ["site"]  # Use e.g., ["site", "age"] if needed.
-input_rds_file = "../../../data/hbn_aparc_vol_lh_rh.rds"
-output_rds_file = "./output/harmonized_hbn_aparc_vol_lh_rh.rds"
+input_rds_file = "../site_dataset_5.rds"
+output_rds_file = "harmonized_site_dataset_5.rds"
 
-# ----- Setup Output Directory -----
-output_dir = "./output"
-if os.path.exists(output_dir):
-    shutil.rmtree(output_dir)
-os.makedirs(output_dir, exist_ok=True)
 
 # ----- Load Data -----
 print(f"Loading data from {input_rds_file} ...")
@@ -37,9 +29,8 @@ if "site" in covars.columns:
     print('Renamed covariate "site" to "SITE".')
 
 # Extract brain measure columns (columns starting with 'lh_' or 'rh_')
-brain_cols = [
-    col for col in df.columns if col.startswith("lh_") or col.startswith("rh_")
-]
+brain_cols = [col for col in df.columns if col.endswith("_vol")]
+
 features = df[brain_cols].copy()
 print(f"Identified {len(brain_cols)} brain measure columns.")
 
