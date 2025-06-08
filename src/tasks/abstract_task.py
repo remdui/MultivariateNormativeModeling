@@ -38,7 +38,9 @@ class AbstractTask(ABC):
         self.device = self.properties.system.device
         self.model: AbstractModel  # To be defined in __build_model
         self.experiment_manager = ExperimentManager.get_instance()
-
+        self.task_name = "unset"
+        self.model_save_dir = self.properties.system.models_dir
+        self.model_name = f"{self.properties.meta.name}_v{self.properties.meta.version}"
         self.__setup_task()
 
     @abstractmethod
@@ -63,13 +65,6 @@ class AbstractTask(ABC):
 
     def __setup_task(self) -> None:
         """Set up all components of the task."""
-        # Default task name (should be overridden in subclasses)
-        self.task_name = "unset"
-
-        # Model saving information
-        self.model_save_dir = self.properties.system.models_dir
-        self.model_name = f"{self.properties.meta.name}_v{self.properties.meta.version}"
-
         # Initialize data loader and dimensions
         self.__initialize_dataloader()
         self.__initialize_dimensions()

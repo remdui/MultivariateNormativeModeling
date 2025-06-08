@@ -34,16 +34,17 @@ class ExperimentTask(AbstractTask):
         # Define embedding techniques to test
         self.embedding_methods = [
             "no_embedding",
+            "input_feature_embedding",
+            "encoder_embedding",
+            "decoder_embedding",
+            "conditional_embedding",
             "encoderdecoder_embedding",
+            "adversarial_embedding",
+            "conditional_adversarial_embedding",
             "fair_embedding",
-            "harmonized",
+            "hsic_embedding",
+            "disentangle_embedding",
         ]
-
-        self.dataset_basename = "site_dataset_"
-        self.dataset_ext = ".rds"
-        self.haromized_prefix = "harmonized_"
-
-        self.sites = [0, 1, 2]
 
         # Define latent dimension values to test
         self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
@@ -100,8 +101,7 @@ class ExperimentTask(AbstractTask):
         for rep in range(self.num_repetitions):
             for embed in self.embedding_methods:
                 for latent_dim in self.latent_dim_values:
-                    for site in self.sites:
-                        experiment_settings.append((embed, latent_dim, rep, site))
+                    experiment_settings.append((embed, latent_dim, rep))
 
         # Run structured trials in the interleaved order
         study.optimize(
@@ -122,49 +122,54 @@ class ExperimentTask(AbstractTask):
         return results
 
     def objective(self, trial: optuna.Trial, experiment_settings: list) -> float:
-        """Task objective."""
+        """
+        Objective function for a structured experiment trial.
+
+        Runs training and validation for a specific embedding method and latent dimension.
+
+        Args:
+            trial (optuna.Trial): The current Optuna trial object.
+            experiment_settings (list): The ordered list of experiments to run.
+
+        Returns:
+            float: The validation loss from the training task.
+        """
         trial_id = trial.number + self.trial_offset
-        embed_method, latent_dim, rep, site = experiment_settings[trial.number]
+        embed_method, latent_dim, repetition = experiment_settings[trial.number]
 
-        # shift seed range per repetition
-        self.base_seed = self.initial_base_seed + rep * len(self.latent_dim_values)
-        self.set_seed_for_run(trial_id, embed_method)
-        self.embed_method = embed_method
-
-        # figure out which embedding to actually use in the model, and which dataset prefix
-        if embed_method == "harmonized":
-            actual_embed = "no_embedding"
-            dataset_prefix = self.haromized_prefix + self.dataset_basename
-        else:
-            actual_embed = embed_method
-            dataset_prefix = self.dataset_basename
-
-        # e.g. "site_dataset_1_site_0.rds" or "harmonized_site_dataset_3_site_2.rds"
-        filename = f"{dataset_prefix}{rep}_site_{site}{self.dataset_ext}"
-
-        # set up the experiment folder name
-        rep_display = rep + self.rep_offset
-        embed_tag = embed_method.replace("_", "")
-        self.experiment_manager.clear_output_directory()
-        self.experiment_manager.create_experiment_group_identifier(
-            f"{trial_id}_embed-{embed_tag}_dim-{latent_dim}"
-            f"_rep-{rep_display}_seed-{self.seed}_testsite-{site}"
+        # Update base_seed for the current repetition so that each repetition
+        # shifts the seed range by the number of embedding methods
+        self.base_seed = self.initial_base_seed + repetition * len(
+            self.latent_dim_values
         )
 
-        # update model config & dataset path in Properties
-        props = Properties.get_instance()
-        model_cfg = props.model.components.get(props.model.architecture, {})
-        model_cfg["covariate_embedding"] = actual_embed
-        model_cfg["latent_dim"] = latent_dim
-        props.model.components[props.model.architecture] = model_cfg
+        # Set seed for this run
+        self.set_seed_for_run(trial_id, embed_method)
+        self.embed_method = embed_method
+        repetition = repetition + self.rep_offset
+        embed_method_str = embed_method.replace("_", "")
+        self.experiment_manager.clear_output_directory()
+        self.experiment_manager.create_experiment_group_identifier(
+            f"{trial_id}_embed-{embed_method_str}_dim-{latent_dim}_rep-{repetition}_seed-{self.seed}"
+        )
 
-        props.general.seed = self.seed
-        props.dataset.input_data = filename
-        Properties.overwrite_instance(props)
-
-        self.__setup_task()
+        self.logger.info(
+            f"Starting trial {trial_id} | Embedding = {embed_method} | Latent Dim = {latent_dim} | Repetition = {repetition}"
+        )
 
         start_time = time.time()
+
+        # Update properties with the selected embedding method and latent dimension
+        properties = Properties.get_instance()
+        model_config = properties.model.components.get(
+            properties.model.architecture, {}
+        )
+        model_config["covariate_embedding"] = embed_method
+        model_config["latent_dim"] = latent_dim
+        properties.model.components[properties.model.architecture] = model_config
+        properties.general.seed = self.seed
+        Properties.overwrite_instance(properties)
+
         # Run training task
         train_task = TrainTask()
         train_results = train_task.run()
@@ -180,7 +185,7 @@ class ExperimentTask(AbstractTask):
         runtime = time.time() - start_time
 
         self.logger.info(
-            f"Completed trial {trial_id} | Embedding = {embed_method} | Latent Dim = {latent_dim} | Repetition = {rep} | Site = {site}"
+            f"Completed trial {trial_id} | Embedding = {embed_method} | Latent Dim = {latent_dim} | Repetition = {repetition}"
         )
         self.logger.info(
             f"| Val Loss = {val_loss:.4f} | Test R2 = {test_loss_r2:.4f} | Test MSE = {test_loss_mse:.4f}"
