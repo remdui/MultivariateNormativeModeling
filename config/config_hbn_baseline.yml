@@ -20,18 +20,18 @@ dataset:
   skipped_columns:
   - row_id
   - EID
+  - site
   row_data_leakage_columns:
   - EID
   covariates:
   - age
   - sex
-  - site
   skipped_covariates: []
   targets: []
   input_data: hbn_aparc_vol.rds
   data_type: tabular
   image_type: grayscale
-  internal_file_format: hdf
+  internal_file_format: csv
   pin_memory: false
   shuffle: true
   test_split: 0.3
@@ -371,8 +371,8 @@ model:
     vae:
       encoder: mlp
       decoder: mlp
-      latent_dim: 8
-      covariate_embedding: disentangle_embedding
+      latent_dim: 4
+      covariate_embedding: fair_embedding
   hidden_layers:
   - 256
   - 128

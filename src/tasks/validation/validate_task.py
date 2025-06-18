@@ -78,24 +78,18 @@ class ValidateTask(AbstractTask):
 
         self.__save_reconstruction_data()
         self.__save_train_data()
+        self.__save_latent_probes()
 
         results = self.__analyze_results()
         results.validate_results()
         results.process_results()
+
         write_results_to_file(results, "metrics")
         self.experiment_manager.finalize_experiment()
         return results
 
     def __save_reconstruction_data(self) -> None:
-        """
-        Compute and save reconstructions and latent representations for test data.
-
-        Processes the test set to obtain:
-            - Original inputs and covariates.
-            - Reconstructed outputs.
-            - Latent mean and log-variance.
-        Results are saved as a DataFrame that may also include skipped columns.
-        """
+        """Compute and save reconstructions and latent representations for test data."""
         self.logger.info("Saving latent and reconstruction data per sample.")
 
         original_data_list = []
@@ -121,59 +115,47 @@ class ValidateTask(AbstractTask):
                     z_mean = model_outputs.get("z_mean", None)
                     z_logvar = model_outputs.get("z_logvar", None)
 
-                # Append data converted to CPU arrays.
                 original_data_list.append(data.cpu().numpy())
                 original_covariates_list.append(covariates.cpu().numpy())
                 reconstruction_data_list.append(recon_batch.cpu().numpy())
                 latent_mean_list.append(z_mean.cpu().numpy())
                 latent_logvar_list.append(z_logvar.cpu().numpy())
 
-        # Concatenate batch data into full arrays.
         original_data = np.concatenate(original_data_list, axis=0)
         original_covariates = np.concatenate(original_covariates_list, axis=0)
         reconstruction_data = np.concatenate(reconstruction_data_list, axis=0)
         z_mean_data = np.concatenate(latent_mean_list, axis=0)
         z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
 
-        # Retrieve any skipped data columns from the dataloader.
         skipped_data_df = self.dataloader.get_skipped_data()
-        if skipped_data_df is not None:
-            if skipped_data_df.shape[0] != original_data.shape[0]:
-                raise DataRowMismatchError(
-                    f"Mismatch in skipped data rows ({skipped_data_df.shape[0]}) and dataset rows ({original_data.shape[0]})."
-                )
-
-        self.logger.info(
-            "Creating DataFrame with original, reconstruction, and latent data."
-        )
+        if (
+            skipped_data_df is not None
+            and skipped_data_df.shape[0] != original_data.shape[0]
+        ):
+            raise DataRowMismatchError(
+                f"Mismatch in skipped data rows ({skipped_data_df.shape[0]}) "
+                f"and dataset rows ({original_data.shape[0]})."
+            )
 
         if self.covariate_embedding_technique == "disentangle_embedding":
-            # The config entry "latent_dim" is the size of the uninformed part:
             uninformed_size = self.properties.model.components.get(
                 self.properties.model.architecture
             ).get("latent_dim")
             total_latent_dim = z_mean_data.shape[1]
             sensitive_dim = total_latent_dim - uninformed_size
-
-            # Keep only the last `uninformed_size` columns of z_mean and z_logvar
             z_mean_data = z_mean_data[:, sensitive_dim:]
             z_logvar_data = z_logvar_data[:, sensitive_dim:]
 
-        # Obtain column labels.
         feature_names = self.dataloader.get_feature_labels()
         covariate_names = self.dataloader.get_encoded_covariate_labels()
 
-        # Define column names for original and reconstructed data.
         original_col_names = [f"orig_{col}" for col in feature_names]
         original_covariate_names = [f"orig_{col}" for col in covariate_names]
         recon_col_names = [f"recon_{col}" for col in feature_names]
         recon_covariate_names = [f"recon_{col}" for col in covariate_names]
-
-        # Define column names for latent space representations.
         z_mean_col_names = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
         z_logvar_col_names = [f"z_logvar_{i}" for i in range(z_mean_data.shape[1])]
 
-        # Combine arrays and column names based on the covariate embedding technique.
         if self.covariate_embedding_technique in {
             "input_feature_embedding",
             "conditional_embedding",
@@ -208,19 +190,16 @@ class ValidateTask(AbstractTask):
                 + z_logvar_col_names
             )
 
-        print(len(all_columns))
-        print(all_columns)
-        # Create a DataFrame to hold all information.
         df = pd.DataFrame(combined_data, columns=all_columns)
 
-        # Prepend skipped columns if available.
         if skipped_data_df is not None:
             df = pd.concat([skipped_data_df.reset_index(drop=True), df], axis=1)
 
-        # Determine output file path and extension.
         output_extension = get_internal_file_extension()
-        output_file_path = f"{self.properties.system.output_dir}/reconstructions/validation_data.{output_extension}"
-
+        output_file_path = (
+            f"{self.properties.system.output_dir}/reconstructions/"
+            f"validation_data.{output_extension}"
+        )
         self.logger.info(f"Saving validation data to {output_file_path}...")
         save_data(df, output_file_path)
         self.logger.info("Data saved successfully.")
@@ -228,15 +207,7 @@ class ValidateTask(AbstractTask):
         self.__save_latent_parameters(z_mean_data, data="test")
 
     def __save_train_data(self) -> None:
-        """
-        Compute and save reconstructions and latent representations for training data.
-
-        Processes the train set to obtain:
-            - Original inputs and covariates.
-            - Reconstructed outputs.
-            - Latent mean and log-variance.
-        Results are saved as a DataFrame that may also include skipped columns.
-        """
+        """Compute and save reconstructions and latent representations for training data."""
         self.logger.info("Saving latent and reconstruction data per sample.")
 
         original_data_list = []
@@ -262,31 +233,27 @@ class ValidateTask(AbstractTask):
                     z_mean = model_outputs.get("z_mean", None)
                     z_logvar = model_outputs.get("z_logvar", None)
 
-                # Append data converted to CPU arrays.
                 original_data_list.append(data.cpu().numpy())
                 original_covariates_list.append(covariates.cpu().numpy())
                 reconstruction_data_list.append(recon_batch.cpu().numpy())
                 latent_mean_list.append(z_mean.cpu().numpy())
                 latent_logvar_list.append(z_logvar.cpu().numpy())
 
-        # Concatenate batch data into full arrays.
         original_data = np.concatenate(original_data_list, axis=0)
         original_covariates = np.concatenate(original_covariates_list, axis=0)
         reconstruction_data = np.concatenate(reconstruction_data_list, axis=0)
         z_mean_data = np.concatenate(latent_mean_list, axis=0)
         z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
 
-        # Retrieve any skipped data columns from the dataloader.
         skipped_data_df = self.dataloader.get_skipped_data(dataloader="train")
-        if skipped_data_df is not None:
-            if skipped_data_df.shape[0] != original_data.shape[0]:
-                raise DataRowMismatchError(
-                    f"Mismatch in skipped data rows ({skipped_data_df.shape[0]}) and dataset rows ({original_data.shape[0]})."
-                )
-
-        self.logger.info(
-            "Creating DataFrame with original, reconstruction, and latent data."
-        )
+        if (
+            skipped_data_df is not None
+            and skipped_data_df.shape[0] != original_data.shape[0]
+        ):
+            raise DataRowMismatchError(
+                f"Mismatch in skipped data rows ({skipped_data_df.shape[0]}) "
+                f"and dataset rows ({original_data.shape[0]})."
+            )
 
         if self.covariate_embedding_technique == "disentangle_embedding":
             uninformed_size = self.properties.model.components.get(
@@ -294,25 +261,19 @@ class ValidateTask(AbstractTask):
             ).get("latent_dim")
             total_latent_dim = z_mean_data.shape[1]
             sensitive_dim = total_latent_dim - uninformed_size
-
             z_mean_data = z_mean_data[:, sensitive_dim:]
             z_logvar_data = z_logvar_data[:, sensitive_dim:]
 
-        # Obtain column labels.
         feature_names = self.dataloader.get_feature_labels()
         covariate_names = self.dataloader.get_encoded_covariate_labels()
 
-        # Define column names for original and reconstructed data.
         original_col_names = [f"orig_{col}" for col in feature_names]
         original_covariate_names = [f"orig_{col}" for col in covariate_names]
         recon_col_names = [f"recon_{col}" for col in feature_names]
         recon_covariate_names = [f"recon_{col}" for col in covariate_names]
-
-        # Define column names for latent space representations.
         z_mean_col_names = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
         z_logvar_col_names = [f"z_logvar_{i}" for i in range(z_mean_data.shape[1])]
 
-        # Combine arrays and column names based on the covariate embedding technique.
         if self.covariate_embedding_technique in {
             "input_feature_embedding",
             "conditional_embedding",
@@ -347,34 +308,89 @@ class ValidateTask(AbstractTask):
                 + z_logvar_col_names
             )
 
-        # Create a DataFrame to hold all information.
         df = pd.DataFrame(combined_data, columns=all_columns)
 
-        # Prepend skipped columns if available.
         if skipped_data_df is not None:
             df = pd.concat([skipped_data_df.reset_index(drop=True), df], axis=1)
 
-        # Determine output file path and extension.
         output_extension = get_internal_file_extension()
-        output_file_path = f"{self.properties.system.output_dir}/reconstructions/train_data.{output_extension}"
-
+        output_file_path = (
+            f"{self.properties.system.output_dir}/reconstructions/"
+            f"train_data.{output_extension}"
+        )
         self.logger.info(f"Saving train data to {output_file_path}...")
         save_data(df, output_file_path)
         self.logger.info("Data saved successfully.")
 
         self.__save_latent_parameters(z_mean_data, data="train")
 
+    def __save_latent_probes(self) -> None:
+        """
+        Generate reconstructions at fixed latent-space points and save each in its own file.
+
+        For each latent dimension i, two probes at -3 and +3 are decoded. Each probe’s
+        reconstruction is saved as a single-row file named:
+            latent_space_probes_z{i}_{val}.{ext}
+        where columns are the feature names.
+        """
+        self.logger.info("Generating fixed-point latent-space reconstructions.")
+        vae = self.model
+        device = self.device
+
+        # Determine dimensions
+        cov_dim = vae.embedding_strategy.cov_dim + 1
+        latent_plus_cov = vae.decoder_input_dim
+        latent_dim = latent_plus_cov - cov_dim
+
+        # Build covariate template (age=0, male one-hot, etc.)
+        cov_info = vae.embedding_strategy.covariate_info
+        cov_template = torch.zeros((1, cov_dim), device=device)
+        print(cov_template)
+        cat_groups = cov_info.get("categorical", {})
+        print(cat_groups)
+        if "sex" in cat_groups:
+            sex_idx = cat_groups["sex"]
+            one_hot = torch.zeros(len(sex_idx), device=device)
+            one_hot[0] = 1.0
+            cov_template[0, sex_idx] = one_hot
+
+        # Build latent probes and names
+        probes = []
+        probe_names = []
+        for i in range(latent_dim):
+            for val in (-3.0, 3.0):
+                z = torch.zeros((1, latent_dim), device=device)
+                z[0, i] = val
+                probes.append(z)
+                probe_names.append(f"z{i}_{int(val)}")
+
+        z_batch = torch.cat(probes, dim=0)
+        cov_batch = cov_template.repeat(len(probes), 1)
+
+        # Decode all at once
+        with torch.no_grad():
+            decoder_input = torch.cat([z_batch, cov_batch], dim=1)
+            reconstructions = vae.decoder(decoder_input)  # (2*latent_dim, output_dim)
+        recon_np = reconstructions.cpu().numpy()
+
+        # Feature labels
+        feature_names = self.dataloader.get_feature_labels()
+
+        # Save each probe to its own file
+        ext = get_internal_file_extension()
+        base_dir = f"{self.properties.system.output_dir}/reconstructions"
+        for probe_name, recon in zip(probe_names, recon_np):
+            df = pd.DataFrame(recon.reshape(1, -1), columns=feature_names)
+            out_path = f"{base_dir}/latent_space_probes_{probe_name}.{ext}"
+            self.logger.info(f"Saving latent probe '{probe_name}' to {out_path}")
+            save_data(df, out_path)
+
+        self.logger.info(
+            "All fixed-point latent-space reconstructions saved successfully."
+        )
+
     def __analyze_results(self) -> TaskResult:
-        """
-        Analyze the validation results using the saved reconstruction and latent data.
-
-        Initializes the analysis engine with feature, covariate, and target labels, computes
-        various metrics (e.g., reconstruction MSE, R2, outlier detection) and generates plots.
-
-        Returns:
-            TaskResult: An object containing analysis results.
-        """
-        # Create and initialize the analysis engine.
+        """Analyze the validation results using the saved reconstruction and latent data."""
         data_type = self.properties.dataset.data_type
         engine = create_analysis_engine(data_type)
         engine.initialize_engine(
@@ -384,29 +400,17 @@ class ValidateTask(AbstractTask):
         )
 
         results = engine.run_analysis()
-
         return results
 
     def __save_latent_parameters(
         self, z_mean_data: np.ndarray, data: str = "train"
     ) -> None:
-        """
-        Compute and save the mean and standard deviation for each latent dimension.
-
-        Instead of averaging log-variances, the standard deviation is computed directly from
-        the empirical z_mean_data distribution.
-
-        Args:
-            z_mean_data (np.ndarray): Array of latent means collected from the dataset.
-            data (str): Identifier for the dataset type ('train' or 'test').
-        """
+        """Compute and save the mean and standard deviation for each latent dimension."""
         self.logger.info("Computing learned latent space parameters.")
 
-        # Compute statistics for each latent dimension.
         latent_means = np.mean(z_mean_data, axis=0)
         latent_stds = np.std(z_mean_data, axis=0)
 
-        # Create a DataFrame to store latent parameters.
         latent_df = pd.DataFrame(
             {
                 "latent_dim": np.arange(z_mean_data.shape[1]),
@@ -415,9 +419,11 @@ class ValidateTask(AbstractTask):
             }
         )
 
-        # Determine output file path for latent parameters.
         output_extension = get_internal_file_extension()
-        latent_output_path = f"{self.properties.system.output_dir}/model/latent_space_{data}.{output_extension}"
+        latent_output_path = (
+            f"{self.properties.system.output_dir}/model/"
+            f"latent_space_{data}.{output_extension}"
+        )
         self.logger.info(
             f"Saving {data} latent space parameters to {latent_output_path}..."
         )
