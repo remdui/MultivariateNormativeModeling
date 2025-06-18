@@ -7,6 +7,10 @@ from entities.properties import Properties
 from model.models.covariates.impl.adversarial_embedding import (
     SimpleAdversarialEmbeddingStrategy,
 )
+from model.models.covariates.impl.bag_encoderdecoder_embedding import (
+    BAGEncoderDecoderEmbeddingStrategy,
+)
+from model.models.covariates.impl.bag_fair_embedding import BagFairEmbeddingStrategy
 from model.models.covariates.impl.conditional_adversarial_embedding import (
     SimpleConditionalAdversarialEmbeddingStrategy,
 )
@@ -82,6 +86,19 @@ def get_embedding_strategy(vae: Any) -> Any:
     if technique == "disentangle_embedding":
         return DisentangleEmbeddingStrategy(
             vae, covariate_info=covariate_info, hsic_lambda=1.0
+        )
+
+    if technique == "bag_encoderdecoder_embedding":
+        return BAGEncoderDecoderEmbeddingStrategy(vae, gap_dim=1, age_index=0)
+
+    if technique == "bag_fair_embedding":
+        return BagFairEmbeddingStrategy(
+            vae,
+            gap_dim=1,
+            age_index=0,
+            covariate_info=covariate_info,
+            mmd_lambda=1.0,
+            sigma=1.0,
         )
 
     raise UnsupportedCovariateEmbeddingTechniqueError(

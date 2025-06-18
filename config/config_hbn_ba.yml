@@ -1,0 +1,488 @@
+system:
+  data_dir: ./data
+  device: cuda
+  log_dir: ./logs
+  models_dir: ./models
+  num_workers: 0
+  output_dir: ./output
+general:
+  debug: true
+  log_level: INFO
+  seed: 42
+  verbose: false
+meta:
+  config_version: 2
+  description: Variational Autoencoder for Normative Modeling
+  name: vae_hbn_baseline
+  version: 1
+dataset:
+  unique_identifier_column: "EID"
+  skipped_columns:
+  - row_id
+  - EID
+  row_data_leakage_columns:
+  - EID
+  covariates:
+  - age
+  - sex
+  - site
+  skipped_covariates: []
+  targets: []
+  input_data: hbn_aparc_vol.rds
+  data_type: tabular
+  image_type: grayscale
+  internal_file_format: csv
+  pin_memory: false
+  shuffle: true
+  test_split: 0.3
+  train_split: 0.85
+  val_split: 0.15
+  enable_transforms: true
+  transforms:
+#  - name: SiteFilterTransform
+#    type: preprocessing
+#    params:
+#      selected_site: 2
+#      col_name: site
+  - name: EncodingTransform
+    type: preprocessing
+    params:
+      default: z-score
+      one_hot_encoding:
+      - site
+      - sex
+      z-score:
+      - age
+      min-max: []
+      raw: []
+data_analysis:
+  features:
+    reconstruction_mse: true
+    reconstruction_r2: true
+    latent_space_analysis: true
+    latent_space_visualization: true
+    distribution_plots: true
+    latent_normality_test: true
+    outlier_detection: true
+    outlier_threshold: 3.0
+    summary_statistics: true
+  plots:
+    save_plots: true
+    show_plots: false
+    distribution_plot_type: kde
+    dimensionality_reduction: tsne
+    dimensionality_reduction_settings:
+      pca_settings:
+        components: 2
+      tsne_settings:
+        components: 2
+        perplexity: 30.0
+      umap_settings:
+        components: 2
+        neighbors: 15
+train:
+  batch_size: 32
+  cross_validation: false
+  cross_validation_folds: 10
+  cross_validation_method: kfold
+  epochs: 200
+  mixed_precision: false
+  gradient_accumulation: false
+  gradient_accumulation_steps: 10
+  gradient_clipping: false
+  gradient_clipping_value: 5.0
+  save_model: true
+  save_format: safetensors
+  checkpoint:
+    save_checkpoint: true
+    interval: 100
+    use_checkpoint: false
+    checkpoint: ''
+  early_stopping:
+    enabled: false
+    metric: loss
+    min_delta: 0.001
+    patience: 100
+  loss_function: mse_vae
+  loss_function_params:
+    bce_vae:
+      reduction: sum
+      beta_start: 0.0
+      beta_end: 1.0
+      kl_anneal_start: 5
+      kl_anneal_end: 100
+    mse_vae:
+      reduction: sum
+      beta_start: 0.1
+      beta_end: 1.0
+      kl_anneal_start: 10
+      kl_anneal_end: 60
+    l1:
+      reduction: sum
+    mse:
+      reduction: sum
+    cross_entropy:
+      ignore_index: -100
+      reduction: sum
+      label_smoothing: 0.0
+    ctc:
+      blank: 0
+      reduction: sum
+      zero_infinity: false
+    nll:
+      ignore_index: -100
+      reduction: sum
+    poisson_nll:
+      log_input: true
+      full: false
+      eps: 1.0e-06
+      reduction: sum
+    gaussian_nll:
+      full: false
+      eps: 1.0e-06
+      reduction: sum
+    kldiv:
+      reduction: sum
+      log_target: false
+    bce:
+      reduction: sum
+    bce_with_logits:
+      reduction: sum
+    margin_ranking:
+      margin: 0.0
+      reduction: sum
+    hinge_embedding:
+      margin: 1.0
+      reduction: sum
+    multi_label_margin:
+      reduction: sum
+    huber:
+      reduction: sum
+      delta: 1.0
+    smooth_l1:
+      reduction: sum
+      beta: 1.0
+    soft_margin:
+      reduction: sum
+    multi_label_soft_margin:
+      reduction: sum
+    cosine_embedding:
+      margin: 0.0
+      reduction: sum
+    multi_margin:
+      p: 1.0
+      margin: 1.0
+      reduction: sum
+    triplet_margin:
+      margin: 1.0
+      p: 2.0
+      eps: 1.0e-06
+      swap: false
+      reduction: sum
+    triplet_margin_with_distance:
+      margin: 1.0
+      swap: false
+      reduction: sum
+  scheduler: plateau
+  scheduler_params:
+    default:
+      last_epoch: -1
+    lambda:
+      lr_lambda: 'lambda epoch: 0.95 ** epoch'
+      last_epoch: -1
+    multiplicative:
+      lr_lambda: 'lambda epoch: 0.95'
+      last_epoch: -1
+    step:
+      step_size: 10
+      gamma: 0.1
+      last_epoch: -1
+    multistep:
+      milestones:
+      - 30
+      - 80
+      gamma: 0.1
+      last_epoch: -1
+    constant:
+      factor: 0.3333333333333333
+      total_iters: 5
+      last_epoch: -1
+    linear:
+      start_factor: 0.3333333333333333
+      end_factor: 1.0
+      total_iters: 5
+      last_epoch: -1
+    exponential:
+      gamma: 0.95
+      last_epoch: -1
+    polynomial:
+      total_iters: 5
+      power: 1.0
+      last_epoch: -1
+    cosineannealing:
+      T_max: 10
+      eta_min: 0.0
+      last_epoch: -1
+    plateau:
+      mode: min
+      factor: 0.5
+      patience: 10
+      threshold: 0.001
+      threshold_mode: rel
+      cooldown: 5
+      min_lr: 1.0e-08
+      eps: 1.0e-08
+    cyclic:
+      base_lr: 0.0001
+      max_lr: 0.01
+      step_size_up: 2000
+      step_size_down: null
+      mode: triangular
+      gamma: 1.0
+      scale_fn: null
+      scale_mode: cycle
+      cycle_momentum: false # does only work with SGD and other optimizers that have momentum
+      base_momentum: 0.8
+      max_momentum: 0.9
+      last_epoch: -1
+    onecycle:
+      max_lr: 0.01
+      epochs: 300
+      steps_per_epoch: 50
+      pct_start: 0.3
+      anneal_strategy: cos
+      cycle_momentum: true
+      base_momentum: 0.85
+      max_momentum: 0.95
+      div_factor: 25.0
+      final_div_factor: 10000.0
+      three_phase: false
+      last_epoch: -1
+    cosineannealingwarmrestarts:
+      T_0: 10
+      T_mult: 2
+      eta_min: 0.0
+      last_epoch: -1
+  optimizer: adamw
+  optimizer_params:
+    adam:
+      lr: 0.001
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0.0
+      amsgrad: false
+    adamw:
+      lr: 0.001
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0.0001
+      amsgrad: false
+    sgd:
+      lr: 0.001
+      momentum: 0.0
+      dampening: 0.0
+      weight_decay: 0.0
+      nesterov: false
+    adadelta:
+      lr: 1.0
+      rho: 0.9
+      eps: 1.0e-06
+      weight_decay: 0
+    adafactor:
+      lr: 0.01
+      beta2_decay: -0.8
+      eps:
+        - null
+        - 0.001
+      d: 1.0
+      weight_decay: 0.0
+    adagrad:
+      lr: 0.01
+      lr_decay: 0
+      weight_decay: 0
+      initial_accumulator_value: 0
+      eps: 1.0e-10
+    sparse_adam:
+      lr: 0.001
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+    adamax:
+      lr: 0.002
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0
+    asgd:
+      lr: 0.01
+      lambd: 0.0001
+      alpha: 0.75
+      t0: 1000000.0
+      weight_decay: 0
+    lbfgs:
+      lr: 1
+      max_iter: 20
+      max_eval: null
+      tolerance_grad: 1.0e-07
+      tolerance_change: 1.0e-09
+      history_size: 100
+      line_search_fn: null
+    nadam:
+      lr: 0.002
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0
+      momentum_decay: 0.004
+      decoupled_weight_decay: false
+    radam:
+      lr: 0.001
+      betas:
+        - 0.9
+        - 0.999
+      eps: 1.0e-08
+      weight_decay: 0
+      decoupled_weight_decay: false
+    rmsprop:
+      lr: 0.01
+      alpha: 0.99
+      eps: 1.0e-08
+      weight_decay: 0
+      momentum: 0
+      centered: false
+    rprop:
+      lr: 0.01
+      etas:
+        - 0.5
+        - 1.2
+      step_sizes:
+        - 1.0e-06
+        - 50
+model:
+  architecture: vae
+  components:
+    vae:
+      encoder: mlp
+      decoder: mlp
+      latent_dim: 5
+      covariate_embedding: bag_fair_embedding
+  hidden_layers:
+  - 256
+  - 128
+  - 64
+  weight_initializer: lecun
+  dropout: false
+  dropout_rate: 0.1
+  normalization: false
+  normalization_layer: batchnorm1d
+  normalization_layer_params:
+    batchnorm1d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: true
+      track_running_stats: true
+    batchnorm2d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: true
+      track_running_stats: true
+    batchnorm3d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: true
+      track_running_stats: true
+    groupnorm:
+      eps: 1.0e-05
+      affine: true
+    syncbatchnorm:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: true
+      track_running_stats: true
+    instancenorm1d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: false
+      track_running_stats: false
+    instancenorm2d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: false
+      track_running_stats: false
+    instancenorm3d:
+      eps: 1.0e-05
+      momentum: 0.1
+      affine: false
+      track_running_stats: false
+    layernorm:
+      eps: 1.0e-05
+      elementwise_affine: true
+    localresponsenorm:
+      alpha: 0.0001
+      beta: 0.75
+      k: 1.0
+    rmsnorm:
+      eps: 1.0e-08
+      elementwise_affine: true
+  activation_function: silu
+  final_activation_function: sigmoid
+  activation_function_params:
+    elu:
+      alpha: 1.0
+    hardshrink:
+      lambd: 0.5
+    hardtanh:
+      min_val: -1.0
+      max_val: 1.0
+    leakyrelu:
+      negative_slope: 0.01
+    prelu:
+      num_parameters: 1
+      init: 0.25
+    rrelu:
+      lower: 0.125
+      upper: 0.333
+      inplace: false
+    celu:
+      alpha: 1.0
+    gelu:
+      approximate: none
+    softplus:
+      beta: 1.0
+      threshold: 20.0
+    softshrink:
+      lambd: 0.5
+    threshold:
+      threshold: 1.0
+      value: 0.0
+    glu:
+      dim: -1
+    adaptivelogsoftmaxwithloss:
+      cutoffs:
+      - 10
+      - 20
+      - 30
+      div_value: 4.0
+      head_bias: false
+    logsoftmax:
+      dim: null
+    softmax:
+      dim: null
+    softmin:
+      dim: null
+validation:
+  model: 'vae_hbn_baseline_v1.safetensors'
+  data_representation: tabular
+  image:
+    length: 28
+    width: 28
+    num_visual_samples: 5
+    save_image_samples: true
+    show_image_samples: false

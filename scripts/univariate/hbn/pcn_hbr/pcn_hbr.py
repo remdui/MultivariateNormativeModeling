@@ -9,7 +9,7 @@ import pcntoolkit as ptk
 
 # ----- Configuration -----
 # Set this flag to True to perform per-site analysis; False to skip it.
-PER_SITE_ANALYSIS = True
+PER_SITE_ANALYSIS = False
 
 # File paths for covariates, responses, and batch effects (using PKL files).
 covfile = "./input/X_train.pkl"
@@ -78,6 +78,7 @@ for roi in rois:
 
     # Estimate the normative model for this ROI.
     # Note: The covariate and batch-effect files remain the same.
+    print(df_temp_train)
     yhat_te, s2_te, nm, Z, metrics_te = ptk.normative.estimate(
         covfile=covfile,
         respfile=temp_resp_train,
@@ -85,6 +86,11 @@ for roi in rois:
         trbefile=trbefile,
         inscaler="standardize",
         outscaler="standardize",
+        linear_mu="True",
+        random_intercept_mu="True",
+        centered_intercept_mu="True",
+        target_accept=0.1,
+        n_chains=1,
         alg="hbr",
         log_path=log_dir,
         binary=True,

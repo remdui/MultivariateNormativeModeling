@@ -48,7 +48,7 @@ def save_df(df_, filepath, header=True):
 ext = SAVE_FORMAT
 
 # Path to the RDS file
-datapath = "../../../../../data/hbn_aparc_vol_lh_rh.rds"
+datapath = "../../../../../data/hbn_aparc_vol.rds"
 print(f"Loading data from {datapath}...")
 
 # Read the RDS file using pyreadr
@@ -71,18 +71,16 @@ print_stats(df, "DataFrame after dropping columns")
 orig_site = df["site"].copy()
 
 # Dummy encode categorical variables for covariates: 'site' and 'sex'
-df = pd.get_dummies(df, columns=["site", "sex"])
+df = pd.get_dummies(df, columns=["site"])
 dummy_cols = [
-    col for col in df.columns if col.startswith("site_") or col.startswith("sex_")
+    col for col in df.columns if col.startswith("site_") or col.startswith("sex")
 ]
 print("After dummy encoding 'site' and 'sex':")
 print("Dummy variable columns added:", dummy_cols)
 print(df.head(), "\n")
 
 # Identify measurement columns: all columns starting with 'lh_' or 'rh_'
-measurement_cols = [
-    col for col in df.columns if col.startswith("lh_") or col.startswith("rh_")
-]
+measurement_cols = [col for col in df.columns if col.endswith("_vol")]
 print("Identified measurement columns:")
 print(measurement_cols, "\n")
 

@@ -172,6 +172,31 @@ class MSEVAELoss(_WeightedLoss):
         }:
             mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
             mse_cov = 0.0
+
+        elif self.covariate_embedding_technique == "bag_encoderdecoder_embedding":
+            # ── Include both z and g in the KL term ──────────────────────────
+            # Extract posterior means and log-vars for z and g
+            z_mean = model_outputs["z_mean"]
+            z_logvar = model_outputs["z_logvar"]
+            g_mean = model_outputs["g_mean"]
+            g_logvar = model_outputs["g_logvar"]
+            # Concatenate so the later KL computation covers both blocks
+            z_mean = torch.cat([z_mean, g_mean], dim=1)
+            z_logvar = torch.cat([z_logvar, g_logvar], dim=1)
+
+            # Reconstruction loss
+            mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
+            mse_cov = 0.0
+
+            # Optional HSIC penalty to enforce z ⟂ age
+            z = model_outputs.get("z")
+            if z is not None and covariates is not None:
+                age = covariates[:, 0:1]
+                hsic_pen = _compute_hsic(
+                    z, age, sigma_z=self.hsic_sigma_z, sigma_s=self.hsic_sigma_s
+                )
+                mse_data = mse_data + self.hsic_lambda * hsic_pen
+
         elif self.covariate_embedding_technique == "input_feature_embedding":
             if covariates is None:
                 raise UnsupportedCovariateEmbeddingTechniqueError(
@@ -329,6 +354,45 @@ class MSEVAELoss(_WeightedLoss):
                     # mmd_total = mmd_total + (group_mmd / float(pair_count))
 
             mse_data = mse_data + self.mmd_lambda * mmd_total
+
+        # In MSEVAELoss.forward(...)
+        elif self.covariate_embedding_technique == "bag_fair_embedding":
+            # 1) KL on both z & g
+            z_mean = model_outputs["z_mean"]
+            z_logvar = model_outputs["z_logvar"]
+            g_mean = model_outputs["g_mean"]
+            g_logvar = model_outputs["g_logvar"]
+            z_mean = torch.cat([z_mean, g_mean], dim=1)
+            z_logvar = torch.cat([z_logvar, g_logvar], dim=1)
+
+            # 2) reconstruction loss
+            mse_data = F.mse_loss(recon_x, x, reduction=self.reduction)
+            mse_cov = 0.0
+
+            # 3) MMD penalty on z to enforce fairness
+            z = model_outputs.get("z")
+            if z is None or covariates is None:
+                raise UnsupportedCovariateEmbeddingTechniqueError(
+                    "z and covariates required for bag_fair_embedding."
+                )
+            categorical = {}
+            for i, label in enumerate(covariate_labels):
+                if "_" not in label:
+                    continue
+                grp = label.split("_")[0]
+                categorical.setdefault(grp, []).append(i)
+
+            mmd_total = torch.tensor(0.0, device=z.device)
+            for grp, indices in categorical.items():
+                true_onehot = covariates[:, indices]
+                labels = true_onehot.argmax(dim=1)
+                classes = torch.unique(labels)
+                for i in range(len(classes)):
+                    for j in range(i + 1, len(classes)):
+                        zi = z[labels == classes[i]]
+                        zj = z[labels == classes[j]]
+                        mmd_total += _compute_mmd_rbf(zi, zj, sigma=self.mmd_sigma)
+            mse_data += self.mmd_lambda * mmd_total
 
         elif self.covariate_embedding_technique == "hsic_embedding":
             if covariates is None or covariate_labels is None:

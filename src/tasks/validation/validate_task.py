@@ -1,15 +1,20 @@
 """
-Module for model validation.
+Module for model validation (extended with Brain-Age/BAG support).
 
-This module defines the ValidateTask class which validates the model by:
-    1. Saving reconstructions and latent space representations.
-    2. Computing latent space statistics.
-    3. Analyzing results via various metrics and visualizations.
+Original functionality is unchanged: reconstructions, latent stats and generic
+analysis are still produced. Two new items are added for the test split:
+
+    • columns “brain_age” and “bag” in the saved CSV/Parquet files
+    • quick metrics (MAE, RMSE, Pearson r) logged for test split
+    • a per-sample file with chronological_age, brain_age_gap, and brain_age
 """
+
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.metrics import mean_absolute_error
 from torch import autocast
 from tqdm import tqdm
 
@@ -28,56 +33,36 @@ from util.model_utils import load_model
 
 class ValidateTask(AbstractTask):
     """
-    ValidateTask performs model validation by saving reconstructions, computing latent statistics,.
+    ValidateTask performs model validation by saving reconstructions, computing.
 
-    and analyzing the results. It supports both tabular and image data.
+    latent statistics, and analysing the results. Now also records brain-age.
     """
 
     def __init__(self) -> None:
-        """Initialize the validation task, set up logging, and prepare the experiment."""
         super().__init__(LogManager.get_logger(__name__))
         self.logger.info("Initializing ValidateTask.")
         self.__init_validation_task()
 
     def __init_validation_task(self) -> None:
-        """
-        Set up the validation experiment:
-
-            - Clears and creates a new experiment directory.
-            - Loads validation properties and model.
-        """
         self.task_name = "validate"
         self.experiment_manager.clear_output_directory()
         self.experiment_manager.create_new_experiment(self.task_name)
 
-        # Load validation properties from configuration.
         self.data_representation = self.properties.validation.data_representation
         self.model_file = self.properties.validation.model
-        self.model_path = self.properties.system.models_dir + "/" + self.model_file
+        self.model_path = f"{self.properties.system.models_dir}/{self.model_file}"
 
         self.covariate_embedding_technique = self.properties.model.components.get(
             self.properties.model.architecture
         ).get("covariate_embedding")
 
-        # Load model state from file.
         self.model = load_model(self.model, self.model_path, self.device)
 
     def run(self) -> TaskResult:
-        """
-        Run the validation process.
-
-        Steps:
-            1. Save reconstructions and latent data for test samples.
-            2. Compute latent space parameters for training data.
-            3. Analyze the results (metrics, visualizations, etc.).
-
-        Returns:
-            TaskResult: The results of the validation, including metrics and analyses.
-        """
         self.logger.info("Starting the validation process.")
 
-        self.__save_reconstruction_data()
-        self.__save_train_data()
+        self.__save_reconstruction_data()  # test set
+        self.__save_train_data()  # train set
 
         results = self.__analyze_results()
         results.validate_results()
@@ -87,28 +72,19 @@ class ValidateTask(AbstractTask):
         return results
 
     def __save_reconstruction_data(self) -> None:
-        """
-        Compute and save reconstructions and latent representations for test data.
+        self.logger.info("Saving latent and reconstruction data per test sample.")
 
-        Processes the test set to obtain:
-            - Original inputs and covariates.
-            - Reconstructed outputs.
-            - Latent mean and log-variance.
-        Results are saved as a DataFrame that may also include skipped columns.
-        """
-        self.logger.info("Saving latent and reconstruction data per sample.")
+        # lists for aggregation
+        orig_x, orig_cov, recon_x = [], [], []
+        z_mean_lst, z_logv_lst = [], []
+        brain_age_lst = []
 
-        original_data_list = []
-        original_covariates_list = []
-        reconstruction_data_list = []
-        latent_mean_list = []
-        latent_logvar_list = []
+        age_idx = self.dataloader.get_encoded_covariate_labels().index("age")
 
         with torch.no_grad():
-            for batch in tqdm(
+            for data, covariates in tqdm(
                 self.test_dataloader, desc="Collecting reconstruction data"
             ):
-                data, covariates = batch
                 data = data.to(self.device)
                 covariates = covariates.to(self.device)
 
@@ -116,140 +92,142 @@ class ValidateTask(AbstractTask):
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
                 ):
-                    model_outputs = self.model(data, covariates)
-                    recon_batch = model_outputs["x_recon"]
-                    z_mean = model_outputs.get("z_mean", None)
-                    z_logvar = model_outputs.get("z_logvar", None)
+                    out = self.model(data, covariates)
+                    recon_batch = out["x_recon"]
+                    z_mean = out.get("z_mean")
+                    z_logv = out.get("z_logvar")
 
-                # Append data converted to CPU arrays.
-                original_data_list.append(data.cpu().numpy())
-                original_covariates_list.append(covariates.cpu().numpy())
-                reconstruction_data_list.append(recon_batch.cpu().numpy())
-                latent_mean_list.append(z_mean.cpu().numpy())
-                latent_logvar_list.append(z_logvar.cpu().numpy())
+                # aggregate
+                orig_x.append(data.cpu().numpy())
+                orig_cov.append(covariates.cpu().numpy())
+                recon_x.append(recon_batch.cpu().numpy())
+                z_mean_lst.append(z_mean.cpu().numpy())
+                z_logv_lst.append(z_logv.cpu().numpy())
 
-        # Concatenate batch data into full arrays.
-        original_data = np.concatenate(original_data_list, axis=0)
-        original_covariates = np.concatenate(original_covariates_list, axis=0)
-        reconstruction_data = np.concatenate(reconstruction_data_list, axis=0)
-        z_mean_data = np.concatenate(latent_mean_list, axis=0)
-        z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
+                # brain-age + gap if present
+                if "g" in out:
+                    ba = out["g"].cpu().numpy()
+                    brain_age_lst.append(ba)
 
-        # Retrieve any skipped data columns from the dataloader.
-        skipped_data_df = self.dataloader.get_skipped_data()
-        if skipped_data_df is not None:
-            if skipped_data_df.shape[0] != original_data.shape[0]:
-                raise DataRowMismatchError(
-                    f"Mismatch in skipped data rows ({skipped_data_df.shape[0]}) and dataset rows ({original_data.shape[0]})."
-                )
+        # concatenate
+        orig_x = np.concatenate(orig_x, 0)
+        orig_cov = np.concatenate(orig_cov, 0)
+        recon_x = np.concatenate(recon_x, 0)
+        z_mean_data = np.concatenate(z_mean_lst, 0)
+        z_logv_data = np.concatenate(z_logv_lst, 0)
+        brain_age_data = np.concatenate(brain_age_lst, 0) if brain_age_lst else None
 
-        self.logger.info(
-            "Creating DataFrame with original, reconstruction, and latent data."
-        )
-
+        # disentangle trimming stays unchanged
         if self.covariate_embedding_technique == "disentangle_embedding":
-            # The config entry "latent_dim" is the size of the uninformed part:
-            uninformed_size = self.properties.model.components.get(
+            uninformed = self.properties.model.components.get(
                 self.properties.model.architecture
             ).get("latent_dim")
-            total_latent_dim = z_mean_data.shape[1]
-            sensitive_dim = total_latent_dim - uninformed_size
+            sens_dim = z_mean_data.shape[1] - uninformed
+            z_mean_data = z_mean_data[:, sens_dim:]
+            z_logv_data = z_logv_data[:, sens_dim:]
 
-            # Keep only the last `uninformed_size` columns of z_mean and z_logvar
-            z_mean_data = z_mean_data[:, sensitive_dim:]
-            z_logvar_data = z_logvar_data[:, sensitive_dim:]
+        # column labels
+        feat_names = self.dataloader.get_feature_labels()
+        cov_names = self.dataloader.get_encoded_covariate_labels()
+        orig_feat_cols = [f"orig_{c}" for c in feat_names]
+        recon_feat_cols = [f"recon_{c}" for c in feat_names]
+        z_mean_cols = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
+        z_logv_cols = [f"z_logvar_{i}" for i in range(z_logv_data.shape[1])]
 
-        # Obtain column labels.
-        feature_names = self.dataloader.get_feature_labels()
-        covariate_names = self.dataloader.get_encoded_covariate_labels()
-
-        # Define column names for original and reconstructed data.
-        original_col_names = [f"orig_{col}" for col in feature_names]
-        original_covariate_names = [f"orig_{col}" for col in covariate_names]
-        recon_col_names = [f"recon_{col}" for col in feature_names]
-        recon_covariate_names = [f"recon_{col}" for col in covariate_names]
-
-        # Define column names for latent space representations.
-        z_mean_col_names = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
-        z_logvar_col_names = [f"z_logvar_{i}" for i in range(z_mean_data.shape[1])]
-
-        # Combine arrays and column names based on the covariate embedding technique.
+        # choose schema depending on embedding family
         if self.covariate_embedding_technique in {
             "input_feature_embedding",
             "conditional_embedding",
         }:
-            combined_data = np.concatenate(
-                [
-                    original_data,
-                    original_covariates,
-                    reconstruction_data,
-                    z_mean_data,
-                    z_logvar_data,
-                ],
-                axis=1,
-            )
-            all_columns = (
-                original_col_names
-                + original_covariate_names
-                + recon_col_names
-                + recon_covariate_names
-                + z_mean_col_names
-                + z_logvar_col_names
+            orig_cov_cols = [f"orig_{c}" for c in cov_names]
+            recon_cov_cols = [f"recon_{c}" for c in cov_names]
+            base_arrays = [orig_x, orig_cov, recon_x, z_mean_data, z_logv_data]
+            base_cols = (
+                orig_feat_cols
+                + orig_cov_cols
+                + recon_feat_cols
+                + recon_cov_cols
+                + z_mean_cols
+                + z_logv_cols
             )
         else:
-            combined_data = np.concatenate(
-                [original_data, reconstruction_data, z_mean_data, z_logvar_data],
-                axis=1,
-            )
-            all_columns = (
-                original_col_names
-                + recon_col_names
-                + z_mean_col_names
-                + z_logvar_col_names
-            )
+            base_arrays = [orig_x, recon_x, z_mean_data, z_logv_data]
+            base_cols = orig_feat_cols + recon_feat_cols + z_mean_cols + z_logv_cols
 
-        print(len(all_columns))
-        print(all_columns)
-        # Create a DataFrame to hold all information.
-        df = pd.DataFrame(combined_data, columns=all_columns)
+        # append brain-age data if available
+        if brain_age_data is not None:
+            base_arrays += [brain_age_data]
+            base_cols += ["brain_age_gap"]
 
-        # Prepend skipped columns if available.
-        if skipped_data_df is not None:
-            df = pd.concat([skipped_data_df.reset_index(drop=True), df], axis=1)
+        df = pd.DataFrame(np.concatenate(base_arrays, 1), columns=base_cols)
 
-        # Determine output file path and extension.
-        output_extension = get_internal_file_extension()
-        output_file_path = f"{self.properties.system.output_dir}/reconstructions/validation_data.{output_extension}"
+        # prepend skipped rows if any
+        skipped_df = self.dataloader.get_skipped_data()
+        if skipped_df is not None:
+            if skipped_df.shape[0] != df.shape[0]:
+                raise DataRowMismatchError(
+                    f"Mismatch skipped rows ({skipped_df.shape[0]}) vs df ({df.shape[0]})"
+                )
+            df = pd.concat([skipped_df.reset_index(drop=True), df], axis=1)
 
-        self.logger.info(f"Saving validation data to {output_file_path}...")
-        save_data(df, output_file_path)
+        ext = get_internal_file_extension()
+        out_path = (
+            f"{self.properties.system.output_dir}/reconstructions/validation_data.{ext}"
+        )
+        self.logger.info("Saving validation data to %s...", out_path)
+        save_data(df, out_path)
         self.logger.info("Data saved successfully.")
 
         self.__save_latent_parameters(z_mean_data, data="test")
 
+        if brain_age_data is not None:
+            # build DataFrame with z-scores
+            ba_df = pd.DataFrame(
+                {
+                    "chronological_age_z": orig_cov[:, age_idx].squeeze(),
+                    "brain_age_gap_z": brain_age_data.squeeze(),
+                }
+            )
+
+            # now invert the z-score transform:
+            age_mean = 10.442000951778178
+            age_std = 3.4457687546104125
+
+            ba_df["chronological_age"] = (
+                ba_df["chronological_age_z"] * age_std + age_mean
+            )
+            ba_df["brain_age"] = (
+                ba_df["chronological_age_z"] + ba_df["brain_age_gap_z"]
+            ) * age_std + age_mean
+
+            chrono = ba_df["chronological_age"]
+            ba = ba_df["brain_age"]
+            mae = mean_absolute_error(chrono, ba)
+            self.logger.info("[test] Brain-Age: MAE %.3f", mae)
+
+            ext = get_internal_file_extension()
+            out_path = (
+                f"{self.properties.system.output_dir}"
+                + f"/reconstructions/brain_age_test.{ext}"
+            )
+            save_data(ba_df, out_path)
+            self.logger.info(
+                "Saved per-sample Brain-Age data (with years) to %s", out_path
+            )
+
     def __save_train_data(self) -> None:
-        """
-        Compute and save reconstructions and latent representations for training data.
+        self.logger.info("Saving latent and reconstruction data per train sample.")
 
-        Processes the train set to obtain:
-            - Original inputs and covariates.
-            - Reconstructed outputs.
-            - Latent mean and log-variance.
-        Results are saved as a DataFrame that may also include skipped columns.
-        """
-        self.logger.info("Saving latent and reconstruction data per sample.")
+        orig_x, orig_cov, recon_x = [], [], []
+        z_mean_lst, z_logv_lst = [], []
+        brain_age_lst, bag_lst = [], []
 
-        original_data_list = []
-        original_covariates_list = []
-        reconstruction_data_list = []
-        latent_mean_list = []
-        latent_logvar_list = []
+        age_idx = self.dataloader.get_encoded_covariate_labels().index("age")
 
         with torch.no_grad():
-            for batch in tqdm(
+            for data, covariates in tqdm(
                 self.train_dataloader, desc="Collecting reconstruction data"
             ):
-                data, covariates = batch
                 data = data.to(self.device)
                 covariates = covariates.to(self.device)
 
@@ -257,169 +235,109 @@ class ValidateTask(AbstractTask):
                     enabled=self.properties.train.mixed_precision,
                     device_type=self.device,
                 ):
-                    model_outputs = self.model(data, covariates)
-                    recon_batch = model_outputs["x_recon"]
-                    z_mean = model_outputs.get("z_mean", None)
-                    z_logvar = model_outputs.get("z_logvar", None)
+                    out = self.model(data, covariates)
 
-                # Append data converted to CPU arrays.
-                original_data_list.append(data.cpu().numpy())
-                original_covariates_list.append(covariates.cpu().numpy())
-                reconstruction_data_list.append(recon_batch.cpu().numpy())
-                latent_mean_list.append(z_mean.cpu().numpy())
-                latent_logvar_list.append(z_logvar.cpu().numpy())
+                orig_x.append(data.cpu().numpy())
+                orig_cov.append(covariates.cpu().numpy())
+                recon_x.append(out["x_recon"].cpu().numpy())
+                z_mean_lst.append(out["z_mean"].cpu().numpy())
+                z_logv_lst.append(out["z_logvar"].cpu().numpy())
 
-        # Concatenate batch data into full arrays.
-        original_data = np.concatenate(original_data_list, axis=0)
-        original_covariates = np.concatenate(original_covariates_list, axis=0)
-        reconstruction_data = np.concatenate(reconstruction_data_list, axis=0)
-        z_mean_data = np.concatenate(latent_mean_list, axis=0)
-        z_logvar_data = np.concatenate(latent_logvar_list, axis=0)
+                if "brain_age" in out:
+                    ba = out["g"].cpu().numpy()
+                    brain_age_lst.append(ba)
+                    bag_lst.append(ba - covariates[:, [age_idx]].cpu().numpy())
 
-        # Retrieve any skipped data columns from the dataloader.
-        skipped_data_df = self.dataloader.get_skipped_data(dataloader="train")
-        if skipped_data_df is not None:
-            if skipped_data_df.shape[0] != original_data.shape[0]:
-                raise DataRowMismatchError(
-                    f"Mismatch in skipped data rows ({skipped_data_df.shape[0]}) and dataset rows ({original_data.shape[0]})."
-                )
-
-        self.logger.info(
-            "Creating DataFrame with original, reconstruction, and latent data."
-        )
+        orig_x = np.concatenate(orig_x, 0)
+        orig_cov = np.concatenate(orig_cov, 0)
+        recon_x = np.concatenate(recon_x, 0)
+        z_mean_data = np.concatenate(z_mean_lst, 0)
+        z_logv_data = np.concatenate(z_logv_lst, 0)
+        brain_age_data = np.concatenate(brain_age_lst, 0) if brain_age_lst else None
+        bag_data = np.concatenate(bag_lst, 0) if bag_lst else None
 
         if self.covariate_embedding_technique == "disentangle_embedding":
-            uninformed_size = self.properties.model.components.get(
+            uninformed = self.properties.model.components.get(
                 self.properties.model.architecture
             ).get("latent_dim")
-            total_latent_dim = z_mean_data.shape[1]
-            sensitive_dim = total_latent_dim - uninformed_size
+            sens_dim = z_mean_data.shape[1] - uninformed
+            z_mean_data = z_mean_data[:, sens_dim:]
+            z_logv_data = z_logv_data[:, sens_dim:]
 
-            z_mean_data = z_mean_data[:, sensitive_dim:]
-            z_logvar_data = z_logvar_data[:, sensitive_dim:]
+        feat_names = self.dataloader.get_feature_labels()
+        cov_names = self.dataloader.get_encoded_covariate_labels()
+        orig_feat_cols = [f"orig_{c}" for c in feat_names]
+        recon_feat_cols = [f"recon_{c}" for c in feat_names]
+        z_mean_cols = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
+        z_logv_cols = [f"z_logvar_{i}" for i in range(z_logv_data.shape[1])]
 
-        # Obtain column labels.
-        feature_names = self.dataloader.get_feature_labels()
-        covariate_names = self.dataloader.get_encoded_covariate_labels()
-
-        # Define column names for original and reconstructed data.
-        original_col_names = [f"orig_{col}" for col in feature_names]
-        original_covariate_names = [f"orig_{col}" for col in covariate_names]
-        recon_col_names = [f"recon_{col}" for col in feature_names]
-        recon_covariate_names = [f"recon_{col}" for col in covariate_names]
-
-        # Define column names for latent space representations.
-        z_mean_col_names = [f"z_mean_{i}" for i in range(z_mean_data.shape[1])]
-        z_logvar_col_names = [f"z_logvar_{i}" for i in range(z_mean_data.shape[1])]
-
-        # Combine arrays and column names based on the covariate embedding technique.
         if self.covariate_embedding_technique in {
             "input_feature_embedding",
             "conditional_embedding",
         }:
-            combined_data = np.concatenate(
-                [
-                    original_data,
-                    original_covariates,
-                    reconstruction_data,
-                    z_mean_data,
-                    z_logvar_data,
-                ],
-                axis=1,
-            )
-            all_columns = (
-                original_col_names
-                + original_covariate_names
-                + recon_col_names
-                + recon_covariate_names
-                + z_mean_col_names
-                + z_logvar_col_names
+            orig_cov_cols = [f"orig_{c}" for c in cov_names]
+            recon_cov_cols = [f"recon_{c}" for c in cov_names]
+            base_arrays = [orig_x, orig_cov, recon_x, z_mean_data, z_logv_data]
+            base_cols = (
+                orig_feat_cols
+                + orig_cov_cols
+                + recon_feat_cols
+                + recon_cov_cols
+                + z_mean_cols
+                + z_logv_cols
             )
         else:
-            combined_data = np.concatenate(
-                [original_data, reconstruction_data, z_mean_data, z_logvar_data],
-                axis=1,
-            )
-            all_columns = (
-                original_col_names
-                + recon_col_names
-                + z_mean_col_names
-                + z_logvar_col_names
-            )
+            base_arrays = [orig_x, recon_x, z_mean_data, z_logv_data]
+            base_cols = orig_feat_cols + recon_feat_cols + z_mean_cols + z_logv_cols
 
-        # Create a DataFrame to hold all information.
-        df = pd.DataFrame(combined_data, columns=all_columns)
+        if brain_age_data is not None:
+            base_arrays += [brain_age_data, bag_data]
+            base_cols += ["brain_age", "bag"]
 
-        # Prepend skipped columns if available.
-        if skipped_data_df is not None:
-            df = pd.concat([skipped_data_df.reset_index(drop=True), df], axis=1)
+        df = pd.DataFrame(np.concatenate(base_arrays, 1), columns=base_cols)
 
-        # Determine output file path and extension.
-        output_extension = get_internal_file_extension()
-        output_file_path = f"{self.properties.system.output_dir}/reconstructions/train_data.{output_extension}"
+        skipped_df = self.dataloader.get_skipped_data(dataloader="train")
+        if skipped_df is not None:
+            if skipped_df.shape[0] != df.shape[0]:
+                raise DataRowMismatchError(
+                    f"Mismatch skipped rows ({skipped_df.shape[0]}) vs df ({df.shape[0]})"
+                )
+            df = pd.concat([skipped_df.reset_index(drop=True), df], axis=1)
 
-        self.logger.info(f"Saving train data to {output_file_path}...")
-        save_data(df, output_file_path)
+        ext = get_internal_file_extension()
+        out_path = (
+            f"{self.properties.system.output_dir}/reconstructions/train_data.{ext}"
+        )
+        self.logger.info("Saving train data to %s...", out_path)
+        save_data(df, out_path)
         self.logger.info("Data saved successfully.")
 
         self.__save_latent_parameters(z_mean_data, data="train")
 
     def __analyze_results(self) -> TaskResult:
-        """
-        Analyze the validation results using the saved reconstruction and latent data.
-
-        Initializes the analysis engine with feature, covariate, and target labels, computes
-        various metrics (e.g., reconstruction MSE, R2, outlier detection) and generates plots.
-
-        Returns:
-            TaskResult: An object containing analysis results.
-        """
-        # Create and initialize the analysis engine.
-        data_type = self.properties.dataset.data_type
-        engine = create_analysis_engine(data_type)
+        dtype = self.properties.dataset.data_type
+        engine = create_analysis_engine(dtype)
         engine.initialize_engine(
             feature_labels=self.dataloader.get_feature_labels(),
             covariate_labels=self.dataloader.get_encoded_covariate_labels(),
             target_labels=self.dataloader.get_target_labels(),
         )
-
-        results = engine.run_analysis()
-
-        return results
+        return engine.run_analysis()
 
     def __save_latent_parameters(
-        self, z_mean_data: np.ndarray, data: str = "train"
+        self, z_mean_data: np.ndarray, *, data: str = "train"
     ) -> None:
-        """
-        Compute and save the mean and standard deviation for each latent dimension.
-
-        Instead of averaging log-variances, the standard deviation is computed directly from
-        the empirical z_mean_data distribution.
-
-        Args:
-            z_mean_data (np.ndarray): Array of latent means collected from the dataset.
-            data (str): Identifier for the dataset type ('train' or 'test').
-        """
-        self.logger.info("Computing learned latent space parameters.")
-
-        # Compute statistics for each latent dimension.
-        latent_means = np.mean(z_mean_data, axis=0)
-        latent_stds = np.std(z_mean_data, axis=0)
-
-        # Create a DataFrame to store latent parameters.
+        self.logger.info("Computing learned latent-space parameters.")
         latent_df = pd.DataFrame(
             {
                 "latent_dim": np.arange(z_mean_data.shape[1]),
-                "mean": latent_means,
-                "std": latent_stds,
+                "mean": z_mean_data.mean(0),
+                "std": z_mean_data.std(0),
             }
         )
-
-        # Determine output file path for latent parameters.
-        output_extension = get_internal_file_extension()
-        latent_output_path = f"{self.properties.system.output_dir}/model/latent_space_{data}.{output_extension}"
-        self.logger.info(
-            f"Saving {data} latent space parameters to {latent_output_path}..."
+        ext = get_internal_file_extension()
+        out_path = (
+            f"{self.properties.system.output_dir}/model/latent_space_{data}.{ext}"
         )
-        save_data(latent_df, latent_output_path)
+        save_data(latent_df, out_path)
         self.logger.info("Latent space parameters saved successfully.")

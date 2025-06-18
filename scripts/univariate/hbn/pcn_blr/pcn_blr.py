@@ -10,7 +10,7 @@ import pcntoolkit as ptk
 from pcntoolkit.util.utils import create_bspline_basis
 
 # ----- Configuration -----
-PER_SITE_ANALYSIS = True
+PER_SITE_ANALYSIS = False
 
 # File paths for covariates and responses (using PKL files).
 # The covariate files include age (in the first column), one-hot encoded site, and sex.
@@ -61,8 +61,8 @@ def save_raw_metrics_as_csv(raw_metrics_, roi_, out_dir):
 
 
 # Set up the B-spline basis.
-xmin = 5
-xmax = 22
+xmin = 4
+xmax = 25
 B = create_bspline_basis(xmin, xmax)
 
 # ----- Load Global Covariates & Responses -----
@@ -130,22 +130,21 @@ for roi in rois:
 
     # ---------------------
     # Estimate the Normative Model using BLR with Expanded Covariates
-    # ---------------------
     yhat_te, s2_te, nm, Z, metrics_te = ptk.normative.estimate(
         covfile=temp_cov_train,
         respfile=temp_resp_train,
+        testcov=temp_cov_test,
+        testresp=temp_resp_test,
         alg="blr",
         optimizer="powell",
         standardize=False,
         log_path=log_dir,
-        binary=True,
         output_path=output_path,
-        testcov=temp_cov_test,
-        testresp=temp_resp_test,
         outputsuffix=outputsuffix,
         savemodel=False,
         saveoutput=False,
     )
+    # ---------------------
 
     # Save raw metrics as CSV files.
     raw_metrics = {"yhat_te": yhat_te, "s2_te": s2_te, "Z": Z}
@@ -194,6 +193,7 @@ for roi in rois:
             metrics_te_site = ptk.normative.evaluate(
                 y_te_site, yhat_te_site, s2_te_site, y_mean_te_site, y_var_te_site
             )
+            print(metrics_te_site["SMSE"])
             site_metric_row = {
                 "ROI": roi,
                 "site": site,

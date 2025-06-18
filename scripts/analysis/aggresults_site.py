@@ -1,220 +1,239 @@
 #!/usr/bin/env python3
 """
-Generate_latex_table.py.
+Aggregate_metrics.py.
 
-Given a CSV with aggregated metrics (one row per embedding method, dim, testsite),
-produce a LaTeX table showing for each embedding method four rows: the results for
-site=0, site=1, site=2, and the average across all sites (site=-1) in bold.
-Rows are indented so that the test site label is one column deeper than the method.
-Each table is generated for a specific latent dim passed on the command line.
+Scan through a directory tree of the form:
+    experiments/<experiment_folder>/**/validate/output/metrics/metrics.json
+
+Each <experiment_folder> is named like:
+    <id>_embed-<embedtype>_dim-<dim>_rep-<rep>_seed-<seed>_testsite-<site>
+
+...
 """
 
 import argparse
-from collections import OrderedDict
+import json
+import os
+import re
+from pathlib import Path
 
 import pandas as pd
 
 
+def parse_experiment_folder_name(folder_name):
+    """
+    Given a folder name like:
+
+        2_embed-noembedding_dim-1_rep-0_seed-45_testsite-2
+
+    Extract:
+        embed      = "noembedding"
+        dim        = 1
+        rep        = 0
+        seed       = 45
+        testsite   = 2
+    """
+    pattern = (
+        r"^[0-9]+_embed-(?P<embed>[^_]+)"
+        r"_dim-(?P<dim>\d+)"
+        r"_rep-(?P<rep>\d+)"
+        r"_seed-(?P<seed>\d+)"
+        r"_testsite-(?P<testsite>\d+)$"
+    )
+    m = re.match(pattern, folder_name)
+    if not m:
+        raise ValueError(
+            f"Folder name '{folder_name}' does not match expected pattern "
+            "(including '_testsite-<id>')."
+        )
+
+    return {
+        "embed": m.group("embed"),
+        "dim": int(m.group("dim")),
+        "rep": int(m.group("rep")),
+        "seed": int(m.group("seed")),
+        "testsite": int(m.group("testsite")),
+    }
+
+
+def find_all_metrics_json(root_dir):
+    for dirpath, _, filenames in os.walk(root_dir):
+        if "validate" not in dirpath:
+            continue
+        if "metrics.json" in filenames:
+            yield os.path.join(dirpath, "metrics.json")
+
+
+def load_metrics_from_json(json_path):
+    with open(json_path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def select_invariant_metric(metrics_dict, cov, variant):
+    """Returns (variant_value, mi_value) or (-1, -1) if missing or on error."""
+    try:
+        if variant == "normal":
+            if cov == "age":
+                key, sub = "invariant_regression_age", "mse"
+            elif cov == "sex":
+                key, sub = "invariant_logistic_sex", "accuracy"
+            elif cov == "site":
+                key, sub = "invariant_logistic_site", "accuracy"
+            else:
+                return -1, -1
+
+        elif variant == "nonlinear":
+            if cov == "age":
+                key, sub = "invariant_nonlinear_regression_age", "mse"
+            elif cov == "sex":
+                key, sub = "invariant_nonlinear_classification_sex", "accuracy"
+            elif cov == "site":
+                key, sub = "invariant_nonlinear_classification_site", "accuracy"
+            else:
+                return -1, -1
+
+        elif variant == "neural":
+            if cov == "age":
+                key, sub = "invariant_adversarial_age", "mse"
+            elif cov == "sex":
+                key, sub = "invariant_adversarial_sex", "accuracy"
+            elif cov == "site":
+                key, sub = "invariant_adversarial_site", "accuracy"
+            else:
+                return -1, -1
+
+        else:
+            return -1, -1
+
+        # fetch the two numbers, if they exist
+        vv = None
+        if key in metrics_dict and isinstance(metrics_dict[key], dict):
+            vv = metrics_dict[key].get(sub, None)
+
+        mi_key = f"invariant_mi_{cov}"
+        mi = None
+        if mi_key in metrics_dict and isinstance(metrics_dict[mi_key], dict):
+            mi = metrics_dict[mi_key].get(
+                "total_mutual_info", next(iter(metrics_dict[mi_key].values()), None)
+            )
+
+        # replace any missing ones with -1
+        return (vv if vv is not None else -1, mi if mi is not None else -1)
+
+    except Exception:
+        return -1, -1
+
+
 def main():
-    """Main func."""
     parser = argparse.ArgumentParser(
-        description="Generate a LaTeX table of per-site and overall metrics for each embedding."
+        description="Aggregate JSON‐stored metrics across repeats, grouped by embed, dim, and testsite."
     )
     parser.add_argument(
-        "--input",
-        "-i",
+        "--root", required=True, help="Path to the top‐level 'experiments' folder"
+    )
+    parser.add_argument(
+        "--variant",
         required=True,
-        help="Path to the input CSV. Must have columns: embed, dim, testsite, recon_mse_mean, recon_r2_mean, global_mean_kl_mean, <cov>_variant_mean, <cov>_mi_mean.",
+        choices=["normal", "nonlinear", "neural"],
+        help="Which invariant metric to pick.",
     )
     parser.add_argument(
         "--covariates",
-        "-c",
         required=True,
-        help="Comma-separated list of covariates to include (e.g. 'none', 'age', 'sex,site', 'age,sex,site').",
+        help="Comma‐separated list of covariates to include: none or any of age, sex, site.",
     )
-    parser.add_argument(
-        "--dim", "-d", type=int, required=True, help="Latent dimensionality k (e.g. 8)."
-    )
-    parser.add_argument(
-        "--output",
-        "-o",
-        required=True,
-        help="Path to write the LaTeX table (e.g. table_multi_cov.tex).",
-    )
+    parser.add_argument("--output", required=True, help="Path to write the output CSV")
     args = parser.parse_args()
 
-    # Parse covariates
     cov_input = args.covariates.strip().lower()
     if cov_input in {"none", ""}:
         covs = []
     else:
-        covs = []
-        for c in cov_input.split(","):
-            c_clean = c.strip()
-            if c_clean not in {"age", "sex", "site"}:
-                parser.error(
-                    f"Invalid covariate '{c_clean}'. Valid: age, sex, site, or none."
-                )
-            covs.append(c_clean)
-        covs = sorted(set(covs))
+        covs = sorted(
+            {
+                c.strip()
+                for c in cov_input.split(",")
+                if c.strip() in {"age", "sex", "site"}
+            }
+        )
+        if not covs and cov_input not in {"none", ""}:
+            parser.error("Invalid covariates. Use 'none' or any of age,sex,site.")
 
-    # Read CSV and filter by dim
-    df = pd.read_csv(args.input)
-    df = df[df["dim"] == args.dim].copy()
-    if df.empty:
-        raise ValueError(f"No rows found with dim == {args.dim} in '{args.input}'")
-
-    # Ensure required columns exist
-    base_cols = [
-        "embed",
-        "testsite",
-        "recon_mse_mean",
-        "recon_r2_mean",
-        "global_mean_kl_mean",
-    ]
-    for col in base_cols:
-        if col not in df.columns:
-            raise ValueError(f"Required column '{col}' not found in CSV.")
-    for cov in covs:
-        vm = f"{cov}_variant_mean"
-        mm = f"{cov}_mi_mean"
-        if vm not in df.columns or mm not in df.columns:
-            raise ValueError(
-                f"Columns '{vm}' and/or '{mm}' not found for covariate '{cov}'."
-            )
-
-    # Row data structure: { embed: { testsite: { metrics... } } }
-    data = {}
-    for _, row in df.iterrows():
-        embed = row["embed"].strip()
-        site = int(row["testsite"])
-        if embed not in data:
-            data[embed] = {}
-        entry = {
-            "mse": row["recon_mse_mean"],
-            "r2": row["recon_r2_mean"],
-            "kl": row["global_mean_kl_mean"],
-        }
-        for cov in covs:
-            entry[f"{cov}_err"] = row[f"{cov}_variant_mean"]
-            entry[f"{cov}_mi"] = row[f"{cov}_mi_mean"]
-        data[embed][site] = entry
-
-    # Fixed order of methods and labels
-    methods = OrderedDict(
-        [
-            ("noembedding", "Baseline"),
-            ("encoderdecoderembedding", "Encoder-Decoder (cVAE)"),
-            ("fairembedding", "FairVAE (MMD)"),
-            ("harmonized", "Combat Harmonized"),
-        ]
-    )
-
-    # Friendly labels for site IDs
-    site_names = {0: "GenR", 1: "RUBIC", 2: "CBIC"}
-
-    # Build LaTeX
-    lines = []
-    cov_titles = [c.capitalize() for c in covs]
-    # Caption & label
-    cov_list_title = ", ".join(cov_titles) if cov_titles else "None"
-    dim = args.dim
-    caption = (
-        f"Evaluation of different covariate modeling strategies for {cov_list_title} "
-        f"at latent dimension $k={dim}$."
-    )
-    label = f"tab:covariate_modeling_{cov_input.replace(',', '_')}"
-
-    # Table begin
-    lines.append(r"\begin{table}[H]")
-    lines.append(r"\centering")
-    lines.append(rf"\caption[{cov_list_title}]{{{caption}}}")
-    lines.append(rf"\label{{{label}}}")
-    lines.append(r"\resizebox{\textwidth}{!}{%")
-
-    # Column formatting: method, site, recon(2), each cov(2), kl
-    col_fmt = "l c|cc|" + "".join(["cc|" for _ in covs]) + "c"
-    lines.append(r"\begin{tabular}{" + col_fmt + r"}")
-    lines.append(r"\toprule")
-
-    # Header rows
-    hdr1 = [
-        r"\multirow{2}{*}{\textbf{Method}}",
-        r"\multirow{2}{*}{\textbf{Test Site}}",
-        r"\multicolumn{2}{c|}{\textbf{Reconstruction Quality}}",
-    ]
-    for ct in cov_titles:
-        hdr1.append(rf"\multicolumn{{2}}{{c|}}{{\textbf{{Invariance ({ct})}}}}")
-    hdr1.append(r"\multirow{2}{*}{\textbf{Normative Alignment}}")
-    lines.append(" & ".join(hdr1) + r" \\")
-
-    hdr2 = ["", "", "MSE", r"$R^2$"]
-    for ct in cov_titles:
-        hdr2 += [f"{ct} Err", f"MI {ct}"]
-    hdr2.append("")
-    lines.append(" & ".join(hdr2) + r" \\")
-
-    lines.append(r"\midrule")
-
-    def fmt(x):
-        return f"{x:.2f}" if pd.notna(x) else ""
-
-    # For each method, output 4 subrows
-    for embed_key, label_txt in methods.items():
-        if embed_key not in data:
+    all_records = []
+    for json_path in find_all_metrics_json(args.root):
+        folder = Path(json_path).parent
+        exp_folder = next(
+            (
+                anc
+                for anc in (folder, *folder.parents)
+                if re.match(r"^[0-9]+_embed-", anc.name)
+            ),
+            None,
+        )
+        if exp_folder is None:
+            print(f"WARNING: no experiment folder found for {json_path}. Skipping.")
             continue
-        subsites = [0, 1, 2, -1]
-        for i, site in enumerate(subsites):
-            # prepare entry (site data or average)
-            if site == -1:
-                vals = [data[embed_key].get(s, {}) for s in (0, 1, 2)]
-                entry = {
-                    "mse": pd.Series([v.get("mse", float("nan")) for v in vals]).mean(),
-                    "r2": pd.Series([v.get("r2", float("nan")) for v in vals]).mean(),
-                    "kl": pd.Series([v.get("kl", float("nan")) for v in vals]).mean(),
-                }
-                for cov in covs:
-                    entry[f"{cov}_err"] = pd.Series(
-                        [v.get(f"{cov}_err", float("nan")) for v in vals]
-                    ).mean()
-                    entry[f"{cov}_mi"] = pd.Series(
-                        [v.get(f"{cov}_mi", float("nan")) for v in vals]
-                    ).mean()
-                sublabel = r"\textbf{Average}"
-            else:
-                entry = data[embed_key].get(site, {})
-                sublabel = site_names.get(site, f"Site {site}")
 
-            # build row
-            if i == 0:
-                row = rf"\multirow{{4}}{{*}}{{{label_txt}}} & {sublabel} & {fmt(entry.get('mse'))} & {fmt(entry.get('r2'))}"
-            else:
-                row = (
-                    f" & {sublabel} & {fmt(entry.get('mse'))} & {fmt(entry.get('r2'))}"
-                )
+        try:
+            parsed = parse_experiment_folder_name(exp_folder.name)
+        except ValueError as e:
+            print(f"WARNING: {e} Skipping '{exp_folder.name}'.")
+            continue
 
-            # covariate columns
-            for cov in covs:
-                err = fmt(entry.get(f"{cov}_err"))
-                mi = fmt(entry.get(f"{cov}_mi"))
-                row += f" & {err} & {mi}"
+        metrics = load_metrics_from_json(json_path)
+        rec = {
+            "embed": parsed["embed"],
+            "dim": parsed["dim"],
+            "rep": parsed["rep"],
+            "seed": parsed["seed"],
+            "testsite": parsed["testsite"],
+            "recon_mse": metrics.get("recon_mse"),
+            "recon_r2": metrics.get("recon_r2"),
+            "global_mean_kl": metrics.get("normative_kl", {}).get("global_mean_kl"),
+        }
 
-            # KL divergence + end of row
-            row += f" & {fmt(entry.get('kl'))} \\\\"
-            lines.append(row)
+        for cov in covs:
+            inv_val, mi_val = select_invariant_metric(metrics, cov, args.variant)
+            rec[f"{cov}_variant"] = inv_val
+            rec[f"{cov}_mi"] = mi_val
 
-        # rule between methods
-        lines.append(r"\midrule")
+        all_records.append(rec)
 
-    lines.append(r"\bottomrule")
-    lines.append(r"\end{tabular}%")
-    lines.append(r"}\end{table}")
+    if not all_records:
+        print("No metrics found. Exiting.")
+        return
 
-    # Write to file
-    with open(args.output, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
+    df = pd.DataFrame(all_records)
 
-    print(f"LaTeX table written to '{args.output}'")
+    # 1) Per-testsite aggregation
+    group_cols = ["embed", "dim", "testsite"]
+    numeric_cols = [c for c in df.columns if c not in group_cols + ["seed", "rep"]]
+    agg_dict = {c: ["mean", "std"] for c in numeric_cols}
+
+    df_per_site = df.groupby(group_cols).agg(agg_dict)
+    df_per_site.columns = [f"{col}_{stat}" for col, stat in df_per_site.columns]
+    df_per_site = df_per_site.reset_index()
+
+    # 2) Overall (across all sites) aggregation under testsite = -1
+    df_overall = df.groupby(["embed", "dim"]).agg(agg_dict)
+    df_overall.columns = [f"{col}_{stat}" for col, stat in df_overall.columns]
+    df_overall = df_overall.reset_index()
+    df_overall["testsite"] = -1
+
+    # 3) Combine and sort
+    df_combined = pd.concat([df_per_site, df_overall], sort=False)
+    df_combined = df_combined[
+        ["embed", "dim", "testsite"]
+        + sorted(
+            c for c in df_combined.columns if c not in {"embed", "dim", "testsite"}
+        )
+    ]
+    df_combined = df_combined.sort_values(by=["embed", "dim", "testsite"]).reset_index(
+        drop=True
+    )
+
+    df_combined.to_csv(args.output, index=False)
+    print(f"Wrote summary CSV with {len(df_combined)} rows to '{args.output}'.")
 
 
 if __name__ == "__main__":

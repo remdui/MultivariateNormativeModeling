@@ -123,7 +123,14 @@ disable=
     abstract-method,
     arguments-differ,
     too-many-branches,
-    unnecessary-lambda
+    unnecessary-lambda,
+    missing-function-docstring,
+    broad-exception-caught,
+    pointless-string-statement,
+    missing-module-docstring,
+    too-many-return-statements,
+    consider-using-enumerate,
+    logging-too-many-args
 
 
 [REPORTS]
