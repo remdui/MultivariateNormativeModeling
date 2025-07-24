@@ -1,4 +1,4 @@
-# Multivariate Normative Modeling Kit (MVM-Kit)
+# Multivariate Normative Modeling Kit (MNM-Kit)
 
 [![CI-Pipeline](https://github.com/remdui/MultivariateNormativeModeling/actions/workflows/ci_pipeline.yml/badge.svg)](https://github.com/remdui/MultivariateNormativeModeling/actions/workflows/ci_pipeline.yml)
 
