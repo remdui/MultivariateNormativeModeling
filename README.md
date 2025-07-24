@@ -465,7 +465,7 @@ Hypothesis test statistics can be shown using the following command:
 
 | Type of Project | Title | Author(s) | Link                                           |
 |-----------------|--------|-----------|------------------------------------------------|
-| MSc Thesis | *VAE-based Multivariate Normative Modeling: An Investigation of Covariate Modeling Methods* | Remy Duijsens | [View Project](docs/projects/Thesis_Remy_Duijsens.pdf) |
+| MSc Thesis | *VAE-based Multivariate Normative Modeling: An Investigation of Covariate Modeling Methods* | Remy Duijsens | [View Project](https://repository.tudelft.nl/record/uuid:b042ba6a-6fc9-4c12-ad86-69387c7a831e) |
 
 
 ---
