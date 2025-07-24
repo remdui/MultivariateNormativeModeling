@@ -426,11 +426,6 @@ class TrainConfig(BaseModel):
                 "reduction": "sum",
                 "label_smoothing": 0.0,
             },
-            "ctc": {
-                "blank": 0,
-                "reduction": "sum",
-                "zero_infinity": False,
-            },
             "nll": {
                 "ignore_index": -100,
                 "reduction": "sum",

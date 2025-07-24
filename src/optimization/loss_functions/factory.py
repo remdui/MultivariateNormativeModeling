@@ -7,7 +7,6 @@ from torch.nn import (
     BCEWithLogitsLoss,
     CosineEmbeddingLoss,
     CrossEntropyLoss,
-    CTCLoss,
     GaussianNLLLoss,
     HingeEmbeddingLoss,
     HuberLoss,
@@ -59,7 +58,6 @@ _LOSS_FUNCTION_MAPPING: dict[str, LossFunctionClass] = {
     "multi_margin": MultiMarginLoss,
     "triplet_margin": TripletMarginLoss,
     "triplet_margin_with_distance": TripletMarginWithDistanceLoss,
-    "ctc": CTCLoss,
 }
 
 
@@ -68,7 +66,7 @@ def get_loss_function(loss_type: str, *args: Any, **kwargs: Any) -> Module:
     Factory method to create a loss function instance based on configuration.
 
     Args:
-        loss_type (str): The type of loss function (e.g., 'bce_vae', 'mse', 'ctc').
+        loss_type (str): The type of loss function (e.g., 'bce_vae', 'mse').
                          The lookup is case-insensitive.
         *args: Additional positional arguments for the loss function's constructor.
         **kwargs: Additional keyword arguments for the loss function's constructor.
