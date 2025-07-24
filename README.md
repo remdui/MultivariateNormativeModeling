@@ -1,21 +1,9 @@
-# Master Thesis - Remy Duijsens
+# Multivariate Normative Modeling
 
 [![CI-Pipeline](https://github.com/remdui/MasterThesis/actions/workflows/ci_pipeline.yml/badge.svg)](https://github.com/remdui/MasterThesis/actions/workflows/ci_pipeline.yml)
 
 ---
 ## General Information
-
-### Project Information
-
-- Author: `Remy Duijsens`
-- University: `Delft University of Technology`
-- Faculty: `Electrical Engineering, Mathematics, and Computer Science`
-- Master: `Computer Science`
-- Track: `Artificial Intelligence`
-- In collaboration with: `Erasmus MC`
-- Subject: `Multivariate Normative Models Using Variational Auto-Encoders: A Study on Covariate Embedding and
-Robustness to Site-Variance using Gen R Data`
-- Under supervision of: `C. Lofi (TU Delft), R. Muetzel (Erasmus MC), and H. Schnack (Erasmus MC)`
 
 
 ### Code Repository
@@ -470,6 +458,14 @@ Hypothesis test statistics can be shown using the following command:
   ```bash
   poetry run pytest --hypothesis-show-statistics
   ```
+
+---
+
+## Projects Using This Framework
+
+| Type of Project | Title | Author(s) | Link                                           |
+|-----------------|--------|-----------|------------------------------------------------|
+| MSc Thesis | *VAE-based Multivariate Normative Modeling: An Investigation of Covariate Modeling Methods* | Remy Duijsens | [View Project](docs/projects/Thesis_Remy_Duijsens.pdf) |
 
 
 ---
