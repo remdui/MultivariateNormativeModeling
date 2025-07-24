@@ -1,2 +1,0 @@
-1) Gather per-wave genr tabular aparc, asges and core (and sex) data files
-2) Run merge_data.py to merge the extracted data and core data and create specific subsets (ENABLE_QC=False).

@@ -6,49 +6,7 @@ from typing import Any
 
 import pandas as pd
 
-from analysis.deviation.latent_deviation_scores import (
-    calculate_mahalanobis_deviation_scores,
-    calculate_univariate_deviation_scores,
-    save_deviation_scores_to_csv,
-)
 from analysis.engine.abstract_analysis_engine import AbstractAnalysisEngine
-from analysis.metrics.invarient_metrics import (
-    calculate_latent_adversarial_performance,
-    calculate_latent_cca_single,
-    calculate_latent_correlation_coefficients,
-    calculate_latent_logistic_classification_error,
-    calculate_latent_mutual_information,
-    calculate_latent_nonlinear_classification_error,
-    calculate_latent_nonlinear_regression_error,
-    calculate_latent_regression_error,
-)
-from analysis.metrics.normative_metrics import (
-    calculate_latent_kl,
-    calculate_latent_normality,
-)
-from analysis.metrics.reconstruction_metrics import (
-    calculate_reconstruction_mse,
-    calculate_reconstruction_mse_per_feature,
-    calculate_reconstruction_pearson,
-    calculate_reconstruction_r2,
-    calculate_reconstruction_r2_per_feature,
-    compare_feature_distributions_bhattacharyya,
-    compare_feature_distributions_ks,
-)
-from analysis.outlier.outlier_detection import (
-    detect_outliers,
-    find_extreme_outliers_in_latent,
-)
-from analysis.summary.input_summary import summarize_input_output_features
-from analysis.summary.latent_space_summary import summarize_latent_space
-from analysis.visualization.feature_plots import plot_feature_distributions
-from analysis.visualization.latent_plots import (
-    plot_kl_divergence_per_latent_dim,
-    plot_latent_distributions,
-    plot_latent_pairplot,
-    plot_latent_projection,
-    plot_sampled_latent_distributions,
-)
 from entities.log_manager import LogManager
 from tasks.task_result import TaskResult
 from util.file_utils import (
@@ -159,113 +117,118 @@ class TabularAnalysisEngine(AbstractAnalysisEngine):
 
     def run_analysis(self) -> TaskResult:
         results = TaskResult()
-        if self.properties.data_analysis.features.outlier_detection:
-            results["outlier_detection"] = detect_outliers(self)
-            results["latent_outliers"] = find_extreme_outliers_in_latent(self, top_k=1)
 
-        if self.properties.data_analysis.features.latent_space_analysis:
-            results["latent_space_statistics"] = summarize_latent_space(self)
+        ###################################################################################
+        # Example usage below. Uncomment and adjust calls and functions to project needs  #
+        ###################################################################################
 
-        if self.properties.data_analysis.features.summary_statistics:
-            results["feature_summary_statistics"] = summarize_input_output_features(
-                self
-            )
-
-        results["recon_pearson"] = calculate_reconstruction_pearson(self)
-
-        if self.properties.data_analysis.features.reconstruction_mse:
-            results["recon_mse"] = calculate_reconstruction_mse(self)
-            results["recon_mse_per_feature"] = calculate_reconstruction_mse_per_feature(
-                self
-            )
-
-        if self.properties.data_analysis.features.reconstruction_r2:
-            results["recon_r2"] = calculate_reconstruction_r2(self)
-            results["recon_r2_per_feature"] = calculate_reconstruction_r2_per_feature(
-                self
-            )
-
-        results["recon_distribution_KS"] = compare_feature_distributions_ks(self)
-        results["recon_distribution_BC"] = compare_feature_distributions_bhattacharyya(
-            self
-        )
-
-        results["normative_kl"] = calculate_latent_kl(self)
-
-        if self.properties.data_analysis.features.latent_normality_test:
-            results["normative_shapiro"] = calculate_latent_normality(self)
-
-        # Invariant analysis for age (continuous)
-        results["invariant_regression_age"] = calculate_latent_regression_error(
-            self, "age"
-        )
-        results["invariant_nonlinear_regression_age"] = (
-            calculate_latent_nonlinear_regression_error(self, "age")
-        )
-        results["invariant_adversarial_age"] = calculate_latent_adversarial_performance(
-            self, "age"
-        )
-        results["invariant_mi_age"] = calculate_latent_mutual_information(self, "age")
-        results["invariant_cca_age"] = calculate_latent_cca_single(self, "age")
-        results["invariant_corr_coef_age"] = calculate_latent_correlation_coefficients(
-            self, "age"
-        )
-
-        # Invariant analysis for sex (one-hot encoded)
-        results["invariant_logistic_sex"] = (
-            calculate_latent_logistic_classification_error(self, "sex")
-        )
-        results["invariant_nonlinear_classification_sex"] = (
-            calculate_latent_nonlinear_classification_error(self, "sex")
-        )
-        results["invariant_adversarial_sex"] = calculate_latent_adversarial_performance(
-            self, "sex", task_type="classification"
-        )
-        results["invariant_mi_sex"] = calculate_latent_mutual_information(self, "sex")
-        results["invariant_cca_sex"] = calculate_latent_cca_single(self, "sex")
-        results["invariant_corr_coef_sex"] = calculate_latent_correlation_coefficients(
-            self, "sex"
-        )
-
-        # Invariant analysis for site (one-hot encoded)
-        results["invariant_logistic_site"] = (
-            calculate_latent_logistic_classification_error(self, "site")
-        )
-        results["invariant_nonlinear_classification_site"] = (
-            calculate_latent_nonlinear_classification_error(self, "site")
-        )
-        results["invariant_adversarial_site"] = (
-            calculate_latent_adversarial_performance(
-                self, "site", task_type="classification"
-            )
-        )
-        results["invariant_mi_site"] = calculate_latent_mutual_information(self, "site")
-        results["invariant_cca_site"] = calculate_latent_cca_single(self, "site")
-        results["invariant_corr_coef_site"] = calculate_latent_correlation_coefficients(
-            self, "site"
-        )
-
-        uni_deviation_df = calculate_univariate_deviation_scores(self)
-        maha_deviation_df = calculate_mahalanobis_deviation_scores(self)
-        save_deviation_scores_to_csv(self, uni_deviation_df, maha_deviation_df)
-
-        if self.properties.data_analysis.features.distribution_plots:
-            plot_feature_distributions(self)
-
-        if self.properties.data_analysis.features.latent_space_visualization:
-            plot_latent_distributions(self, split="train")
-            plot_latent_distributions(self, split="test")
-            for method in ("pca", "tsne"):
-                for n_components in (2, 3):
-                    for color in ("age", "sex", "site"):
-                        plot_latent_projection(
-                            self,
-                            method=method,
-                            n_components=n_components,
-                            color_covariate=color,
-                        )
-            plot_latent_pairplot(self)
-            plot_sampled_latent_distributions(self, n=5)
-            plot_kl_divergence_per_latent_dim(self)
+        # if self.properties.data_analysis.features.outlier_detection:
+        #     results["outlier_detection"] = detect_outliers(self)
+        #     results["latent_outliers"] = find_extreme_outliers_in_latent(self, top_k=1)
+        #
+        # if self.properties.data_analysis.features.latent_space_analysis:
+        #     results["latent_space_statistics"] = summarize_latent_space(self)
+        #
+        # if self.properties.data_analysis.features.summary_statistics:
+        #     results["feature_summary_statistics"] = summarize_input_output_features(
+        #         self
+        #     )
+        #
+        # results["recon_pearson"] = calculate_reconstruction_pearson(self)
+        #
+        # if self.properties.data_analysis.features.reconstruction_mse:
+        #     results["recon_mse"] = calculate_reconstruction_mse(self)
+        #     results["recon_mse_per_feature"] = calculate_reconstruction_mse_per_feature(
+        #         self
+        #     )
+        #
+        # if self.properties.data_analysis.features.reconstruction_r2:
+        #     results["recon_r2"] = calculate_reconstruction_r2(self)
+        #     results["recon_r2_per_feature"] = calculate_reconstruction_r2_per_feature(
+        #         self
+        #     )
+        #
+        # results["recon_distribution_KS"] = compare_feature_distributions_ks(self)
+        # results["recon_distribution_BC"] = compare_feature_distributions_bhattacharyya(
+        #     self
+        # )
+        #
+        # results["normative_kl"] = calculate_latent_kl(self)
+        #
+        # if self.properties.data_analysis.features.latent_normality_test:
+        #     results["normative_shapiro"] = calculate_latent_normality(self)
+        #
+        # # Invariant analysis for age (continuous)
+        # results["invariant_regression_age"] = calculate_latent_regression_error(
+        #     self, "age"
+        # )
+        # results["invariant_nonlinear_regression_age"] = (
+        #     calculate_latent_nonlinear_regression_error(self, "age")
+        # )
+        # results["invariant_adversarial_age"] = calculate_latent_adversarial_performance(
+        #     self, "age"
+        # )
+        # results["invariant_mi_age"] = calculate_latent_mutual_information(self, "age")
+        # results["invariant_cca_age"] = calculate_latent_cca_single(self, "age")
+        # results["invariant_corr_coef_age"] = calculate_latent_correlation_coefficients(
+        #     self, "age"
+        # )
+        #
+        # # Invariant analysis for sex (one-hot encoded)
+        # results["invariant_logistic_sex"] = (
+        #     calculate_latent_logistic_classification_error(self, "sex")
+        # )
+        # results["invariant_nonlinear_classification_sex"] = (
+        #     calculate_latent_nonlinear_classification_error(self, "sex")
+        # )
+        # results["invariant_adversarial_sex"] = calculate_latent_adversarial_performance(
+        #     self, "sex", task_type="classification"
+        # )
+        # results["invariant_mi_sex"] = calculate_latent_mutual_information(self, "sex")
+        # results["invariant_cca_sex"] = calculate_latent_cca_single(self, "sex")
+        # results["invariant_corr_coef_sex"] = calculate_latent_correlation_coefficients(
+        #     self, "sex"
+        # )
+        #
+        # # Invariant analysis for site (one-hot encoded)
+        # results["invariant_logistic_site"] = (
+        #     calculate_latent_logistic_classification_error(self, "site")
+        # )
+        # results["invariant_nonlinear_classification_site"] = (
+        #     calculate_latent_nonlinear_classification_error(self, "site")
+        # )
+        # results["invariant_adversarial_site"] = (
+        #     calculate_latent_adversarial_performance(
+        #         self, "site", task_type="classification"
+        #     )
+        # )
+        # results["invariant_mi_site"] = calculate_latent_mutual_information(self, "site")
+        # results["invariant_cca_site"] = calculate_latent_cca_single(self, "site")
+        # results["invariant_corr_coef_site"] = calculate_latent_correlation_coefficients(
+        #     self, "site"
+        # )
+        #
+        # uni_deviation_df = calculate_univariate_deviation_scores(self)
+        # maha_deviation_df = calculate_mahalanobis_deviation_scores(self)
+        # save_deviation_scores_to_csv(self, uni_deviation_df, maha_deviation_df)
+        #
+        # if self.properties.data_analysis.features.distribution_plots:
+        #     plot_feature_distributions(self)
+        #
+        # if self.properties.data_analysis.features.latent_space_visualization:
+        #     plot_latent_distributions(self, split="train")
+        #     plot_latent_distributions(self, split="test")
+        #     for method in ("pca", "tsne"):
+        #         for n_components in (2, 3):
+        #             for color in ("age", "sex", "site"):
+        #                 plot_latent_projection(
+        #                     self,
+        #                     method=method,
+        #                     n_components=n_components,
+        #                     color_covariate=color,
+        #                 )
+        #     plot_latent_pairplot(self)
+        #     plot_sampled_latent_distributions(self, n=5)
+        #     plot_kl_divergence_per_latent_dim(self)
 
         return results
