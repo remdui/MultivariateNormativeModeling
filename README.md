@@ -1,6 +1,6 @@
-# Multivariate Normative Modeling
+# Multivariate Normative Modeling Kit (MVM-Kit)
 
-[![CI-Pipeline](https://github.com/remdui/MasterThesis/actions/workflows/ci_pipeline.yml/badge.svg)](https://github.com/remdui/MasterThesis/actions/workflows/ci_pipeline.yml)
+[![CI-Pipeline](https://github.com/remdui/MultivariateNormativeModeling/actions/workflows/ci_pipeline.yml/badge.svg)](https://github.com/remdui/MultivariateNormativeModeling/actions/workflows/ci_pipeline.yml)
 
 ---
 ## General Information
@@ -8,7 +8,7 @@
 
 ### Code Repository
 
-This repository contains the code for the master thesis project. The code is structured as follows:
+The code is structured as follows:
 
 - The `config` directory contains configuration files required to run the project.
 - The `data` directory contains raw and processed data (not included in the repository due to privacy reasons).
@@ -18,7 +18,7 @@ This repository contains the code for the master thesis project. The code is str
 - The `logs` directory contains log files.
 - The `models` directory contains saved models.
 - The `output` directory contains output files (e.g., predictions, visualizations, etc.).
-- The `scripts` directory contains shell scripts.
+- The `scripts` directory contains various scripts.
 - The `src` directory contains the source code.
 - The `tests` directory contains unit tests.
 
@@ -29,7 +29,7 @@ Please find more information on installing, running, and testing the project in 
 ## Requirements
 
 This project requires the following dependencies installed:
-- Python >= 3.11.3 (matching the latest version on Snellius HPC)
+- Python >= 3.10
 - Poetry >= 1.8.4
 
 All dependencies [README.md](README.md) are listed in the `pyproject.toml` file.
@@ -51,7 +51,7 @@ poetry install --no-root
 You can build the Docker image using the provided Dockerfile:
 
 ```bash
-docker build -t masterthesis:latest -f ./docker/Dockerfile .
+docker build -t mnmkit:latest -f ./docker/Dockerfile .
 ```
 
 ---
@@ -102,7 +102,7 @@ docker run --rm \
            -v ./logs:/logs \
            -v ./models:/models \
            -v ./config:/config \
-           masterthesis:latest \
+           mnmkit:latest \
            --config [CONFIG_PATH] \
            --mode [MODE] \
            [OPTIONS]
@@ -130,12 +130,6 @@ The `main.py` file accepts the following optional arguments:
 - `--verbose`: Verbosity flag.
 
 Command line arguments override settings in the provided configuration file.
-
-
-Check the following files for more information:
-- [`docs/code/project_setup.md`](docs/code/project_setup.md) for information on how to set up the project.
-- [`docs/code/training.md`](docs/code/training.md) for information on how to train the model.
-- [`docs/code/inference.md`](docs/code/inference.md) for information on how to run inference.
 
 
 ### Datasets
