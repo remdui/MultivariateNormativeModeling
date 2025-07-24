@@ -2,7 +2,7 @@
 FROM python:3.11.3-slim
 
 # Install poetry
-RUN python -m pip install poetry==1.8.4
+RUN python -m pip install poetry==2.1.3
 
 # Set the working directory
 WORKDIR /

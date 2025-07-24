@@ -30,7 +30,7 @@ Please find more information on installing, running, and testing the project in 
 
 This project requires the following dependencies installed:
 - Python >= 3.10
-- Poetry >= 1.8.4
+- Poetry >= 2.1.3
 
 All dependencies [README.md](README.md) are listed in the `pyproject.toml` file.
 
@@ -455,7 +455,7 @@ Hypothesis test statistics can be shown using the following command:
 
 ---
 
-## Projects Using This Framework
+## Projects Using MNM-Kit
 
 | Type of Project | Title | Author(s) | Link                                           |
 |-----------------|--------|-----------|------------------------------------------------|
