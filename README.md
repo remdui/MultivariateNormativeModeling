@@ -1,7 +1,7 @@
 # Multivariate Normative Modeling Kit (MNM-Kit)
 
 [![CI-Pipeline](https://github.com/remdui/MultivariateNormativeModeling/actions/workflows/ci_pipeline.yml/badge.svg)](https://github.com/remdui/MultivariateNormativeModeling/actions/workflows/ci_pipeline.yml)
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18526723.svg)](https://doi.org/10.5281/zenodo.18526723)
 ---
 ## General Information
 
