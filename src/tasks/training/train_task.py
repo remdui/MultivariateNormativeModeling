@@ -112,7 +112,12 @@ class TrainTask(AbstractTask):
 
     def __setup_amp(self) -> None:
         """Initialize automatic mixed precision (AMP) for training."""
-        self.scaler = GradScaler()
+        amp_enabled = (
+            self.properties.train.mixed_precision
+            and str(self.device).startswith("cuda")
+            and torch.cuda.is_available()
+        )
+        self.scaler = GradScaler(enabled=amp_enabled)
 
     def __initialize_weights(self) -> None:
         """
@@ -453,12 +458,11 @@ class TrainTask(AbstractTask):
             enabled=self.properties.train.mixed_precision, device_type=self.device
         ):
             model_outputs = self.model(data, covariates)
-            loss = self.loss(
+            loss = self._compute_loss(
                 model_outputs=model_outputs,
                 x=data,
                 current_epoch=self.epoch,
                 covariates=covariates,
-                covariate_labels=self.dataloader.get_encoded_covariate_labels(),
             )
 
         loss_value = loss.item()
@@ -550,12 +554,11 @@ class TrainTask(AbstractTask):
                     device_type=self.device,
                 ):
                     model_outputs = self.model(data, covariates)
-                    loss = self.loss(
+                    loss = self._compute_loss(
                         model_outputs=model_outputs,
                         x=data,
                         current_epoch=self.epoch,
                         covariates=covariates,
-                        covariate_labels=self.dataloader.get_encoded_covariate_labels(),
                     )
                 total_val_loss += loss.item()
                 total_val_samples += data.size(0)

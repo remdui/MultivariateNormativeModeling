@@ -50,6 +50,7 @@ class MLPDecoder(BaseDecoder):
 
         self.model = nn.Sequential(*layers)
         self.final_layer = nn.Linear(prev_dim, output_dim)
+        self.final_activation = self.get_final_activation_function()
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -63,4 +64,5 @@ class MLPDecoder(BaseDecoder):
         """
         x = self.model(x)
         x = self.final_layer(x)
+        x = self.final_activation(x)
         return x

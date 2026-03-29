@@ -16,6 +16,7 @@ def log_system_info() -> None:
     This function gathers relevant system information and logs it at the DEBUG level.
     """
     logger = LogManager.get_logger(__name__)
+    properties = Properties.get_instance()
 
     # Gather OS information
     os_info = "\n".join(
@@ -46,7 +47,7 @@ def log_system_info() -> None:
 
     # Gather GPU information
     gpu_info = "CUDA is not available. No GPU detected."
-    if torch.cuda.is_available():
+    if properties.system.device == "cuda" and torch.cuda.is_available():
         try:
             num_gpus = torch.cuda.device_count()
             gpu_details = [
@@ -86,7 +87,11 @@ def gpu_supported_by_triton_compiler() -> bool:
     properties = Properties.get_instance()
 
     # Ensure CUDA is available and selected as the primary device
-    if not torch.cuda.is_available() or properties.system.device != "cuda":
+    if properties.system.device != "cuda":
+        logger.info("CUDA is not selected as the compute device.")
+        return False
+
+    if not torch.cuda.is_available():
         logger.info("CUDA is either unavailable or not selected as the compute device.")
         return False
 

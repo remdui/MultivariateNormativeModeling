@@ -1,40 +1,67 @@
-# Byte-compiled / optimized / DLL files
+# Python bytecode / build artifacts
 __pycache__/
 *.py[cod]
 *.so
 build/
+dist/
 
-# Virtual environment
+# Virtual environments / IDE settings
+.venv/
 venv/
 .env/
-.idea
+.idea/
 
-# Tests
-tests/.hypothesis
-
-# Logs and models
-logs/*
-models/*
-data/*.csv
-data/hbn_*.rds
-data/genr_*.rds
-data/processed/*.h5
-data/processed/*.csv
-data/processed/*.json
-output/*
-experiments*/
-*.pkl
-*.csv
-*.rds
-
-# Jupyter Notebooks checkpoints
+# Tool caches / local test artifacts
+tests/.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .ipynb_checkpoints/
-
-# Misc
-.DS_Store
-
-# Data files
 .coverage
 
-# Python dependencies
-requirements.txt
+# Local configuration (track shared defaults only)
+config/*
+!config/.gitkeep
+!config/config_default.yml
+
+# Local data artifacts (never track user datasets)
+data/*
+!data/.gitkeep
+!data/processed/
+data/processed/*
+!data/processed/.gitkeep
+scripts/data/dummy/generated_data.csv
+
+# Local runtime outputs (track folder structure via .gitkeep only)
+logs/*
+!logs/.gitkeep
+
+models/*
+!models/.gitkeep
+!models/checkpoints/
+models/checkpoints/*
+!models/checkpoints/.gitkeep
+
+output/*
+!output/.gitkeep
+!output/reconstructions/
+output/reconstructions/*
+!output/reconstructions/.gitkeep
+!output/model/
+output/model/*
+!output/model/.gitkeep
+!output/visualizations/
+output/visualizations/*
+!output/visualizations/.gitkeep
+!output/model_arch/
+output/model_arch/*
+!output/model_arch/.gitkeep
+!output/metrics/
+output/metrics/*
+!output/metrics/.gitkeep
+
+experiments/*
+!experiments/.gitkeep
+
+# OS files
+.DS_Store
