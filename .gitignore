@@ -12,6 +12,7 @@ venv/
 .idea/
 
 # Tool caches / local test artifacts
+.cache/
 tests/.hypothesis/
 .pytest_cache/
 .mypy_cache/
