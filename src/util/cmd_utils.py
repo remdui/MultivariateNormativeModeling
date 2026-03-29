@@ -2,8 +2,6 @@
 
 import argparse
 
-from entities.log_manager import LogManager
-
 
 def parse_args() -> argparse.Namespace:
     """
@@ -32,8 +30,6 @@ def parse_args() -> argparse.Namespace:
         --debug: Enable debug mode.
         --skip-preprocessing: If set, skip the preprocessing stage.
     """
-    logger = LogManager.get_logger(__name__)
-
     parser = argparse.ArgumentParser(description="Run VAE Pipeline")
 
     # Required parameters
@@ -89,7 +85,4 @@ def parse_args() -> argparse.Namespace:
         help="Skip the preprocessing stage",
     )
 
-    args = parser.parse_args()
-    logger.info("Command line arguments parsed successfully.")
-
-    return args
+    return parser.parse_args()

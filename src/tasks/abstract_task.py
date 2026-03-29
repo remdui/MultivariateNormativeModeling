@@ -232,8 +232,7 @@ class AbstractTask(ABC):
             name for name in required_param_names if name not in accepted_kwargs
         ]
         has_positional_only_required = any(
-            param.kind is Parameter.POSITIONAL_ONLY
-            and param.default is Parameter.empty
+            param.kind is Parameter.POSITIONAL_ONLY and param.default is Parameter.empty
             for name, param in forward_signature.parameters.items()
             if name != "self"
         )
@@ -246,7 +245,8 @@ class AbstractTask(ABC):
             for name, param in forward_signature.parameters.items()
             if name != "self"
             and param.default is Parameter.empty
-            and param.kind in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
+            and param.kind
+            in (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
         )
 
         if required_positional_count <= 1:

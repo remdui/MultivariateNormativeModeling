@@ -1,5 +1,6 @@
 """Entry point for the application, handling initialization, configuration, and task execution."""
 
+import argparse
 import logging
 import time
 
@@ -27,9 +28,6 @@ TASK_MAP = {
     "experiment": ExperimentTask,
 }
 
-# Parse command-line arguments
-ARGS = parse_args()
-
 
 def setup_basic_logging() -> None:
     """
@@ -44,7 +42,7 @@ def setup_basic_logging() -> None:
     )
 
 
-def initialize_application() -> None:
+def initialize_application(args: argparse.Namespace) -> None:
     """
     Initializes the application by setting up configuration, properties, and logging.
 
@@ -62,7 +60,7 @@ def initialize_application() -> None:
         create_default_config()
 
         # Load and validate configuration
-        config_manager = ConfigManager(config_file=ARGS.config, command_line_args=ARGS)
+        config_manager = ConfigManager(config_file=args.config, command_line_args=args)
         config_manager.is_version_compatible()
         config_manager.validate_config()
 
@@ -74,7 +72,7 @@ def initialize_application() -> None:
 
         # Setup experiment directory
         experiment_manager = ExperimentManager.get_instance()
-        experiment_manager.set_config_path(ARGS.config)
+        experiment_manager.set_config_path(args.config)
 
         # Reconfigure logging with the loaded properties
         LogManager.reconfigure_logging()
@@ -90,14 +88,14 @@ def initialize_application() -> None:
         raise RuntimeError("Application initialization failed.") from e
 
 
-def log_application_info() -> None:
+def log_application_info(config_file: str) -> None:
     """Logs application metadata, system configuration, and environment details."""
     logger = LogManager.get_logger(__name__)
     properties = Properties.get_instance()
 
     logger.info(f"Application (v{properties.meta.version}) initialized successfully")
     logger.info(
-        f"Using configuration file: {ARGS.config} (v{properties.meta.config_version})"
+        f"Using configuration file: {config_file} (v{properties.meta.config_version})"
     )
     logger.info(f"Model/Experiment Name: {properties.meta.name}")
     logger.info(f"Description: {properties.meta.description}")
@@ -167,19 +165,20 @@ def main() -> None:
     """
     setup_basic_logging()
     logger = logging.getLogger(__name__)
+    args = parse_args()
 
     try:
         logger.info("Starting application...")
         total_start_time = time.time()
 
         # Step 1: Application Initialization
-        initialize_application()
+        initialize_application(args)
 
         # Step 2: Log application details
-        log_application_info()
+        log_application_info(args.config)
 
         # Step 3: Execute Preprocessing Pipeline
-        if not ARGS.skip_preprocessing:
+        if not args.skip_preprocessing:
             start_preprocessing_time = time.time()
             apply_preprocessing()
             logger.info(
@@ -189,14 +188,14 @@ def main() -> None:
             logger.info("Skipping preprocessing pipeline.")
 
         # Step 4: Run Selected Task
-        task_class = TASK_MAP.get(ARGS.mode)
+        task_class = TASK_MAP.get(args.mode)
         if not task_class:
-            logger.error(f"Invalid task mode specified: {ARGS.mode}")
+            logger.error(f"Invalid task mode specified: {args.mode}")
             raise ValueError(
-                f"Unsupported mode '{ARGS.mode}'. Available modes: {list(TASK_MAP.keys())}"
+                f"Unsupported mode '{args.mode}'. Available modes: {list(TASK_MAP.keys())}"
             )
 
-        logger.info(f"Executing task: {ARGS.mode}")
+        logger.info(f"Executing task: {args.mode}")
         run_task(task_class)
 
         total_runtime = time.time() - total_start_time

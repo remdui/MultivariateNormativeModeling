@@ -53,7 +53,7 @@ def log_system_info() -> None:
             gpu_details = [
                 f"  GPU {i}: {torch.cuda.get_device_name(i)}"
                 f" (Compute Capability: {torch.cuda.get_device_capability(i)})"
-                f" | Total Memory: {torch.cuda.get_device_properties(i).total_memory / (1024 ** 3):.2f} GB"
+                f" | Total Memory: {torch.cuda.get_device_properties(i).total_memory / (1024**3):.2f} GB"
                 for i in range(num_gpus)
             ]
             gpu_info = "CUDA is available. GPU Details:\n" + "\n".join(gpu_details)

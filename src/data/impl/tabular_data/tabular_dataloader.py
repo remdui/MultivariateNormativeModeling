@@ -46,9 +46,11 @@ class TabularDataloader(AbstractDataloader):
         self.covariates = self.properties.dataset.covariates
         self.skipped_covariates = self.properties.dataset.skipped_covariates
         self.targets = self.properties.dataset.targets
-        self.pin_memory = self.properties.dataset.pin_memory and str(
-            self.properties.system.device
-        ).startswith("cuda") and torch.cuda.is_available()
+        self.pin_memory = (
+            self.properties.dataset.pin_memory
+            and str(self.properties.system.device).startswith("cuda")
+            and torch.cuda.is_available()
+        )
         self.shuffle = self.properties.dataset.shuffle
         self.train_split = (
             self.properties.dataset.train_split

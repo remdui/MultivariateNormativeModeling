@@ -9,6 +9,7 @@ import logging
 import os
 from logging import Handler
 from logging.handlers import RotatingFileHandler
+from multiprocessing import current_process
 
 from entities.properties import Properties
 from util.errors import ConfigurationError
@@ -18,6 +19,7 @@ class LogManager:
     """Manages logging configuration based on application properties."""
 
     _logger_initialized = False
+    _fallback_notice_emitted = False
 
     @staticmethod
     def setup_logging() -> None:
@@ -80,9 +82,14 @@ class LogManager:
         except ConfigurationError:
             # If Properties are not yet initialized or any configuration error occurs,
             # fallback to a basic logging configuration.
-            logging.getLogger(__name__).warning(
-                "Properties have not been initialized. Using basic logging configuration temporarily."
-            )
+            if (
+                current_process().name == "MainProcess"
+                and not LogManager._fallback_notice_emitted
+            ):
+                logging.getLogger(__name__).debug(
+                    "Properties are not initialized yet. Using temporary basic logging."
+                )
+                LogManager._fallback_notice_emitted = True
             LogManager._logger_initialized = (
                 True  # Prevent further reconfiguration attempts.
             )

@@ -449,9 +449,7 @@ class TrainTask(AbstractTask):
         covariates = covariates.to(self.device)
 
         # Use autocast for mixed precision if enabled.
-        with autocast(
-            enabled=self.mixed_precision_enabled, device_type=self.device
-        ):
+        with autocast(enabled=self.mixed_precision_enabled, device_type=self.device):
             model_outputs = self.model(data, covariates)
             loss = self._compute_loss(
                 model_outputs=model_outputs,
