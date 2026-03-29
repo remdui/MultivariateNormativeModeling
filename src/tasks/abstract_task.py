@@ -39,6 +39,7 @@ class AbstractTask(ABC):
         self.logger = logger
         self.properties = Properties.get_instance()
         self.device = self.properties.system.device
+        self.mixed_precision_enabled = self.__resolve_mixed_precision_enabled()
         self.model: AbstractModel  # To be defined in __build_model
         self.experiment_manager = ExperimentManager.get_instance()
         self.task_name = "unset"
@@ -66,6 +67,22 @@ class AbstractTask(ABC):
             str: The task name.
         """
         return self.task_name
+
+    def __resolve_mixed_precision_enabled(self) -> bool:
+        """Resolve whether mixed precision can be enabled safely in the current runtime."""
+        if not self.properties.train.mixed_precision:
+            return False
+        if not str(self.device).startswith("cuda"):
+            self.logger.warning(
+                "Mixed precision was requested, but device is not CUDA. Disabling mixed precision."
+            )
+            return False
+        if not torch.cuda.is_available():
+            self.logger.warning(
+                "Mixed precision was requested, but CUDA is unavailable. Disabling mixed precision."
+            )
+            return False
+        return True
 
     def __setup_task(self) -> None:
         """Set up all components of the task."""

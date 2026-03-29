@@ -113,7 +113,7 @@ class ValidateTask(AbstractTask):
                 covariates = covariates.to(self.device)
 
                 with autocast(
-                    enabled=self.properties.train.mixed_precision,
+                    enabled=self.mixed_precision_enabled,
                     device_type=self.device,
                 ):
                     model_outputs = self.model(data, covariates)
@@ -208,8 +208,6 @@ class ValidateTask(AbstractTask):
                 + z_logvar_col_names
             )
 
-        print(len(all_columns))
-        print(all_columns)
         # Create a DataFrame to hold all information.
         df = pd.DataFrame(combined_data, columns=all_columns)
 
@@ -254,7 +252,7 @@ class ValidateTask(AbstractTask):
                 covariates = covariates.to(self.device)
 
                 with autocast(
-                    enabled=self.properties.train.mixed_precision,
+                    enabled=self.mixed_precision_enabled,
                     device_type=self.device,
                 ):
                     model_outputs = self.model(data, covariates)

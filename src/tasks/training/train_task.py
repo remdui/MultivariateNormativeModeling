@@ -112,12 +112,7 @@ class TrainTask(AbstractTask):
 
     def __setup_amp(self) -> None:
         """Initialize automatic mixed precision (AMP) for training."""
-        amp_enabled = (
-            self.properties.train.mixed_precision
-            and str(self.device).startswith("cuda")
-            and torch.cuda.is_available()
-        )
-        self.scaler = GradScaler(enabled=amp_enabled)
+        self.scaler = GradScaler(enabled=self.mixed_precision_enabled)
 
     def __initialize_weights(self) -> None:
         """
@@ -455,7 +450,7 @@ class TrainTask(AbstractTask):
 
         # Use autocast for mixed precision if enabled.
         with autocast(
-            enabled=self.properties.train.mixed_precision, device_type=self.device
+            enabled=self.mixed_precision_enabled, device_type=self.device
         ):
             model_outputs = self.model(data, covariates)
             loss = self._compute_loss(
@@ -472,7 +467,7 @@ class TrainTask(AbstractTask):
             loss = loss / self.properties.train.gradient_accumulation_steps
 
         # Backpropagate using mixed precision if enabled.
-        if self.properties.train.mixed_precision:
+        if self.mixed_precision_enabled:
             self.__backpropagate_with_mixed_precision(loss, step)
         else:
             self.__backpropagate(loss, step)
@@ -550,7 +545,7 @@ class TrainTask(AbstractTask):
                 data = data.to(self.device)
                 covariates = covariates.to(self.device)
                 with autocast(
-                    enabled=self.properties.train.mixed_precision,
+                    enabled=self.mixed_precision_enabled,
                     device_type=self.device,
                 ):
                     model_outputs = self.model(data, covariates)
@@ -571,7 +566,7 @@ class TrainTask(AbstractTask):
             self.logger.info(
                 f"Enabled cross-validation with {self.properties.train.cross_validation_folds} folds."
             )
-        if self.properties.train.mixed_precision:
+        if self.mixed_precision_enabled:
             self.logger.info("Enabled mixed precision training.")
         if self.properties.train.gradient_accumulation:
             self.logger.info(

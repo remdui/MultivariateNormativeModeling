@@ -204,7 +204,7 @@ class InferenceTask(AbstractTask):
         input_tensor = torch.tensor(z_score_input, dtype=torch.float32).to(self.device)
 
         with torch.no_grad(), autocast(
-            enabled=self.properties.train.mixed_precision, device_type=self.device
+            enabled=self.mixed_precision_enabled, device_type=self.device
         ):
             model_output = self.model(
                 input_tensor, None
