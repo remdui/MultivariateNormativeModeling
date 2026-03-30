@@ -102,7 +102,7 @@ class DatasetConfig(BaseModel):
     covariates: list[str] = []
     skipped_covariates: list[str] = []
     targets: list[str] = []
-    input_data: str = "generated_data.rds"
+    input_data: str = "your_dataset.csv"
     data_type: str = "tabular"
     image_type: str = "grayscale"
     internal_file_format: str = "hdf"
@@ -122,37 +122,12 @@ class DatasetConfig(BaseModel):
             name="EncodingTransform",
             type="preprocessing",
             params={
-                "default": "z-score",
-                "one_hot_encoding": ["site", "sex"],
-                "z-score": ["age"],
+                "default": "min-max",
+                "one_hot_encoding": [],
+                "z-score": [],
                 "min-max": [],
                 "raw": [],
             },
-        ),
-        TransformConfig(
-            name="SiteFilterTransform",
-            type="preprocessing",
-            params={"selected_site": -1, "col_name": "site"},
-        ),
-        TransformConfig(
-            name="WaveFilterTransform",
-            type="preprocessing",
-            params={"selected_wave": -1, "col_name": "wave"},
-        ),
-        TransformConfig(
-            name="AgeFilterTransform",
-            type="preprocessing",
-            params={"age_lowerbound": 0.0, "age_upperbound": 100.0, "col_name": "age"},
-        ),
-        TransformConfig(
-            name="SexFilterTransform",
-            type="preprocessing",
-            params={"sex": -1, "col_name": "sex"},
-        ),
-        TransformConfig(
-            name="SampleLimitTransform",
-            type="preprocessing",
-            params={"max_samples": 1000, "shuffle": True},
         ),
     ]
 
@@ -178,9 +153,25 @@ class MetaConfig(BaseModel):
     """Metadata configuration."""
 
     config_version: int = 2
-    description: str = "Variational Autoencoder design experiment setup"
+    description: str = "Multivariate normative modeling configuration"
     name: str = "vae_basic"
     version: int = 1
+
+
+class ExperimentMatrixConfig(BaseModel):
+    """Experiment sweep configuration used by experiment mode."""
+
+    embedding_methods: list[str] = []
+    latent_dims: list[int] = []
+    dataset_files: list[str] = []
+    repetitions: int = Field(default=1, ge=1)
+
+    @model_validator(mode="after")
+    def validate_latent_dims(self) -> "ExperimentMatrixConfig":
+        """Ensure configured latent dimensions are strictly positive."""
+        if any(latent_dim <= 0 for latent_dim in self.latent_dims):
+            raise ValueError("All experiment_matrix.latent_dims must be > 0.")
+        return self
 
 
 class ModelConfig(BaseModel):
@@ -221,6 +212,9 @@ class ModelConfig(BaseModel):
             #     },
             # },
         }
+    )
+    experiment_matrix: ExperimentMatrixConfig = Field(
+        default_factory=ExperimentMatrixConfig
     )
 
     # Model components

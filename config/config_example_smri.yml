@@ -1,0 +1,77 @@
+# Example-only sMRI configuration template.
+# This file is intentionally NOT runnable as-is because it references placeholder
+# data/model artifacts that are not part of this repository.
+
+meta:
+  name: smri_example_template
+  description: Example-only sMRI template (non-runnable placeholder values)
+
+dataset:
+  input_data: smri_example_dataset_not_in_repo.rds
+  unique_identifier_column: subject_id
+  row_data_leakage_columns:
+  - subject_id
+  skipped_columns:
+  - subject_id
+  - diagnosis
+  covariates:
+  - age
+  - sex
+  - site
+  - wave
+  enable_transforms: true
+  transforms:
+  - name: DataCleaningTransform
+    type: preprocessing
+    params:
+      drop_na: true
+      remove_duplicates: true
+  - name: EncodingTransform
+    type: preprocessing
+    params:
+      default: z-score
+      one_hot_encoding:
+      - sex
+      - site
+      - wave
+      z-score:
+      - age
+      min-max: []
+      raw: []
+  - name: SiteFilterTransform
+    type: preprocessing
+    params:
+      selected_site: -1
+      col_name: site
+  - name: WaveFilterTransform
+    type: preprocessing
+    params:
+      selected_wave: -1
+      col_name: wave
+  - name: AgeFilterTransform
+    type: preprocessing
+    params:
+      age_lowerbound: 6.0
+      age_upperbound: 25.0
+      col_name: age
+  - name: SexFilterTransform
+    type: preprocessing
+    params:
+      sex: -1
+      col_name: sex
+
+model:
+  components:
+    vae:
+      encoder: mlp
+      decoder: mlp
+      latent_dim: 16
+      covariate_embedding: fair_embedding
+
+train:
+  loss_function: mse_vae
+  batch_size: 64
+  epochs: 100
+
+validation:
+  model: smri_example_model_best.safetensors

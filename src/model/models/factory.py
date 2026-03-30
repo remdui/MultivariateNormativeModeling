@@ -1,5 +1,6 @@
 """Factory module for creating model architecture instances."""
 
+from inspect import Parameter, signature
 from typing import Any
 
 from model.models.abstract_model import AbstractModel
@@ -32,4 +33,17 @@ def get_model(model_type: str, *args: Any, **kwargs: Any) -> AbstractModel:
     model_class = _MODEL_MAPPING.get(model_type.lower())
     if model_class is None:
         raise ValueError(f"Unknown model type: {model_type}")
+
+    init_signature = signature(model_class.__init__)
+    accepts_var_kwargs = any(
+        parameter.kind == Parameter.VAR_KEYWORD
+        for parameter in init_signature.parameters.values()
+    )
+    if not accepts_var_kwargs:
+        kwargs = {
+            key: value
+            for key, value in kwargs.items()
+            if key in init_signature.parameters
+        }
+
     return model_class(*args, **kwargs)

@@ -38,7 +38,7 @@ def extract_config(section_class: type) -> dict:
     return instance.model_dump()
 
 
-def create_default_config() -> None:
+def create_default_config(force: bool = False) -> None:
     """
     Generate a default configuration YAML file based on the defined schema.
 
@@ -47,7 +47,11 @@ def create_default_config() -> None:
     combined configuration to a default YAML file located at:
         './config/config_default.yml'
 
-    The configuration directory is created if it does not already exist.
+    The configuration directory is created if it does not already exist. By default,
+    an existing config file is preserved unless ``force=True`` is passed.
+
+    Args:
+        force (bool): If True, overwrite an existing default config file.
 
     Raises:
         OSError: If there is an issue creating the directory or writing the file.
@@ -57,6 +61,12 @@ def create_default_config() -> None:
     # Ensure the configuration directory exists.
     os.makedirs(CONFIG_DIR, exist_ok=True)
     logger.info("Ensured config directory exists")
+
+    if os.path.exists(CONFIG_DEFAULT_FILE) and not force:
+        logger.info(
+            f"Default configuration file already exists; leaving unchanged: {CONFIG_DEFAULT_FILE}"
+        )
+        return
 
     # Aggregate configuration sections.
     default_config = {
@@ -74,6 +84,4 @@ def create_default_config() -> None:
     with open(CONFIG_DEFAULT_FILE, "w", encoding="utf-8") as file:
         yaml.safe_dump(default_config, file, sort_keys=False)
 
-    logger.info(
-        f"Generated default configuration file from schema: {CONFIG_DEFAULT_FILE}"
-    )
+    logger.info(f"Generated configuration file from schema: {CONFIG_DEFAULT_FILE}")

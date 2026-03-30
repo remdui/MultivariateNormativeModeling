@@ -91,17 +91,17 @@ class TuningTask(AbstractTask):
 
         # Reset experiment environment for a clean trial.
         self.experiment_manager.clear_output_directory()
+        self.experiment_manager.create_experiment_group_identifier(str(trial_id))
         self.experiment_manager.create_new_experiment(self.task_name)
-        self.experiment_manager.add_experiment_group_identifier(str(trial_id))
 
         self.logger.info(f"Starting trial {trial_id}.")
         start_time = time.time()
 
         # Define fixed number of epochs for each trial.
-        epochs = 500
+        epochs = self.properties.train.epochs
 
         # Hyperparameter suggestions.
-        latent_dim = 5
+        latent_dim = int(self.properties.model.components["vae"].get("latent_dim", 5))
         batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128])
 
         dropout = trial.suggest_categorical("dropout", [False, True])
@@ -177,11 +177,13 @@ class TuningTask(AbstractTask):
             self.logger.info(
                 f"Trial {trial_id} pruned at val_loss={val_loss:.4f}, runtime={runtime:.2f} seconds."
             )
+            self.experiment_manager.clear_experiment_group_identifier()
             raise optuna.TrialPruned()
 
         self.logger.info(
             f"Trial {trial_id} completed. Val_loss={val_loss:.4f}, runtime={runtime:.2f} seconds."
         )
+        self.experiment_manager.clear_experiment_group_identifier()
         return val_loss
 
     def get_task_name(self) -> str:

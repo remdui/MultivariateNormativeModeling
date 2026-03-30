@@ -68,6 +68,10 @@ class AbstractTask(ABC):
         """
         return self.task_name
 
+    def rebuild_task_components(self) -> None:
+        """Rebuild dataloader, dimensions, model, and loss after runtime config changes."""
+        self.__setup_task()
+
     def __resolve_mixed_precision_enabled(self) -> bool:
         """Resolve whether mixed precision can be enabled safely in the current runtime."""
         if not self.properties.train.mixed_precision:
@@ -117,12 +121,15 @@ class AbstractTask(ABC):
 
     def __build_model(self) -> None:
         """Build and initialize the model based on the configuration."""
+        encoded_covariate_labels = self.dataloader.get_encoded_covariate_labels()
+
         # Get the model using the factory
         model = get_model(
             self.properties.model.architecture,
             self.input_dim,
             self.output_dim,
-            len(self.dataloader.get_encoded_covariate_labels()),
+            len(encoded_covariate_labels),
+            covariate_labels=encoded_covariate_labels,
         )
         model = model.to(self.device)
 

@@ -14,7 +14,7 @@ DEFAULT_CONFIG_FILE = "config_default.yml"
 @pytest.fixture(scope="session", autouse=True)
 def setup_default_config():
     """Ensures the default config file is created before tests run."""
-    create_default_config()
+    create_default_config(force=True)
 
 
 def test_load_default_config_sections():

@@ -1,0 +1,77 @@
+# Example experiment configuration (customizable template).
+# This file is intended as a reference and uses placeholder dataset names.
+
+meta:
+  name: experiment_site_sweep_template
+  description: Example of a custom experiment sweep over embeddings, latent dims, and site-specific datasets
+
+dataset:
+  input_data: site_dataset_0_site_0.rds
+  covariates:
+  - age
+  - sex
+  - site
+  enable_transforms: true
+  transforms:
+  - name: DataCleaningTransform
+    type: preprocessing
+    params:
+      drop_na: true
+      remove_duplicates: true
+  - name: EncodingTransform
+    type: preprocessing
+    params:
+      default: z-score
+      one_hot_encoding:
+      - sex
+      - site
+      z-score:
+      - age
+      min-max: []
+      raw: []
+
+model:
+  architecture: vae
+  components:
+    vae:
+      encoder: mlp
+      decoder: mlp
+      covariate_embedding: no_embedding
+      latent_dim: 8
+  # Custom experiment sweep keys used by `--mode experiment`.
+  # This setup is similar to the previous thesis sweep, but fully config-driven.
+  experiment_matrix:
+    embedding_methods:
+    - no_embedding
+    - encoderdecoder_embedding
+    - fair_embedding
+    latent_dims:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 8
+    - 12
+    - 16
+    # Previous setup equivalent: explicit per-file list (site x repetition),
+    # and `repetitions: 1`.
+    dataset_files:
+    - site_dataset_0_site_0.rds
+    - site_dataset_0_site_1.rds
+    - site_dataset_0_site_2.rds
+    - site_dataset_1_site_0.rds
+    - site_dataset_1_site_1.rds
+    - site_dataset_1_site_2.rds
+    - site_dataset_2_site_0.rds
+    - site_dataset_2_site_1.rds
+    - site_dataset_2_site_2.rds
+    repetitions: 1
+
+train:
+  loss_function: mse_vae
+  batch_size: 64
+  epochs: 100
+
+validation:
+  model: your_model_best.safetensors

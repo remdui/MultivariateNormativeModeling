@@ -13,7 +13,7 @@ general:
   verbose: false
 meta:
   config_version: 2
-  description: Variational Autoencoder design experiment setup
+  description: Multivariate normative modeling configuration
   name: vae_basic
   version: 1
 dataset:
@@ -23,7 +23,7 @@ dataset:
   covariates: []
   skipped_covariates: []
   targets: []
-  input_data: generated_data.rds
+  input_data: your_dataset.csv
   data_type: tabular
   image_type: grayscale
   internal_file_format: hdf
@@ -42,40 +42,11 @@ dataset:
   - name: EncodingTransform
     type: preprocessing
     params:
-      default: z-score
-      one_hot_encoding:
-      - site
-      - sex
-      z-score:
-      - age
+      default: min-max
+      one_hot_encoding: []
+      z-score: []
       min-max: []
       raw: []
-  - name: SiteFilterTransform
-    type: preprocessing
-    params:
-      selected_site: -1
-      col_name: site
-  - name: WaveFilterTransform
-    type: preprocessing
-    params:
-      selected_wave: -1
-      col_name: wave
-  - name: AgeFilterTransform
-    type: preprocessing
-    params:
-      age_lowerbound: 0.0
-      age_upperbound: 100.0
-      col_name: age
-  - name: SexFilterTransform
-    type: preprocessing
-    params:
-      sex: -1
-      col_name: sex
-  - name: SampleLimitTransform
-    type: preprocessing
-    params:
-      max_samples: 1000
-      shuffle: true
 data_analysis:
   features:
     reconstruction_mse: true
@@ -388,6 +359,11 @@ model:
       decoder: mlp
       latent_dim: 32
       covariate_embedding: no_embedding
+  experiment_matrix:
+    embedding_methods: []
+    latent_dims: []
+    dataset_files: []
+    repetitions: 1
   hidden_layers:
   - 1024
   - 512

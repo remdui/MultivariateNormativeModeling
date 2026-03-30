@@ -2,6 +2,8 @@
 
 import random
 import time
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 import optuna
@@ -17,58 +19,80 @@ from tasks.validation.validate_task import ValidateTask
 
 
 class ExperimentTask(AbstractTask):
-    """
-    ExperimentTask runs a series of experiments across different embedding methods.
-
-    and latent dimensions with repetitions.
-
-    The task interleaves execution across embedding methods for faster diversity of results.
-    """
+    """Run structured experiments over embedding methods, latent dimensions, and datasets."""
 
     def __init__(self) -> None:
-        """Initialize the ExperimentTask with a logger and set the task name."""
+        """Initialize the ExperimentTask with generic, config-driven settings."""
         super().__init__(LogManager.get_logger(__name__))
         self.logger.info("Initializing ExperimentTask.")
         self.task_name = "experiment"
 
-        # Define embedding techniques to test
-        self.embedding_methods = [
-            "no_embedding",
-            "encoderdecoder_embedding",
-            "fair_embedding",
-            "harmonized",
-        ]
+        architecture = self.properties.model.architecture
+        model_cfg = self.properties.model.components.get(architecture, {})
+        matrix_cfg = self.properties.model.experiment_matrix
+        default_embedding = model_cfg.get("covariate_embedding", "no_embedding")
+        default_latent_dim = model_cfg.get("latent_dim", 32)
+        embedding_source = matrix_cfg.embedding_methods
+        latent_source = matrix_cfg.latent_dims
+        dataset_source = matrix_cfg.dataset_files
+        repetitions_source = matrix_cfg.repetitions
 
-        self.dataset_basename = "site_dataset_"
-        self.dataset_ext = ".rds"
-        self.haromized_prefix = "harmonized_"
+        self.embedding_methods = self.__as_str_list(
+            embedding_source, fallback=[default_embedding]
+        )
+        self.latent_dim_values = self.__as_int_list(
+            latent_source, fallback=[default_latent_dim]
+        )
+        self.dataset_variants = self.__as_str_list(
+            dataset_source,
+            fallback=[self.properties.dataset.input_data],
+        )
+        self.num_repetitions = max(1, int(repetitions_source))
 
-        self.sites = [0, 1, 2]
-
-        # Define latent dimension values to test
-        self.latent_dim_values = [1, 2, 3, 4, 5, 8, 12, 16]
-        # Number of repetitions per experiment setting
-        self.num_repetitions = 3  # Change as needed
-
+        self.initial_base_seed = self.properties.general.seed
+        self.seed = self.initial_base_seed
         self.experiment_manager.clear_output_directory()
-        self.embed_method: str = ""
-        self.trial_offset = 0
-        self.rep_offset = 0
-        # Base seed for the first repetition
-        self.base_seed = 42
-        # Keep the initial base seed to compute offsets per repetition
-        self.initial_base_seed = self.base_seed
-        self.seed = -1
 
-    def set_seed_for_run(self, i: int, next_embed_method: str) -> None:
-        """Set the seed for the i-th run, resetting per embedding method."""
-        # Reset to base_seed when moving to a new embedding method
-        if self.seed != self.base_seed and next_embed_method != self.embed_method:
-            self.seed = self.base_seed
+        self.logger.info(
+            "Experiment settings | embeddings=%s | latent_dims=%s | datasets=%s | repetitions=%d",
+            self.embedding_methods,
+            self.latent_dim_values,
+            self.dataset_variants,
+            self.num_repetitions,
+        )
 
-        # Increment seed for each run
-        seed = self.seed + 1
-        print(f"Run {i}: Using seed {seed}")
+    @staticmethod
+    def __as_str_list(value: Any, fallback: list[str]) -> list[str]:
+        """Coerce a config value into a non-empty list of strings."""
+        if isinstance(value, str):
+            parsed = [value]
+        elif isinstance(value, (list, tuple, set)):
+            parsed = [str(item) for item in value if str(item).strip()]
+        else:
+            parsed = []
+        unique_values = list(dict.fromkeys(parsed))
+        return unique_values or fallback
+
+    @staticmethod
+    def __as_int_list(value: Any, fallback: list[int | str]) -> list[int]:
+        """Coerce a config value into a non-empty list of integers."""
+        parsed: list[int] = []
+        source_values = value if isinstance(value, (list, tuple, set)) else [value]
+
+        for item in source_values:
+            try:
+                if item is not None:
+                    parsed.append(int(item))
+            except (TypeError, ValueError):
+                continue
+
+        if not parsed:
+            parsed = [int(item) for item in fallback]
+
+        return list(dict.fromkeys(parsed))
+
+    def set_seed_for_run(self, seed: int) -> None:
+        """Set random seed for Python, NumPy, and PyTorch for one experiment run."""
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
@@ -80,115 +104,120 @@ class ExperimentTask(AbstractTask):
 
     def run(self) -> TaskResult:
         """
-        Execute the experiment by running structured trials across embedding methods,.
-
-        latent dimensions, and repetitions.
-
-        Uses Optuna to track and manage the search space.
+        Execute structured experiments.
 
         Returns:
-            TaskResult: A result object containing the best hyperparameters and corresponding validation loss.
+            TaskResult: Best trial parameters and corresponding validation loss.
         """
-        self.logger.info("Starting structured Experiment.")
+        self.logger.info("Starting structured experiment.")
 
-        # Create Optuna study for tracking trials
         study = optuna.create_study(
             direction="minimize", sampler=TPESampler(seed=self.properties.general.seed)
         )
 
-        # Create experiment settings by interleaving embedding methods, latent dims, and repetitions
-        experiment_settings = []
+        experiment_settings: list[tuple[str, int, int, str]] = []
         for rep in range(self.num_repetitions):
             for embed in self.embedding_methods:
                 for latent_dim in self.latent_dim_values:
-                    for site in self.sites:
-                        experiment_settings.append((embed, latent_dim, rep, site))
+                    for dataset_file in self.dataset_variants:
+                        experiment_settings.append(
+                            (embed, latent_dim, rep, dataset_file)
+                        )
 
-        # Run structured trials in the interleaved order
         study.optimize(
             lambda trial: self.objective(trial, experiment_settings),
             n_trials=len(experiment_settings),
         )
 
-        # Log best trial information
         self.logger.info("Experiments completed.")
         self.logger.info(f"Best trial parameters: {study.best_trial.params}")
         self.logger.info(f"Best trial value (val_loss): {study.best_trial.value:.4f}")
 
-        # Store best trial results
         results = TaskResult()
         results["best_params"] = study.best_trial.params
         results["best_val_loss"] = study.best_trial.value
-
         return results
 
-    def objective(self, trial: optuna.Trial, experiment_settings: list) -> float:
-        """Task objective."""
-        trial_id = trial.number + self.trial_offset
-        embed_method, latent_dim, rep, site = experiment_settings[trial.number]
+    def objective(
+        self, trial: optuna.Trial, experiment_settings: list[tuple[str, int, int, str]]
+    ) -> float:
+        """Run one configured experiment setting and return validation loss."""
+        trial_id = trial.number
+        embed_method, latent_dim, rep, dataset_file = experiment_settings[trial.number]
 
-        # shift seed range per repetition
-        self.base_seed = self.initial_base_seed + rep * len(self.latent_dim_values)
-        self.set_seed_for_run(trial_id, embed_method)
-        self.embed_method = embed_method
+        seed = self.initial_base_seed + trial_id
+        self.set_seed_for_run(seed)
 
-        # figure out which embedding to actually use in the model, and which dataset prefix
-        if embed_method == "harmonized":
-            actual_embed = "no_embedding"
-            dataset_prefix = self.haromized_prefix + self.dataset_basename
-        else:
-            actual_embed = embed_method
-            dataset_prefix = self.dataset_basename
-
-        # e.g. "site_dataset_1_site_0.rds" or "harmonized_site_dataset_3_site_2.rds"
-        filename = f"{dataset_prefix}{rep}_site_{site}{self.dataset_ext}"
-
-        # set up the experiment folder name
-        rep_display = rep + self.rep_offset
+        dataset_tag = Path(dataset_file).stem.replace("_", "-")
         embed_tag = embed_method.replace("_", "")
+
         self.experiment_manager.clear_output_directory()
         self.experiment_manager.create_experiment_group_identifier(
             f"{trial_id}_embed-{embed_tag}_dim-{latent_dim}"
-            f"_rep-{rep_display}_seed-{self.seed}_testsite-{site}"
+            f"_rep-{rep}_seed-{seed}_dataset-{dataset_tag}"
         )
 
-        # update model config & dataset path in Properties
         props = Properties.get_instance()
         model_cfg = props.model.components.get(props.model.architecture, {})
-        model_cfg["covariate_embedding"] = actual_embed
+        model_cfg["covariate_embedding"] = embed_method
         model_cfg["latent_dim"] = latent_dim
         props.model.components[props.model.architecture] = model_cfg
 
-        props.general.seed = self.seed
-        props.dataset.input_data = filename
+        props.general.seed = seed
+        props.dataset.input_data = dataset_file
         Properties.overwrite_instance(props)
 
-        self.__setup_task()
+        self.rebuild_task_components()
 
         start_time = time.time()
-        # Run training task
         train_task = TrainTask()
         train_results = train_task.run()
 
-        # Run validation task
         val_task = ValidateTask()
         test_results = val_task.run()
 
-        # Extract key metrics
-        val_loss = train_results["reconstruction_loss"]["val_loss"]
+        val_loss = self.__extract_val_loss(train_results)
         test_loss_r2 = test_results["recon_r2"]
         test_loss_mse = test_results["recon_mse"]
         runtime = time.time() - start_time
 
         self.logger.info(
-            f"Completed trial {trial_id} | Embedding = {embed_method} | Latent Dim = {latent_dim} | Repetition = {rep} | Site = {site}"
+            "Completed trial %d | embedding=%s | latent_dim=%d | repetition=%d | dataset=%s",
+            trial_id,
+            embed_method,
+            latent_dim,
+            rep,
+            dataset_file,
         )
         self.logger.info(
-            f"| Val Loss = {val_loss:.4f} | Test R2 = {test_loss_r2:.4f} | Test MSE = {test_loss_mse:.4f}"
+            "Metrics | val_loss=%.4f | test_r2=%.4f | test_mse=%.4f | runtime=%.2f sec",
+            val_loss,
+            test_loss_r2,
+            test_loss_mse,
+            runtime,
         )
-        self.logger.info(f"| Runtime = {runtime:.2f} sec")
         self.experiment_manager.clear_experiment_group_identifier()
         return val_loss
+
+    @staticmethod
+    def __extract_val_loss(train_results: TaskResult) -> float:
+        """Extract validation loss from standard or cross-validation training results."""
+        result_data = train_results.get_data()
+        reconstruction_loss = result_data.get("reconstruction_loss")
+        if reconstruction_loss and "val_loss" in reconstruction_loss:
+            return float(reconstruction_loss["val_loss"])
+
+        fold_losses = [
+            float(value["val_loss"])
+            for key, value in result_data.items()
+            if key.startswith("reconstruction_loss_fold_")
+            and isinstance(value, dict)
+            and "val_loss" in value
+        ]
+        if fold_losses:
+            return float(np.mean(fold_losses))
+
+        raise ValueError("Validation loss not found in training results.")
 
     def get_task_name(self) -> str:
         """Retrieve the name of the task."""

@@ -111,8 +111,8 @@ docker run --rm \
 ### Arguments
 
 The `main.py` file accepts the following required arguments:
-- `--config`: Path to the configuration file. Default: `config/config_default.yml`.
-- `--mode`: Mode to run the project in. Options: `train`, `inference`, `validate`, `tune`. Default: `train`.
+- `--config`: Configuration filename located under `./config` (for example `config_default.yml` or `config.yml`).
+- `--mode`: Mode to run the project in. Options: `train`, `inference`, `validate`, `tune`, `experiment`.
 
 The `main.py` file accepts the following optional arguments:
 - `--checkpoint`: Path to a checkpoint to load.
@@ -151,22 +151,48 @@ To skip the preprocessing pipeline, use the `--skip-preprocessing` flag.
 
 ### Configuration
 
-The project configuration is defined in the `config` directory. The configuration file is in `YAML` format. The default configuration file is `config/config_default.yml`.
+The project configuration is defined in the `config` directory and uses `YAML`.
 
-**Important:** Copy this file to create a custom configuration. The default configuration will be **overwritten** each time the application is run.
+- `config/config_default.yml`: generic runtime defaults intended for new projects and new datasets.
+- `config/config_example_smri.yml`: a non-runnable example template showing an sMRI-oriented setup with placeholder paths.
+- `config/config_example_experiment.yml`: an experiment-sweep template showing how to define custom `experiment` mode runs.
+
+At startup, the app ensures `config/config_default.yml` exists. If it already exists, it is kept as-is (not overwritten).
+For your own run configs, create `config/config.yml` (or another filename in `./config`) and pass it with `--config`.
 
 The configuration file contains the following sections:
 
 - `dataset`: Configuration for the dataset.
 - `model`: Configuration for the model.
 - `train`: Configuration for the training process.
-- `inference`: Configuration for the inference process.
 - `validation`: Configuration for the validation process.
 - `meta`: Meta information for the project.
 - `general`: General configuration for the project.
 - `system`: System configuration for the project.
 
 The configuration is validated against the schema before a task is run. Missing values are filled with default values from the default configuration file.
+
+`experiment` mode is fully config-driven via `model.experiment_matrix`:
+
+```yaml
+model:
+  components:
+    vae:
+      covariate_embedding: no_embedding
+      latent_dim: 32
+  experiment_matrix:
+    embedding_methods: [no_embedding, fair_embedding]
+    latent_dims: [8, 16, 32]
+    dataset_files: [dataset_a.csv, dataset_b.csv]
+    repetitions: 3
+```
+
+For a concrete copy-paste example similar to the previous site-based setup, see `config/config_example_experiment.yml`.
+That example uses explicit dataset filenames (`site_dataset_<rep>_site_<site>.rds`) with `repetitions: 1`.
+
+To reproduce the old "harmonized" branch behavior, run a second experiment config where:
+- `model.experiment_matrix.embedding_methods: [no_embedding]`
+- `model.experiment_matrix.dataset_files` contains only `harmonized_site_dataset_<rep>_site_<site>.rds` files.
 
 ### Output Files
 

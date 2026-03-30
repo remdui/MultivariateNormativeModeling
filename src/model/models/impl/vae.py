@@ -21,17 +21,25 @@ class VAE(AbstractModel):
     The encoder and decoder dimensions are configured by the embedding strategy.
     """
 
-    def __init__(self, input_dim: int, output_dim: int, cov_dim: int = 0):
+    def __init__(
+        self,
+        input_dim: int,
+        output_dim: int,
+        cov_dim: int = 0,
+        covariate_labels: list[str] | None = None,
+    ):
         """
         Initialize the VAE model.
 
         Args:
             input_dim (int): Dimension of the input data.
             output_dim (int): Dimension of the output data.
+            cov_dim (int): Number of encoded covariate columns.
+            covariate_labels (list[str] | None): Encoded covariate labels.
         """
         super().__init__(input_dim, output_dim)
         self.logger = LogManager.get_logger(__name__)
-        self.embedding_strategy = get_embedding_strategy(self)
+        self.embedding_strategy = get_embedding_strategy(self, covariate_labels)
         latent_dim = self.model_components.get("latent_dim")
 
         # Delegate dimension configuration to the strategy.

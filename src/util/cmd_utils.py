@@ -14,7 +14,7 @@ def parse_args() -> argparse.Namespace:
         argparse.Namespace: An object containing the parsed command line arguments.
 
     Command line arguments:
-        --mode: Action to perform; choices are "train", "validate", "inference", or "tune".
+        --mode: Action to perform; choices are "train", "validate", "inference", "tune", or "experiment".
         --config: Path to the configuration file.
         --device: Device to use (e.g., "cpu" or "cuda").
         --num_workers: Number of workers for data loading.

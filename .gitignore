@@ -24,6 +24,8 @@ tests/.hypothesis/
 config/*
 !config/.gitkeep
 !config/config_default.yml
+!config/config_example_smri.yml
+!config/config_example_experiment.yml
 
 # Local data artifacts (never track user datasets)
 data/*
