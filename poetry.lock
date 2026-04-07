@@ -4676,20 +4676,20 @@ torch = ["safetensors[numpy]", "torch (>=1.10)"]
 
 [[package]]
 name = "salib"
-version = "1.5.1"
+version = "1.5.2"
 description = "Tools for global sensitivity analysis. Contains Sobol', Morris, FAST, DGSM, PAWN, HDMR, Moment Independent and fractional factorial methods"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "salib-1.5.1-py3-none-any.whl", hash = "sha256:a978b619c5a93eb14dd8c527f12e22d354b02f1f7143aba3cb84c1c7bc1382e5"},
-    {file = "salib-1.5.1.tar.gz", hash = "sha256:e4a9c319b8dd02995a8dc983f57c452cb7e5b6dbd43e7b7856c90cb6a332bb5f"},
+    {file = "salib-1.5.2-py3-none-any.whl", hash = "sha256:6f4b6bebc1eeed1d081c8f951fa8c2ad7b0cd8a7159d206af48ef137cc806c43"},
+    {file = "salib-1.5.2.tar.gz", hash = "sha256:a8eeedc4e87cf070f7ef450b76cdecd120d1e5c602a9c35855ec7777591f949f"},
 ]
 
 [package.dependencies]
 matplotlib = ">=3.5"
 multiprocess = "*"
-numpy = ">=1.20.3"
+numpy = ">=2.0"
 pandas = ">=2.0"
 scipy = ">=1.9.3"
 
@@ -6052,4 +6052,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "76c5ef50baeab0a28075d20368b0bb2f83494f1c83c19d1275352403a9f3ef3d"
+content-hash = "a85d3c7f3e5861faa7a22f5e0c0348283b69a25ac3c034c01f8aecea6f2ea1ac"
