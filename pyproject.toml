@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "MNM-Kit"
-version = "1.0.0"
+version = "2.0.0"
 description = "Multivariate Normative Modeling Kit"
 authors = ["remdui <remyduijsens@gmail.com>"]
 license = "MIT"
