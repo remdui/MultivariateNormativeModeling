@@ -13,7 +13,7 @@ python = ">=3.10,<3.12"
 torch = "2.11.0" # deep learning library
 pandas = "2.2.3" # data manipulation library
 numpy = "2.0.2" # numerical computing library
-scipy = "1.14.1" # scientific computing library
+scipy = "1.15.3" # scientific computing library
 scikit-learn = "1.7.2" # machine learning library
 PyYAML = "6.0.2" # YAML parser
 types-PyYAML = "6.0.12.20250516" # type hints for PyYAML
