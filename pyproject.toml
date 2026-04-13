@@ -59,7 +59,7 @@ ruff = "0.12.5" # linting
 autoflake = "2.3.3" # remove unused imports
 pyupgrade = "3.21.2" # upgrade syntax to newer versions
 pre-commit = "4.5.1" # pre-commit hooks
-bandit = "1.7.10" # security linter
+bandit = "1.9.4" # security linter
 radon = "6.0.1" # code metrics (human)
 xenon = "0.9.3" # code metrics (machine)
 
