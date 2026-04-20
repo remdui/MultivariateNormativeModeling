@@ -65,7 +65,7 @@ xenon = "0.9.3" # code metrics (machine)
 
 [tool.poetry.group.test.dependencies]
 pytest = "9.0.3" # unit testing
-pytest-cov = "6.0.0" # wrapper for coverage
+pytest-cov = "7.1.0" # wrapper for coverage
 pytest-mock = "3.14.0" # mock library for pytest
 hypothesis = "6.136.3" # property based testing
 
