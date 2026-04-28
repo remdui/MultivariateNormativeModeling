@@ -5457,15 +5457,21 @@ pyyaml = ["pyyaml"]
 
 [[package]]
 name = "torchview"
-version = "0.2.6"
+version = "0.2.7"
 description = "Visualization of Pytorch Models"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "torchview-0.2.6-py3-none-any.whl", hash = "sha256:e1a1fa9821b8f9dd88d59c029d6c9762c56ae1ac13b201bfbe377e138a669bfb"},
-    {file = "torchview-0.2.6.tar.gz", hash = "sha256:9db17f345321a991b756b985a6142f4d86af9f27e4235e2b1c909ce27553bfc9"},
+    {file = "torchview-0.2.7-py3-none-any.whl", hash = "sha256:c7f3a9d16138c20b606900ecbf46d01489f2b8c77ed97e71293883bc606c2be0"},
+    {file = "torchview-0.2.7.tar.gz", hash = "sha256:c5898fd03d256333c9827000c1f83e1052fbcfc1066032d86b30d429dd942f7c"},
 ]
+
+[package.dependencies]
+graphviz = "*"
+
+[package.extras]
+dev = ["black", "codecov", "isort", "mdformat", "mdformat-mkdocs", "mkdocs", "mkdocs-gen-files", "mkdocs-material", "mkdocs-redirects", "mkdocstrings", "mkdocstrings-python", "mypy", "packaging", "pre-commit", "pycln", "pylint", "pytest", "pytest-cov", "ruff (==0.0.246)"]
 
 [[package]]
 name = "torchvision"
@@ -6130,4 +6136,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "06c48fe211944f8b0c90d170f44a811c68f001b09eb799e8862b18f83caed089"
+content-hash = "8ec4401398c2cea049ae73e1da5cbb65be4430a30b80fb24cec49fedecc84bac"
