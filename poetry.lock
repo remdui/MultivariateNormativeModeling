@@ -4294,38 +4294,38 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyreadr"
-version = "0.5.4"
+version = "0.5.6"
 description = "Reads/writes R RData and Rds files into/from pandas data frames."
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "pyreadr-0.5.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:9feb78c82641b57e33f6459362249d7e8db9b185e8596438708551ed9fe3a607"},
-    {file = "pyreadr-0.5.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:5aaa7f25448698eb8a871b725477baf3b02bb05ceaad9a9208f0b03c821652c3"},
-    {file = "pyreadr-0.5.4-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:79f0a72045ef8040b09578038a4aacb094b6f6a337e82e1e5c15424e7118bbb2"},
-    {file = "pyreadr-0.5.4-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:943d8c6ecc70ccb86c7a9ec3b659dc65886ee9a630543443b656474a03431552"},
-    {file = "pyreadr-0.5.4-cp310-cp310-win_amd64.whl", hash = "sha256:faa5be4ec11a96bc5d8855ce46398fcb66990e0866058b24d7d0ad95e85912c3"},
-    {file = "pyreadr-0.5.4-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:3e5aad55a467d05de870992c37657ef40fb5a241a831a0c5d403a128d5ad849e"},
-    {file = "pyreadr-0.5.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:16248c594dd23da8f651315972541b502f49bdd83e293fe3c863abe27e89c3fe"},
-    {file = "pyreadr-0.5.4-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fe6445586cdd362a1f955b40f261631339c7152dc1f7d8aa246b4b3f22829994"},
-    {file = "pyreadr-0.5.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:1b983d8a4bc8033e448ea7bcef596afd791a3bb9bfaa631b51d3e2121b286f2f"},
-    {file = "pyreadr-0.5.4-cp311-cp311-win_amd64.whl", hash = "sha256:8d745b0d501359c7172ee7df8080a2081015b4b636975d52baabbd42c2012638"},
-    {file = "pyreadr-0.5.4-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:cae7b1588f2693c5bf6f4bc8b4dcffb87cdb184e38139fc587eb8519ed4e14b4"},
-    {file = "pyreadr-0.5.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:f8698fb9c7f282a5b74f0c688f41830fde37cb1e2ff924dc8e5c94b16be6c0e4"},
-    {file = "pyreadr-0.5.4-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ada87f4c33267babf3f974d7e8a74d01b38c23f16441375323f9d7378abd3b6e"},
-    {file = "pyreadr-0.5.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:5faf24517615bb8d30e7cc8a684a562f66496e415348823bf1f5f9fff7a39607"},
-    {file = "pyreadr-0.5.4-cp312-cp312-win_amd64.whl", hash = "sha256:d0a5251cb2c36a7c72fffc689789d16d7d9f25ed28bd01e1ab35fc4ef66ef642"},
-    {file = "pyreadr-0.5.4-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:9390ca0cdb99bc72d3125bbb28bf36a31d1ba8cd07d7512cd522e5630656e5be"},
-    {file = "pyreadr-0.5.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:53410aef1b517e814aedfc6f6dc25d5c6ff9ed07961971f5c7ef83e96846d1e7"},
-    {file = "pyreadr-0.5.4-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:63fd4db6b279b9dd909d333fe441d001a5d199558aadf75b3e69d22027815fc7"},
-    {file = "pyreadr-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:6564c003792c281ae49739f1938a146708640aacb7f97b04c7b47d6f86467f7a"},
-    {file = "pyreadr-0.5.4-cp313-cp313-win_amd64.whl", hash = "sha256:ea541cc5248e0792a93caa1d79aea83a52561a8de72bb01a395c28bf352c4c6c"},
-    {file = "pyreadr-0.5.4-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:4bd6c2a12ffa9e71c34ec6732f1ef811217d81a97ac644ad90d6b36ef0ac48ba"},
-    {file = "pyreadr-0.5.4-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:9af6b4bffbf17bdf9b8b6bf06d1e217d1ab791d9b42450bd4753e294fb414c94"},
-    {file = "pyreadr-0.5.4-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:54292e3745533d267a856394c4d019330219f36e838898c9b387da05bb99a220"},
-    {file = "pyreadr-0.5.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e247d2b69bfb636f7e1c15df7360829f7eff4af0736d2dc0c495747cb86c69ac"},
-    {file = "pyreadr-0.5.4-cp314-cp314-win_amd64.whl", hash = "sha256:730041e7f46fce79b40e54bdbbb7cd2bcb96951163d0962221b7a11b7c46157f"},
-    {file = "pyreadr-0.5.4.tar.gz", hash = "sha256:05b18cc830dceda3ef3d477bd8e50f072474e177f0cf67b6ad4fb3d7f3de11fd"},
+    {file = "pyreadr-0.5.6-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:97b0885cc41e437465b78b2d41ec574d98ac2733ccf52c6181f5a19186690906"},
+    {file = "pyreadr-0.5.6-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:6fdfc5071c1620e48a61a0ec42a5e08ea5d3b643cd892a474a26f09471d9a965"},
+    {file = "pyreadr-0.5.6-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:0d70ad2cfe2ad3684e9596cefebc328b88585a1f882d8fa8a364d73d456df120"},
+    {file = "pyreadr-0.5.6-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:586b816f0e9ea04246f9c632ddc3c20ac12e9bdd80d906275f53b7765a5524b8"},
+    {file = "pyreadr-0.5.6-cp310-cp310-win_amd64.whl", hash = "sha256:6a5935da52656b945ddfb46b5fb50102c763775d9bb2edbeaf9ef4cb4b186e5c"},
+    {file = "pyreadr-0.5.6-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:fd58ef8fdacd5d04543dc81e1168bc6e1812a1f0e46eb2b0cd85527000c754a0"},
+    {file = "pyreadr-0.5.6-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:7a0ebc7c4897ccff75b228f7c7a2414f8a31a4cb38aed070269a4565068ad709"},
+    {file = "pyreadr-0.5.6-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:0c583ec41ef03902e2f81f7d1c8a3a24a0e2ea25f45f7dd20ac1a01a8c72be31"},
+    {file = "pyreadr-0.5.6-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:09d41870a3c1f6df12352e25e800bedfa633d5bf2177381748a46e65ccd4cf8d"},
+    {file = "pyreadr-0.5.6-cp311-cp311-win_amd64.whl", hash = "sha256:cd2551051521cde33c491a6054d68dfd3a2dafa97b9909bbc1c63d95bd23d18a"},
+    {file = "pyreadr-0.5.6-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:abd86d9ad317e51e0b311f02c919cccb395979dca67b7f7641a605b1b0c39943"},
+    {file = "pyreadr-0.5.6-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:0fa4f4df894277b875245052bed1c2f58fa6bbf5a98d0adcf81ad5df9599822e"},
+    {file = "pyreadr-0.5.6-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fc5ef88115561aadb6243feaf36c129435eac72fd2fc2b9316cb32a31d5bbc23"},
+    {file = "pyreadr-0.5.6-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:62cb6f016aa1cf7849c268c7b01aa3e56712590dd8b4c8fe66e86a2f4de500a6"},
+    {file = "pyreadr-0.5.6-cp312-cp312-win_amd64.whl", hash = "sha256:7591ba29347b1865b14f335cc43040c4c898d28ae99e286611d81ea954d17b35"},
+    {file = "pyreadr-0.5.6-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:562589417ebb1a725ced106c678f4e60b94dbc6000d13cb48459def1d1b20e9e"},
+    {file = "pyreadr-0.5.6-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:557761ae5619d0e52e6150126089b2d522d6de8ca42c41703f4c35a838263c05"},
+    {file = "pyreadr-0.5.6-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f46888196bb74575ad41761d7e4968e94d9fe96a3cdcb9cf8f8ad38eeeec970b"},
+    {file = "pyreadr-0.5.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:cf81ef536234ba8ffa6553f478837d102014ace51c0879f35ac3be2cae35e212"},
+    {file = "pyreadr-0.5.6-cp313-cp313-win_amd64.whl", hash = "sha256:762097c0898c1340820b14d3f17c0bdce34c3b7d759cfd74191dcf700f01d19c"},
+    {file = "pyreadr-0.5.6-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:dbcad30c223abf3252cc0c0cec383dd197930a7f95791f5c46731b267c09b3a5"},
+    {file = "pyreadr-0.5.6-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:d5229b95f817a539dddf50fa6c59a8f9479bda6612e5289534754b0bdfde11d3"},
+    {file = "pyreadr-0.5.6-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2dd64f37ef53d25ac8b6f8129fa29c246718d39f35277f20a06dab1be23d0f31"},
+    {file = "pyreadr-0.5.6-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a35fcfd2343de5ef9afeff1cb127f5bbcc8088bc6281f0b4b18e04d3ad6aba3f"},
+    {file = "pyreadr-0.5.6-cp314-cp314-win_amd64.whl", hash = "sha256:0d22e6806cfd6bb67cd472e78e07ef3efd8e3d49b9a23bdc5174719e86fc17aa"},
+    {file = "pyreadr-0.5.6.tar.gz", hash = "sha256:ec10bef1798a4d9e91ff75ab69fbcd009a3fad2250c79f5377e19e787c949b8f"},
 ]
 
 [package.dependencies]
@@ -6156,4 +6156,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "a387e354f452aa1c33d2c37781c3b12dd892d863bc9b8e25e8ddf9382598b944"
+content-hash = "3fa10622d6bcd5d8c759fe4cb484569b9e86214de0291419a47401c38c98ce73"
