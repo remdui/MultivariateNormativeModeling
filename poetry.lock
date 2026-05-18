@@ -3557,14 +3557,14 @@ setuptools = "*"
 
 [[package]]
 name = "pcntoolkit"
-version = "0.33.0"
+version = "0.35.0"
 description = "Predictive Clinical Neuroscience Toolkit"
 optional = false
 python-versions = "<3.13,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pcntoolkit-0.33.0-py3-none-any.whl", hash = "sha256:783de0c682ec23c0d7ef3fd9fe0e2197341abe0acb7f22ef3f9739fa8c0c1ea9"},
-    {file = "pcntoolkit-0.33.0.tar.gz", hash = "sha256:4f4aab039ab505f460a6737fb0aed701a6cc5b261a5e6e1463c8103a904a60dd"},
+    {file = "pcntoolkit-0.35.0-py3-none-any.whl", hash = "sha256:50b33bb5649b7688c62fd2ca072d5b4f653433b4b26a0978f271aa66e43e0ed4"},
+    {file = "pcntoolkit-0.35.0.tar.gz", hash = "sha256:36e41d29f34d129660b5cc3c96c3d7499c8eb3f4e0b08542bd96ac83027a03f7"},
 ]
 
 [package.dependencies]
@@ -6157,4 +6157,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "c674ad4804f340ec622b2df8472d2ea165c0c4567e447a68b65ab5b4114efa50"
+content-hash = "8aefe910e10ea8c2813c1d88306ba6ff5eba21cb99da1f2bbb3cfd8162e47de8"
