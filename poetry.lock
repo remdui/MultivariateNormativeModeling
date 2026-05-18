@@ -3320,25 +3320,28 @@ files = [
 
 [[package]]
 name = "opentsne"
-version = "1.0.2"
+version = "1.0.4"
 description = "Extensible, parallel implementations of t-SNE"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "openTSNE-1.0.2-cp310-cp310-macosx_10_12_universal2.whl", hash = "sha256:c82a2c263e570c75256d58590f7c99273c8f8152fada2e3f36a3de92d165a483"},
-    {file = "openTSNE-1.0.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7a7270156cbabc249301cd30f6010387f618295ca68c50913c98b9dad8d9c682"},
-    {file = "openTSNE-1.0.2-cp310-cp310-win_amd64.whl", hash = "sha256:99c90695c95f09a100216532d1cb7ec24a6269dd005f1e835c1ca0d603d43542"},
-    {file = "openTSNE-1.0.2-cp311-cp311-macosx_10_12_universal2.whl", hash = "sha256:7882df123f210946d2806fb73feec3666e76eee2d6b6744893e14203e0641a38"},
-    {file = "openTSNE-1.0.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:949f694893fd4f803acb513bc2e3d80ef04b707166c28a469ca43033f52b8e1b"},
-    {file = "openTSNE-1.0.2-cp311-cp311-win_amd64.whl", hash = "sha256:6799cb38e560e50f5ea932be587ad3efd4cf62d5a55d28c3061ca3e2aee210ce"},
-    {file = "openTSNE-1.0.2-cp312-cp312-macosx_10_12_universal2.whl", hash = "sha256:0de8826568aa4f03658274edb393a5be031f771ea86f3493e91aecad27100c56"},
-    {file = "openTSNE-1.0.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:37f24d7d139bd466f00ae765120c3a8049ceddc1282e63d75e3406c3ac3b3783"},
-    {file = "openTSNE-1.0.2-cp312-cp312-win_amd64.whl", hash = "sha256:7f342ec51fe365cd1a23ad25e6a7b5417f8bd1bf4d71a5d526f42ad4c4b64114"},
-    {file = "openTSNE-1.0.2-cp39-cp39-macosx_10_12_universal2.whl", hash = "sha256:78d1122ce9233ba3e9de07825127b34b3f330665047f3e04c3914ee0e2b3fad2"},
-    {file = "openTSNE-1.0.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4e349d876a26f417326b0aa4e031f2ca5af167608538eaae2b5d2fbaabd353df"},
-    {file = "openTSNE-1.0.2-cp39-cp39-win_amd64.whl", hash = "sha256:8c927dc2b47560d06abab48a8cca0ddf388a9200a2d27fc197c786b15f644e7c"},
-    {file = "opentsne-1.0.2.tar.gz", hash = "sha256:e2aecaa7a487100246f2d3fef9855d1bd6cc02a1c6da8fb2a54583f307aa4229"},
+    {file = "opentsne-1.0.4-cp310-cp310-macosx_10_12_universal2.whl", hash = "sha256:b7923a4646dc2857668b600775cc8a44f6a9bf14f666e67c4d973d19cad1ff47"},
+    {file = "opentsne-1.0.4-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:5cb81cbcb40fb5f813e86c772197fee8a8a85e756ebe5b9f158614224d5cd616"},
+    {file = "opentsne-1.0.4-cp310-cp310-win_amd64.whl", hash = "sha256:f2c4670461372880ecddbe839245faab30f2472d3d42ca0c52c6e302d4b459fa"},
+    {file = "opentsne-1.0.4-cp311-cp311-macosx_10_12_universal2.whl", hash = "sha256:50819514cf229b50f9cd3dcd7680ad48aca70deecad40baa05db132af42254f5"},
+    {file = "opentsne-1.0.4-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:1563bbb017d1cfecc230ec1cc3adb33b3edf40f6b6444939645fe28611eb3853"},
+    {file = "opentsne-1.0.4-cp311-cp311-win_amd64.whl", hash = "sha256:c6b862eacf4387f8e790d9d3bf48e2e86e8135f9fbf8ea58db6e593c48950ced"},
+    {file = "opentsne-1.0.4-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:3787feeb58818569a5a8a09e12a63ba4dfc33bee89b221b530a11495c72d203c"},
+    {file = "opentsne-1.0.4-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:610626be6ff6062b96e1b122ff219fbeb34957578a0f0f420aa3cc3505ab3547"},
+    {file = "opentsne-1.0.4-cp312-cp312-win_amd64.whl", hash = "sha256:3a28e474804bf3b56ec6f2574eacaa3ffa5efc2dd30b642aa9907b31a982dcc1"},
+    {file = "opentsne-1.0.4-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:9c594f6224f6b4cf98988651aabe68e0ffd408822559f1450ee870f8e496a233"},
+    {file = "opentsne-1.0.4-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:0d3bd0e2bc9f557ce75ab4b19038480364a60fc9ffcd2362838ff854bc2a0331"},
+    {file = "opentsne-1.0.4-cp313-cp313-win_amd64.whl", hash = "sha256:f681ed5957e99af9500538384bfc15b50697f99c7cd057cfe8863d50248cc228"},
+    {file = "opentsne-1.0.4-cp314-cp314-macosx_10_15_universal2.whl", hash = "sha256:50fb43e2677490dc87355116a355fca09e86e9d4a45dd8cbcfcb01612c836295"},
+    {file = "opentsne-1.0.4-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:1f76202a0d46c4dad19555d12af94cffc95c66f654d4d104a51ff42fc4eacd0d"},
+    {file = "opentsne-1.0.4-cp314-cp314-win_amd64.whl", hash = "sha256:1676c4e16c62cdf2ce4e3c75a91dbd2572f7c814675e13d825be8559aecb3d7c"},
+    {file = "opentsne-1.0.4.tar.gz", hash = "sha256:e90bf612be94fcbe06e3cab9531a58e4824661f38dd7c2e934569820d15c82ab"},
 ]
 
 [package.dependencies]
@@ -6157,4 +6160,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "8aefe910e10ea8c2813c1d88306ba6ff5eba21cb99da1f2bbb3cfd8162e47de8"
+content-hash = "8bdf930e84ba6f3550b6d9227ffff338657a7ff491fc2c6671118eb9d7f57777"
