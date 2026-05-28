@@ -3750,14 +3750,14 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "poetry-core"
-version = "2.4.0"
+version = "2.4.1"
 description = "Poetry PEP 517 Build Backend"
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "poetry_core-2.4.0-py3-none-any.whl", hash = "sha256:4305848477da00272bebd3f615bbec87f64bd117cdb858ab660b626a06a9d96c"},
-    {file = "poetry_core-2.4.0.tar.gz", hash = "sha256:4e8c7496cf797998ffc493f2e23eba4b038c894c08eadacdcdf688945de6b43a"},
+    {file = "poetry_core-2.4.1-py3-none-any.whl", hash = "sha256:acf06f9537cd2625bdaec926d95d90b557ba15353bc71d27a3a8a441042b5316"},
+    {file = "poetry_core-2.4.1.tar.gz", hash = "sha256:89dceb6c10e9c6d8650a16183400e3c9ff9ddee13b0a81023b5575334a2b3744"},
 ]
 
 [[package]]
