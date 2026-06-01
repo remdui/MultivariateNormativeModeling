@@ -4247,14 +4247,14 @@ typing-extensions = ">=4.14.1"
 
 [[package]]
 name = "pydocstringformatter"
-version = "0.7.3"
+version = "0.7.5"
 description = "A tool to automatically format Python docstrings that tries to follow recommendations from PEP 8 and PEP 257."
 optional = false
 python-versions = ">=3.8"
 groups = ["dev"]
 files = [
-    {file = "pydocstringformatter-0.7.3-py3-none-any.whl", hash = "sha256:3654f52c49fc729b49712d1e7c49384dfd253bdffeda4939e79dab31491c563f"},
-    {file = "pydocstringformatter-0.7.3.tar.gz", hash = "sha256:dfcc07bec1706803d563275e282ef9e629b02dc19983ec6778d07a9f500bb62b"},
+    {file = "pydocstringformatter-0.7.5-py3-none-any.whl", hash = "sha256:7daed355f11244f64571d119e49e7328365ea9b545f88256a47b550f213d23eb"},
+    {file = "pydocstringformatter-0.7.5.tar.gz", hash = "sha256:e9cbd134d6279360fd2bcaad94680cec02aa20a22560375c5ffd495fcfbcf92d"},
 ]
 
 [package.dependencies]
@@ -6247,4 +6247,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "c76487ae86c96b1037d90328e7df03a55107b2e56753ed8b79506b99bc87a167"
+content-hash = "c27f5b4d78cbe1a129efa94a694c4db329f1cdcf0adb6f8d36236914cfd9e6c0"
